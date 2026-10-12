@@ -1,4 +1,5 @@
 import { createInertiaApp } from '@inertiajs/react';
+import { registerPwa } from '@/hooks/use-pwa';
 import { initializeTheme } from '@/hooks/use-theme';
 import AppLayout from '@/layouts/app-layout';
 import AuthLayout from '@/layouts/auth-layout';
@@ -26,3 +27,4 @@ void createInertiaApp({
 });
 
 initializeTheme();
+registerPwa();

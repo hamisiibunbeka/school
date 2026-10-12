@@ -2,10 +2,14 @@
 
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\NotificationController;
+use App\Http\Controllers\PwaController;
 use App\Http\Controllers\SchoolSwitchController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', fn () => auth()->check() ? redirect('/dashboard') : redirect('/login'))->name('home');
+
+// Installable web app (PWA)
+Route::get('manifest.webmanifest', [PwaController::class, 'manifest'])->name('pwa.manifest');
 
 Route::middleware('auth')->group(function () {
     Route::inertia('subscription/suspended', 'subscription-suspended')->name('subscription.suspended');

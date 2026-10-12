@@ -11,6 +11,7 @@ import { useCan } from '@/hooks/use-can';
 import { confirm } from '@/lib/swal';
 import { cn, num } from '@/lib/utils';
 import type { Option } from '@/types';
+import ImportButton from '@/components/ui/import-button';
 
 type StreamRow = { id: number; name: string; capacity: number | null; class_teacher_id: number | null; class_teacher: string | null; students: number };
 type ClassRow = { id: number; name: string; code: string | null; level: number; capacity: number | null; students: number; boys: number; girls: number; subjects: number; streams: StreamRow[] };
@@ -92,11 +93,14 @@ export default function Classes({ classes, teachers }: { classes: ClassRow[]; te
                 subtitle="Class levels, streams, capacity and class teachers."
                 breadcrumbs={[{ title: 'Academics' }, { title: 'Classes & Streams' }]}
                 actions={
-                    manage && (
+                    <>
+                        {can('academics.manage') && <ImportButton type="classes" label="Import classes" />}{can('academics.manage') && <ImportButton type="streams" label="Import streams" />}
+                        {manage && (
                         <button className="btn btn-primary" onClick={() => openClass(null)}>
                             <Plus className="h-4 w-4" /> New class
                         </button>
-                    )
+                    )}
+                    </>
                 }
             />
 

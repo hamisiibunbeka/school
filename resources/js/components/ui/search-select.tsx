@@ -88,6 +88,8 @@ export default function SearchSelect({ value, onChange, onValueChange, options, 
 
     return (
         <Combobox
+            as="div"
+            className="w-full"
             value={selected}
             onChange={(o: SearchOption | null) => o && emit(o.value)}
             onClose={() => setQuery('')}
@@ -95,58 +97,64 @@ export default function SearchSelect({ value, onChange, onValueChange, options, 
             immediate
             by={(a: SearchOption | null, b: SearchOption | null) => a?.value === b?.value}
         >
-            <div className="relative w-full" title={title}>
-                <ComboboxInput
-                    id={id}
-                    aria-label={rest['aria-label']}
-                    autoComplete="off"
-                    required={required && !current}
-                    className={cn('form-select cursor-pointer bg-none! pe-9 text-start', className)}
-                    displayValue={(o: SearchOption | null) => (o && o.value !== '' ? o.label : '')}
-                    placeholder={selected && selected.value === '' ? selected.label : placeholderText}
-                    onChange={(e) => setQuery(e.target.value)}
-                    onFocus={(e) => e.currentTarget.select()}
-                />
-                <ComboboxButton className="absolute inset-y-0 end-0 flex items-center pe-2.5 text-white-dark" aria-label="Show options">
-                    <ChevronDown className="h-4 w-4" />
-                </ComboboxButton>
-                {name && <input type="hidden" name={name} value={current} />}
-            </div>
-            <ComboboxOptions
-                anchor={{ to: 'bottom start', gap: 4 }}
-                transition
-                className="z-[90] max-h-72 min-w-(--input-width) overflow-y-auto rounded-md bg-white py-1 text-sm text-black shadow-[0_10px_30px_-10px_rgba(0,0,0,0.35)] ring-1 ring-black/5 transition duration-100 ease-out empty:invisible data-[closed]:opacity-0 dark:bg-[#1b2e4b] dark:text-white-dark"
-            >
-                {all.length > 8 && (
-                    <div className="flex items-center gap-2 border-b border-white-light px-3 py-1.5 text-xs text-white-dark dark:border-[#253b5c]">
-                        <Search className="h-3.5 w-3.5" />
-                        {query ? `${filtered.length} match${filtered.length === 1 ? '' : 'es'}` : 'Type to search'}
+            {({ open }) => (
+                <>
+                    <div className="relative w-full" title={title}>
+                        {/* While open, the field becomes a search box (magnifier + "Search…" placeholder). */}
+                        {open && <Search className="pointer-events-none absolute start-3 top-1/2 h-4 w-4 -translate-y-1/2 text-primary" />}
+                        <ComboboxInput
+                            id={id}
+                            aria-label={rest['aria-label']}
+                            autoComplete="off"
+                            required={required && !current}
+                            className={cn('form-select cursor-pointer bg-none! pe-9 text-start', open && 'border-primary ps-9!', className)}
+                            displayValue={(o: SearchOption | null) => (o && o.value !== '' ? o.label : '')}
+                            placeholder={open ? 'Type to search…' : selected && selected.value === '' ? selected.label : placeholderText}
+                            onChange={(e) => setQuery(e.target.value)}
+                            onFocus={(e) => e.currentTarget.select()}
+                        />
+                        <ComboboxButton className="absolute inset-y-0 end-0 flex items-center pe-2.5 text-white-dark" aria-label="Show options">
+                            <ChevronDown className={cn('h-4 w-4 transition-transform', open && 'rotate-180')} />
+                        </ComboboxButton>
+                        {name && <input type="hidden" name={name} value={current} />}
                     </div>
-                )}
-                {filtered.length === 0 && <div className="px-4 py-2.5 text-white-dark">No matches for “{query}”</div>}
-                {filtered.slice(0, MAX_RENDERED).map((o) => {
-                    const header = o.group && o.group !== lastGroup ? o.group : null;
-                    lastGroup = o.group;
-                    return (
-                        <div key={`${o.group ?? ''}:${o.value}`}>
-                            {header && <div className="px-3 pt-2 pb-1 text-[11px] font-extrabold tracking-wide text-white-dark uppercase">{header}</div>}
-                            <ComboboxOption
-                                value={o}
-                                disabled={o.disabled}
-                                className={cn(
-                                    'flex cursor-pointer items-center justify-between gap-3 px-4 py-2 select-none data-[disabled]:cursor-not-allowed data-[disabled]:opacity-40 data-[focus]:bg-primary/10 data-[focus]:text-primary',
-                                    o.value === '' && 'text-white-dark italic',
-                                    o.group && 'ps-6',
-                                )}
-                            >
-                                <span className="truncate">{o.label}</span>
-                                {o.value === current && <Check className="h-4 w-4 shrink-0 text-primary" />}
-                            </ComboboxOption>
-                        </div>
-                    );
-                })}
-                {filtered.length > MAX_RENDERED && <div className="px-4 py-2 text-xs text-white-dark">Showing first {MAX_RENDERED} — keep typing to narrow down.</div>}
-            </ComboboxOptions>
+                    <ComboboxOptions
+                        anchor={{ to: 'bottom start', gap: 4 }}
+                        transition
+                        className="z-[90] max-h-72 min-w-(--input-width) overflow-y-auto rounded-md bg-white py-1 text-sm text-black shadow-[0_10px_30px_-10px_rgba(0,0,0,0.35)] ring-1 ring-black/5 transition duration-100 ease-out empty:invisible data-[closed]:opacity-0 dark:bg-[#1b2e4b] dark:text-white-dark"
+                    >
+                        {all.length > 3 && (
+                            <div className="flex items-center gap-2 border-b border-white-light px-3 py-1.5 text-xs text-white-dark dark:border-[#253b5c]">
+                                <Search className="h-3.5 w-3.5" />
+                                {query ? `${filtered.length} match${filtered.length === 1 ? '' : 'es'}` : `Type to search ${all.filter((o) => o.value !== '').length} options`}
+                            </div>
+                        )}
+                        {filtered.length === 0 && <div className="px-4 py-2.5 text-white-dark">No matches for “{query}”</div>}
+                        {filtered.slice(0, MAX_RENDERED).map((o) => {
+                            const header = o.group && o.group !== lastGroup ? o.group : null;
+                            lastGroup = o.group;
+                            return (
+                                <div key={`${o.group ?? ''}:${o.value}`}>
+                                    {header && <div className="px-3 pt-2 pb-1 text-[11px] font-extrabold tracking-wide text-white-dark uppercase">{header}</div>}
+                                    <ComboboxOption
+                                        value={o}
+                                        disabled={o.disabled}
+                                        className={cn(
+                                            'flex cursor-pointer items-center justify-between gap-3 px-4 py-2 select-none data-[disabled]:cursor-not-allowed data-[disabled]:opacity-40 data-[focus]:bg-primary/10 data-[focus]:text-primary',
+                                            o.value === '' && 'text-white-dark italic',
+                                            o.group && 'ps-6',
+                                        )}
+                                    >
+                                        <span className="truncate">{o.label}</span>
+                                        {o.value === current && <Check className="h-4 w-4 shrink-0 text-primary" />}
+                                    </ComboboxOption>
+                                </div>
+                            );
+                        })}
+                        {filtered.length > MAX_RENDERED && <div className="px-4 py-2 text-xs text-white-dark">Showing first {MAX_RENDERED} — keep typing to narrow down.</div>}
+                    </ComboboxOptions>
+                </>
+            )}
         </Combobox>
     );
 }

@@ -51,7 +51,7 @@ class PayrollRunController extends Controller
             ]);
 
         $year = now()->year;
-        $ytd = PayrollRun::where('period', 'like', "{$year}-%")->whereIn('status', ['approved', 'paid'])->orderBy('period')->get();
+        $ytd = PayrollRun::where('period', 'like', "{$year}-%")->whereIn('status', ['approved', 'partially_paid', 'paid'])->orderBy('period')->get();
         $ytdIds = $ytd->pluck('id');
         $last = PayrollRun::orderByDesc('period')->first();
         $nextPeriod = $last ? \Carbon\CarbonImmutable::createFromFormat('Y-m-d', $last->period.'-01')->addMonth()->format('Y-m') : now()->format('Y-m');
@@ -116,6 +116,9 @@ class PayrollRunController extends Controller
                 'net_pay' => (string) $p->net_pay,
                 'employer_contributions' => (string) $p->employer_contributions,
                 'unpaid_leave_days' => (int) ($p->breakdown['unpaid_leave_days'] ?? 0),
+                'payment_status' => $p->payment_status ?? 'pending',
+                'paid_at' => $p->paid_at?->toDateString(),
+                'withheld_reason' => $p->withheld_reason,
             ]);
 
         $journalLines = $run->journal_id
@@ -188,10 +191,25 @@ class PayrollRunController extends Controller
         $data = $request->validate([
             'account_id' => ['required', Rule::exists('accounts', 'id')->where('school_id', $this->tenancy()->schoolId())->whereIn('sub_type', ['bank', 'cash', 'mobile_money'])],
             'payment_date' => ['required', 'date'],
-        ], [], ['account_id' => 'bank account']);
+            'payslip_ids' => ['present', 'array'],
+            'payslip_ids.*' => ['integer'],
+            'withheld' => ['nullable', 'array'],
+            'withheld.*' => ['nullable', 'string', 'max:255'],
+        ], [], ['account_id' => 'bank account', 'payslip_ids' => 'employees to pay']);
 
-        $this->payroll->markPaid($run, Account::findOrFail($data['account_id']), $data['payment_date'], $request->user());
-        $this->toast("Payroll for {$run->period_label} marked as paid.");
+        $run = $this->payroll->markPaid(
+            $run,
+            Account::findOrFail($data['account_id']),
+            $data['payment_date'],
+            $request->user(),
+            $data['payslip_ids'],
+            array_filter($data['withheld'] ?? [], fn ($r) => $r !== null),
+        );
+
+        $paid = count($data['payslip_ids']);
+        $this->toast($run->status === 'paid'
+            ? "Payroll for {$run->period_label} is fully paid."
+            : "{$paid} salary payment(s) recorded. Remaining staff are withheld — pay them later from this run.");
 
         return back();
     }
@@ -212,18 +230,23 @@ class PayrollRunController extends Controller
     }
 
     /** Bank payment file (CSV) for the salary transfer. */
-    public function bankFile(PayrollRun $run): StreamedResponse
+    public function bankFile(Request $request, PayrollRun $run): StreamedResponse
     {
-        $this->audit('exported', $run, "Exported bank payment file for payroll {$run->period}", 'payroll');
+        // ?only=unpaid exports just the staff still to be paid (e.g. a second transfer after withholding).
+        $onlyUnpaid = $request->query('only') === 'unpaid';
+        $this->audit('exported', $run, "Exported bank payment file for payroll {$run->period}".($onlyUnpaid ? ' (unpaid staff)' : ''), 'payroll');
 
-        return response()->streamDownload(function () use ($run) {
+        return response()->streamDownload(function () use ($run, $onlyUnpaid) {
             $out = fopen('php://output', 'w');
-            fputcsv($out, ['Employee No', 'Beneficiary Name', 'Bank', 'Account Number', 'Net Amount', 'Currency', 'Reference']);
-            $run->payslips()->with('employee:id,employee_no,first_name,last_name,bank_name,bank_account')->get()
+            fputcsv($out, ['Employee No', 'Beneficiary Name', 'Bank', 'Account Number', 'Net Amount', 'Currency', 'Reference', 'Payment Status', 'Withheld Reason']);
+            $run->payslips()->with('employee:id,employee_no,first_name,last_name,bank_name,bank_account')
+                ->when($onlyUnpaid, fn ($q) => $q->where('payment_status', '!=', 'paid'))
+                ->get()
                 ->sortBy(fn ($p) => $p->employee?->bank_name.$p->employee?->first_name)
                 ->each(fn ($p) => fputcsv($out, [
                     $p->employee?->employee_no, $p->employee?->full_name, $p->employee?->bank_name, $p->employee?->bank_account,
                     number_format((float) $p->net_pay, 2, '.', ''), $this->tenancy()->school()?->currency ?? 'TZS', "SALARY {$run->period}",
+                    $p->payment_status, $p->withheld_reason,
                 ]));
             fclose($out);
         }, "bank-payment-{$run->period}.csv", ['Content-Type' => 'text/csv']);

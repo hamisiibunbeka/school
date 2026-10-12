@@ -8,7 +8,11 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class PayrollRun extends SchoolModel
 {
-    public const STATUSES = ['draft', 'approved', 'paid'];
+    /** partially_paid: some salaries paid, others pending or withheld (with a reason). */
+    public const STATUSES = ['draft', 'approved', 'partially_paid', 'paid'];
+
+    /** Runs whose payroll journal is posted (approved or later). */
+    public const POSTED_STATUSES = ['approved', 'partially_paid', 'paid'];
 
     protected function casts(): array
     {

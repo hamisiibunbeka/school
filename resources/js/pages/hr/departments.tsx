@@ -11,6 +11,7 @@ import PageHeader from '@/components/ui/page-header';
 import StatCard from '@/components/ui/stat-card';
 import { useCan } from '@/hooks/use-can';
 import { num } from '@/lib/utils';
+import ImportButton from '@/components/ui/import-button';
 
 type Department = { id: number; name: string; code: string | null; headcount: number; teaching_count: number; subjects_count: number; head: string | null };
 
@@ -101,11 +102,14 @@ export default function Departments({ departments, filters: initial, unassigned,
                 subtitle="Academic and administrative units with their staff headcount."
                 breadcrumbs={[{ title: 'HR & Payroll' }, { title: 'Departments' }]}
                 actions={
-                    can('hr.manage') && (
+                    <>
+                        {can('hr.manage') && <ImportButton type="departments" label="Import departments" />}
+                        {can('hr.manage') && (
                         <button className="btn btn-primary" onClick={() => openForm(null)}>
                             <Plus className="h-4 w-4" /> Add department
                         </button>
-                    )
+                    )}
+                    </>
                 }
             />
 

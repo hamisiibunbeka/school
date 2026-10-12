@@ -11,6 +11,7 @@ import StatCard from '@/components/ui/stat-card';
 import { useCan } from '@/hooks/use-can';
 import { cn, exportCsv, num } from '@/lib/utils';
 import type { Option, Paginated } from '@/types';
+import ImportButton from '@/components/ui/import-button';
 
 type Book = {
     id: number;
@@ -109,6 +110,8 @@ export default function Books({ books, filters: initial, categories, stats }: Pr
                 breadcrumbs={[{ title: 'Library' }, { title: 'Books' }]}
                 actions={
                     <>
+                        {can('library.manage') && <ImportButton type="books" label="Import books" />}
+                        {<>
                         <button
                             className="btn btn-outline-primary"
                             onClick={() =>
@@ -128,6 +131,7 @@ export default function Books({ books, filters: initial, categories, stats }: Pr
                                 <Plus className="h-4 w-4" /> Add book
                             </button>
                         )}
+                    </>}
                     </>
                 }
             />

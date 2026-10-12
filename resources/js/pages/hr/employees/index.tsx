@@ -10,6 +10,7 @@ import StatusBadge from '@/components/ui/status-badge';
 import { useCan } from '@/hooks/use-can';
 import { cleanQuery, date, money, num, titleCase } from '@/lib/utils';
 import type { Option, Paginated } from '@/types';
+import ImportButton from '@/components/ui/import-button';
 
 type Row = {
     id: number;
@@ -122,6 +123,8 @@ export default function EmployeesIndex({ employees, filters: initial, department
                 breadcrumbs={[{ title: 'HR & Payroll' }, { title: 'Employees' }]}
                 actions={
                     <>
+                        {can('hr.manage') && <ImportButton type="employees" label="Import employees" />}
+                        {<>
                         <a href={`/hr/employees/export?${new URLSearchParams(cleanQuery(filters) as Record<string, string>)}`} className="btn btn-outline-primary">
                             <Download className="h-4 w-4" /> Export CSV
                         </a>
@@ -130,6 +133,7 @@ export default function EmployeesIndex({ employees, filters: initial, department
                                 <Plus className="h-4 w-4" /> Add employee
                             </Link>
                         )}
+                    </>}
                     </>
                 }
             />

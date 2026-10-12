@@ -13,6 +13,7 @@ import { useCan } from '@/hooks/use-can';
 import { confirm } from '@/lib/swal';
 import { cn, compact, exportCsv, money, num } from '@/lib/utils';
 import type { Option, Paginated } from '@/types';
+import ImportButton from '@/components/ui/import-button';
 
 type Item = {
     id: number;
@@ -131,6 +132,8 @@ export default function Items({ items, filters: initial, categories, byCategory,
                 breadcrumbs={[{ title: 'Inventory' }, { title: 'Items' }]}
                 actions={
                     <>
+                        {can('inventory.manage') && <ImportButton type="inventory-items" label="Import items" />}
+                        {<>
                         <button
                             className="btn btn-outline-primary"
                             onClick={() =>
@@ -152,6 +155,7 @@ export default function Items({ items, filters: initial, categories, byCategory,
                                 </button>
                             </>
                         )}
+                    </>}
                     </>
                 }
             />

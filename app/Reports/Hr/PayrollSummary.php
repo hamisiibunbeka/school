@@ -48,7 +48,7 @@ class PayrollSummary extends Report
 
         return [
             $this->selectFilter('year', 'Year', array_map(fn ($y) => ['value' => $y, 'label' => $y], $years), $current, 'All years'),
-            $this->selectFilter('status', 'Status', $this->enum(['draft', 'approved', 'paid']), '', 'All runs'),
+            $this->selectFilter('status', 'Status', $this->enum(['draft', 'approved', 'partially_paid', 'paid']), '', 'All runs'),
             $this->departmentFilter(),
         ];
     }

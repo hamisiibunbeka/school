@@ -19,7 +19,15 @@ class Payslip extends SchoolModel
             'net_pay' => 'decimal:2',
             'employer_contributions' => 'decimal:2',
             'breakdown' => 'array',
+            'paid_at' => 'date',
         ];
+    }
+
+    public const PAYMENT_STATUSES = ['pending', 'paid', 'withheld'];
+
+    public function paymentJournal(): BelongsTo
+    {
+        return $this->belongsTo(Journal::class, 'payment_journal_id');
     }
 
     public function run(): BelongsTo

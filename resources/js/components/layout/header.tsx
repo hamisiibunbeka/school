@@ -1,11 +1,12 @@
 import { Menu, MenuButton, MenuItem, MenuItems } from '@headlessui/react';
 import { Link, router, usePage } from '@inertiajs/react';
-import { ArrowLeftRight, Bell, Building, CalendarDays, Laptop, LogOut, Menu as MenuIcon, Moon, Search, ShieldCheck, Sun, UserRound, Wallet, X } from 'lucide-react';
+import { ArrowLeftRight, MonitorDown, Bell, Building, CalendarDays, Laptop, LogOut, Menu as MenuIcon, Moon, Search, ShieldCheck, Sun, UserRound, Wallet, X } from 'lucide-react';
 import { useState, type FormEvent } from 'react';
 import SchoolSwitcher from '@/components/layout/school-switcher';
 import { AppLogo } from '@/components/layout/sidebar';
 import Avatar from '@/components/ui/avatar';
 import { useCan } from '@/hooks/use-can';
+import { usePwaInstall } from '@/hooks/use-pwa';
 import { useTheme } from '@/hooks/use-theme';
 import { cn } from '@/lib/utils';
 
@@ -24,6 +25,7 @@ export default function Header() {
     };
 
     const ThemeIcon = theme === 'light' ? Sun : theme === 'dark' ? Moon : Laptop;
+    const { canInstall, install } = usePwaInstall();
     const isSuperAdmin = !!auth.user?.is_super_admin;
     // School shortcuts only make sense inside a school (platform admins on the console have none).
     const inSchool = !!school;
@@ -105,6 +107,12 @@ export default function Header() {
 
                         {/* Tenant admins: their schools. Platform admins (inside a school): every tenant's schools. */}
                         {(isSuperAdmin ? inSchool && schools.length > 0 : schools.length > 1) && <SchoolSwitcher />}
+
+                        {canInstall && (
+                            <button type="button" onClick={() => void install()} className="btn btn-sm btn-primary hidden rounded-full! sm:inline-flex" title="Install this app on your device">
+                                <MonitorDown className="h-4 w-4" /> Install app
+                            </button>
+                        )}
 
                         <button type="button" onClick={cycleTheme} className="header-icon-btn" title={`Theme: ${theme}`}>
                             <ThemeIcon className="h-5 w-5" />

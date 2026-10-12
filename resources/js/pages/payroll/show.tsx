@@ -31,6 +31,9 @@ type Payslip = {
     net_pay: string;
     employer_contributions: string;
     unpaid_leave_days: number;
+    payment_status: 'pending' | 'paid' | 'withheld';
+    paid_at: string | null;
+    withheld_reason: string | null;
 };
 
 type Props = {
@@ -97,9 +100,15 @@ export default function PayrollShow({ run, payslips, statutory, journalLines, jo
     const steps = [
         { key: 'draft', label: 'Prepared', who: run.creator, when: run.created_at },
         { key: 'approved', label: 'Approved & posted', who: run.approver, when: run.approved_at },
-        { key: 'paid', label: 'Paid', who: run.payer, when: run.paid_at },
+        {
+            key: 'paid',
+            label: run.status === 'partially_paid' ? `Partially paid (${payslips.filter((p) => p.payment_status === 'paid').length}/${payslips.length})` : 'Paid',
+            who: run.payer,
+            when: run.paid_at ?? (run.status === 'partially_paid' ? run.payment_date : null),
+        },
     ];
-    const stepIndex = ['draft', 'approved', 'paid'].indexOf(run.status);
+    const stepIndex = run.status === 'partially_paid' ? 2 : ['draft', 'approved', 'paid'].indexOf(run.status);
+    const unpaidCount = payslips.filter((p) => p.payment_status !== 'paid').length;
 
     const columns: Column<Payslip>[] = [
         {
@@ -125,6 +134,26 @@ export default function PayrollShow({ run, payslips, statutory, journalLines, jo
         { key: 'other_deductions', header: 'Other', align: 'right', render: (p) => money(p.other_deductions, '') },
         { key: 'net_pay', header: 'Net pay', align: 'right', render: (p) => <span className="font-bold text-success">{money(p.net_pay, '')}</span> },
         { key: 'employer_contributions', header: 'Employer', align: 'right', render: (p) => <span className="text-white-dark">{money(p.employer_contributions, '')}</span> },
+        ...(run.status === 'draft'
+            ? []
+            : [
+                  {
+                      key: 'payment',
+                      header: 'Payment',
+                      render: (p: Payslip) =>
+                          p.payment_status === 'paid' ? (
+                              <span className="badge badge-soft-success" title={p.paid_at ? `Paid ${date(p.paid_at)}` : undefined}>
+                                  Paid
+                              </span>
+                          ) : p.payment_status === 'withheld' ? (
+                              <span className="badge badge-soft-warning max-w-[180px] truncate" title={p.withheld_reason ?? ''}>
+                                  Withheld{p.withheld_reason ? `: ${p.withheld_reason}` : ''}
+                              </span>
+                          ) : (
+                              <span className="badge badge-soft-dark">Pending</span>
+                          ),
+                  } as Column<Payslip>,
+              ]),
         {
             key: 'view',
             header: '',
@@ -199,10 +228,15 @@ export default function PayrollShow({ run, payslips, statutory, journalLines, jo
                                 )}
                             </>
                         )}
-                        {permissions.manage && run.status === 'approved' && (
+                        {permissions.manage && (run.status === 'approved' || run.status === 'partially_paid') && (
                             <button className="btn btn-success" onClick={() => setPayOpen(true)}>
-                                <Wallet className="h-4 w-4" /> Mark as paid
+                                <Wallet className="h-4 w-4" /> {run.status === 'partially_paid' ? `Pay remaining (${unpaidCount})` : 'Pay salaries'}
                             </button>
+                        )}
+                        {run.status === 'partially_paid' && (
+                            <a href={`/payroll/${run.id}/bank-file?only=unpaid`} className="btn btn-outline-warning">
+                                <Download className="h-4 w-4" /> Bank file (unpaid)
+                            </a>
                         )}
                     </>
                 }
@@ -370,37 +404,177 @@ export default function PayrollShow({ run, payslips, statutory, journalLines, jo
                 </div>
             </div>
 
-            <PayModal open={payOpen} onClose={() => setPayOpen(false)} run={run} bankAccounts={bankAccounts} cur={cur} />
+            {payOpen && <PayModal open onClose={() => setPayOpen(false)} run={run} payslips={payslips} bankAccounts={bankAccounts} cur={cur} />}
         </>
     );
 }
 
-function PayModal({ open, onClose, run, bankAccounts, cur }: { open: boolean; onClose: () => void; run: Props['run']; bankAccounts: Option[]; cur: string }) {
+const withholdReasons = ['Bank details missing / incorrect', 'Disciplinary hold', 'On unpaid leave', 'Salary advance recovery pending', 'Exited / under clearance', 'Awaiting HR verification'];
+
+/**
+ * Pay selected employees. Unticked employees are withheld with a reason and stay
+ * payable (2500) — they can be paid later from this same run.
+ */
+function PayModal({ open, onClose, run, payslips, bankAccounts, cur }: { open: boolean; onClose: () => void; run: Props['run']; payslips: Payslip[]; bankAccounts: Option[]; cur: string }) {
     const bank = bankAccounts.find((a) => a.label.startsWith('1200')) ?? bankAccounts[0];
-    const form = useForm({ account_id: bank ? String(bank.value) : '', payment_date: run.payment_date ?? new Date().toISOString().slice(0, 10) });
+    const unpaid = payslips.filter((p) => p.payment_status !== 'paid');
+    const [search, setSearch] = useState('');
+    const [bulkReason, setBulkReason] = useState('');
+
+    const form = useForm<{ account_id: string; payment_date: string; payslip_ids: number[]; withheld: Record<number, string> }>({
+        account_id: bank ? String(bank.value) : '',
+        payment_date: new Date().toISOString().slice(0, 10),
+        // Previously withheld staff start unticked (keeping their reason); pending staff start ticked.
+        payslip_ids: unpaid.filter((p) => p.payment_status !== 'withheld').map((p) => p.id),
+        withheld: Object.fromEntries(unpaid.filter((p) => p.withheld_reason).map((p) => [p.id, p.withheld_reason as string])),
+    });
+
+    const selected = new Set(form.data.payslip_ids);
+    const payTotal = unpaid.filter((p) => selected.has(p.id)).reduce((s, p) => s + Number(p.net_pay), 0);
+    const heldRows = unpaid.filter((p) => !selected.has(p.id));
+    const heldTotal = heldRows.reduce((s, p) => s + Number(p.net_pay), 0);
+    const missingReasons = heldRows.filter((p) => !form.data.withheld[p.id]?.trim()).length;
+    const visible = unpaid.filter((p) => !search || `${p.employee} ${p.employee_no} ${p.department ?? ''}`.toLowerCase().includes(search.toLowerCase()));
+
+    const toggle = (id: number) => form.setData('payslip_ids', selected.has(id) ? form.data.payslip_ids.filter((x) => x !== id) : [...form.data.payslip_ids, id]);
+    const setReason = (id: number, reason: string) => form.setData('withheld', { ...form.data.withheld, [id]: reason });
 
     const submit = async (e: FormEvent) => {
         e.preventDefault();
-        const { confirmed } = await confirm({ title: 'Record salary payment?', text: `${money(run.total_net, cur)} will be credited to the selected bank account.`, confirmText: 'Mark as paid' });
-        if (confirmed) form.post(`/payroll/${run.id}/pay`, { preserveScroll: true, onSuccess: () => onClose() });
+        if (missingReasons > 0) return;
+        const { confirmed } = await confirm({
+            title: 'Record salary payment?',
+            text: `${form.data.payslip_ids.length} staff · ${money(payTotal, cur)} paid from the selected account.${heldRows.length ? ` ${heldRows.length} staff (${money(heldTotal, cur)}) withheld and still owed.` : ''}`,
+            confirmText: heldRows.length ? 'Pay selected' : 'Pay all',
+        });
+        if (!confirmed) return;
+        form.transform((d) => ({ ...d, withheld: Object.fromEntries(heldRows.map((p) => [p.id, d.withheld[p.id]])) }));
+        form.post(`/payroll/${run.id}/pay`, { preserveScroll: true, onSuccess: () => onClose() });
     };
 
     return (
-        <Modal open={open} onClose={onClose} title={`Pay salaries · ${run.period_label}`}>
+        <Modal open={open} onClose={onClose} title={`${run.status === 'partially_paid' ? 'Pay remaining salaries' : 'Pay salaries'} · ${run.period_label}`} size="xl">
             <form onSubmit={submit} className="space-y-4">
-                <div className="rounded-md bg-primary-light p-3 dark:bg-primary-dark-light">
-                    <div className="text-xs font-bold text-white-dark uppercase">Net salaries to pay</div>
-                    <div className="text-2xl font-extrabold text-primary">{money(run.total_net, cur)}</div>
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+                    <div className="rounded-md bg-success-light p-3 dark:bg-success-dark-light">
+                        <div className="text-xs font-bold text-white-dark uppercase">To pay now · {form.data.payslip_ids.length} staff</div>
+                        <div className="text-xl font-extrabold text-success">{money(payTotal, cur)}</div>
+                    </div>
+                    <div className="rounded-md bg-warning-light p-3 dark:bg-warning-dark-light">
+                        <div className="text-xs font-bold text-white-dark uppercase">Withheld · {heldRows.length} staff</div>
+                        <div className="text-xl font-extrabold text-warning">{money(heldTotal, cur)}</div>
+                    </div>
+                    <div className="rounded-md bg-[#f6f8fa] p-3 dark:bg-[#1a2941]">
+                        <div className="text-xs font-bold text-white-dark uppercase">Already paid</div>
+                        <div className="text-xl font-extrabold">{payslips.length - unpaid.length} staff</div>
+                    </div>
                 </div>
-                <Select label="Paid from" required placeholder="Select account…" value={form.data.account_id} onChange={(e) => form.setData('account_id', e.target.value)} options={bankAccounts} error={form.errors.account_id} />
-                <Input label="Payment date" type="date" required value={form.data.payment_date} onChange={(e) => form.setData('payment_date', e.target.value)} error={form.errors.payment_date} />
-                <p className="text-xs text-white-dark">Posts Dr 2500 Net Salaries Payable / Cr the selected bank account. Download the bank file to upload the transfers to your bank.</p>
+
+                <div className="flex flex-wrap items-center gap-2">
+                    <div className="min-w-[200px] flex-1">
+                        <SearchInput value={search} onChange={setSearch} placeholder="Search staff…" className="sm:w-full" />
+                    </div>
+                    <button type="button" className="btn btn-sm btn-outline-success" onClick={() => form.setData('payslip_ids', unpaid.map((p) => p.id))}>
+                        Select all
+                    </button>
+                    <button type="button" className="btn btn-sm btn-outline-dark" onClick={() => form.setData('payslip_ids', [])}>
+                        Unselect all
+                    </button>
+                </div>
+
+                {heldRows.length > 0 && (
+                    <div className="flex flex-wrap items-end gap-2 rounded-md border border-dashed border-warning/50 p-3">
+                        <div className="min-w-[220px] flex-1">
+                            <Select label="Reason for unticked staff" placeholder="Choose or type below…" value={bulkReason} onChange={(e) => setBulkReason(e.target.value)} options={withholdReasons} />
+                        </div>
+                        <button
+                            type="button"
+                            className="btn btn-sm btn-warning"
+                            disabled={!bulkReason}
+                            onClick={() => form.setData('withheld', { ...form.data.withheld, ...Object.fromEntries(heldRows.map((p) => [p.id, bulkReason])) })}
+                        >
+                            Apply to all {heldRows.length} withheld
+                        </button>
+                    </div>
+                )}
+
+                <div className="max-h-[45vh] overflow-y-auto rounded-md border border-white-light dark:border-[#1b2e4b]">
+                    <table className="table table-compact">
+                        <thead className="sticky top-0 z-10">
+                            <tr>
+                                <th className="w-10">Pay</th>
+                                <th>Employee</th>
+                                <th>Bank</th>
+                                <th className="text-end!">Net pay</th>
+                                <th>Reason if not paid</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {visible.map((p) => {
+                                const isPaid = selected.has(p.id);
+                                const reason = form.data.withheld[p.id] ?? '';
+                                return (
+                                    <tr key={p.id} className={cn(!isPaid && 'bg-warning-light/40 dark:bg-warning-dark-light')}>
+                                        <td>
+                                            <input type="checkbox" className="form-checkbox" checked={isPaid} onChange={() => toggle(p.id)} aria-label={`Pay ${p.employee}`} />
+                                        </td>
+                                        <td>
+                                            <div className="font-semibold">{p.employee}</div>
+                                            <div className="text-xs text-white-dark">
+                                                {p.employee_no}
+                                                {p.payment_status === 'withheld' && <span className="badge badge-soft-warning ms-1">Previously withheld</span>}
+                                            </div>
+                                        </td>
+                                        <td className="text-xs">
+                                            {p.bank_name ?? <span className="text-danger">No bank</span>}
+                                            <div className="text-white-dark">{p.bank_account ? `•••• ${p.bank_account.slice(-4)}` : '—'}</div>
+                                        </td>
+                                        <td className="text-end! font-bold">{money(p.net_pay, '')}</td>
+                                        <td className="min-w-[200px]">
+                                            {isPaid ? (
+                                                <span className="text-xs text-success">Will be paid</span>
+                                            ) : (
+                                                <input
+                                                    className={cn('form-input form-input-sm', !reason.trim() && 'border-danger')}
+                                                    placeholder="Required — why not paid?"
+                                                    list="withhold-reasons"
+                                                    value={reason}
+                                                    onChange={(e) => setReason(p.id, e.target.value)}
+                                                />
+                                            )}
+                                        </td>
+                                    </tr>
+                                );
+                            })}
+                        </tbody>
+                    </table>
+                    <datalist id="withhold-reasons">
+                        {withholdReasons.map((r) => (
+                            <option key={r} value={r} />
+                        ))}
+                    </datalist>
+                </div>
+
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                    <Select label="Paid from" required placeholder="Select account…" value={form.data.account_id} onChange={(e) => form.setData('account_id', e.target.value)} options={bankAccounts} error={form.errors.account_id} />
+                    <Input label="Payment date" type="date" required value={form.data.payment_date} onChange={(e) => form.setData('payment_date', e.target.value)} error={form.errors.payment_date} />
+                </div>
+
+                {(missingReasons > 0 || (form.errors as Record<string, string>).withheld || (form.errors as Record<string, string>).payslip_ids) && (
+                    <p className="form-error text-center">
+                        {missingReasons > 0 ? `Enter a reason for ${missingReasons} unticked employee(s).` : (form.errors as Record<string, string>).withheld ?? (form.errors as Record<string, string>).payslip_ids}
+                    </p>
+                )}
+                <p className="text-center text-xs text-white-dark">
+                    Posts Dr 2500 Net Salaries Payable / Cr the selected account for the ticked staff only. Withheld salaries remain owed and can be paid later with “Pay remaining”.
+                </p>
                 <div className="flex justify-center gap-3">
                     <button type="button" className="btn btn-outline-dark" onClick={onClose}>
                         Cancel
                     </button>
-                    <button className="btn btn-success" disabled={form.processing}>
-                        {form.processing && <LoaderCircle className="h-4 w-4 animate-spin" />} Mark as paid
+                    <button className="btn btn-success" disabled={form.processing || missingReasons > 0 || (form.data.payslip_ids.length === 0 && heldRows.length === 0)}>
+                        {form.processing && <LoaderCircle className="h-4 w-4 animate-spin" />}
+                        {form.data.payslip_ids.length === 0 ? 'Save withheld reasons' : heldRows.length ? `Pay ${form.data.payslip_ids.length} selected` : 'Pay all'}
                     </button>
                 </div>
             </form>

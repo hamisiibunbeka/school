@@ -38,6 +38,8 @@ const map: Record<string, Tone> = {
     unpaid: 'danger',
     partial: 'warning',
     paid: 'success',
+    partially_paid: 'warning',
+    withheld: 'warning',
     posted: 'success',
     reversed: 'dark',
     overdue: 'danger',

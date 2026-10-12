@@ -10,6 +10,7 @@ import Modal from '@/components/ui/modal';
 import PageHeader from '@/components/ui/page-header';
 import { useCan } from '@/hooks/use-can';
 import type { Paginated } from '@/types';
+import ImportButton from '@/components/ui/import-button';
 
 type Guardian = {
     id: number;
@@ -128,11 +129,14 @@ export default function Guardians({ guardians, filters: initial }: { guardians: 
                 subtitle="Contacts, linked children and parent-portal access."
                 breadcrumbs={[{ title: 'Students', href: '/students' }, { title: 'Guardians' }]}
                 actions={
-                    can('students.manage') && (
+                    <>
+                        {can('students.manage') && <ImportButton type="guardians" label="Import guardians" />}
+                        {can('students.manage') && (
                         <button className="btn btn-primary" onClick={() => openForm(null)}>
                             <Plus className="h-4 w-4" /> Add guardian
                         </button>
-                    )
+                    )}
+                    </>
                 }
             />
             <div className="panel">

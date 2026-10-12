@@ -11,6 +11,7 @@ import StatCard from '@/components/ui/stat-card';
 import { useCan } from '@/hooks/use-can';
 import { exportCsv, num, titleCase } from '@/lib/utils';
 import type { Option, Paginated } from '@/types';
+import ImportButton from '@/components/ui/import-button';
 
 type Row = { id: number; name: string; code: string | null; type: string; department_id: number | null; department: string | null; classes: number; teachers: number; periods: number };
 type Props = {
@@ -79,6 +80,8 @@ export default function Subjects({ subjects, filters: initial, departments, stat
                 breadcrumbs={[{ title: 'Academics' }, { title: 'Subjects' }]}
                 actions={
                     <>
+                        {can('academics.manage') && <ImportButton type="subjects" label="Import subjects" />}
+                        {<>
                         <button
                             className="btn btn-outline-primary"
                             onClick={() => exportCsv('subjects', [['Subject', 'Code', 'Type', 'Department', 'Classes', 'Teachers', 'Periods/week'], ...subjects.data.map((s) => [s.name, s.code, s.type, s.department, s.classes, s.teachers, s.periods])])}
@@ -90,6 +93,7 @@ export default function Subjects({ subjects, filters: initial, departments, stat
                                 <Plus className="h-4 w-4" /> Add subject
                             </button>
                         )}
+                    </>}
                     </>
                 }
             />

@@ -12,6 +12,7 @@ import StatCard from '@/components/ui/stat-card';
 import { useCan } from '@/hooks/use-can';
 import { date, money, num } from '@/lib/utils';
 import type { Paginated } from '@/types';
+import ImportButton from '@/components/ui/import-button';
 
 type Supplier = {
     id: number;
@@ -105,11 +106,14 @@ export default function Suppliers({ suppliers, filters: initial, stats }: Props)
                 subtitle="Vendors for stores, food, stationery and services."
                 breadcrumbs={[{ title: 'Inventory', href: '/inventory/items' }, { title: 'Suppliers' }]}
                 actions={
-                    manage && (
+                    <>
+                        {can('inventory.manage') && <ImportButton type="suppliers" label="Import suppliers" />}
+                        {manage && (
                         <button className="btn btn-primary" onClick={() => openForm(null)}>
                             <Plus className="h-4 w-4" /> Add supplier
                         </button>
-                    )
+                    )}
+                    </>
                 }
             />
 

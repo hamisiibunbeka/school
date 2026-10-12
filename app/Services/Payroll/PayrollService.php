@@ -162,11 +162,20 @@ class PayrollService
         });
     }
 
-    /** Record the bank payment of net salaries: Dr 2500 Net Salaries Payable / Cr bank. */
-    public function markPaid(PayrollRun $run, Account $bank, string $date, ?User $payer = null): PayrollRun
+    /**
+     * Pay net salaries for selected employees: Dr 2500 Net Salaries Payable / Cr bank.
+     *
+     * Employees not selected stay unpaid. Each must have a reason, and they are marked "withheld"
+     * (their net pay remains owed in 2500). They can be paid later with another call.
+     * The run becomes "partially_paid" until every payslip is paid, then "paid".
+     *
+     * @param  array<int, int>|null  $payslipIds  payslips to pay now (null = every unpaid payslip)
+     * @param  array<int, string>  $withheld  payslip_id => reason, for unpaid payslips being held back
+     */
+    public function markPaid(PayrollRun $run, Account $bank, string $date, ?User $payer = null, ?array $payslipIds = null, array $withheld = []): PayrollRun
     {
-        if ($run->status !== 'approved') {
-            throw ValidationException::withMessages(['status' => 'Only approved payroll runs can be marked as paid.']);
+        if (! in_array($run->status, ['approved', 'partially_paid'], true)) {
+            throw ValidationException::withMessages(['status' => 'Only approved (or partially paid) payroll runs can be paid.']);
         }
 
         $rules = $run->rules_snapshot ?? PayrollRules::current();
@@ -175,27 +184,74 @@ class PayrollService
             throw ValidationException::withMessages(['account' => 'Net Salaries Payable account (2500) is missing from the chart of accounts.']);
         }
 
-        return DB::transaction(function () use ($run, $bank, $date, $payer, $payable) {
-            $journal = $this->ledger->record([
-                'date' => $date,
-                'type' => 'payroll',
-                'reference' => 'SALPAY-'.$run->period,
-                'narration' => "Net salaries paid for {$run->period_label} via {$bank->name}",
-            ], [
-                ['account_id' => $payable->id, 'debit' => (string) $run->total_net, 'narration' => 'Net salaries cleared'],
-                ['account_id' => $bank->id, 'credit' => (string) $run->total_net, 'narration' => 'Salary bank transfer'],
-            ], $run);
+        $unpaid = $run->payslips()->with('employee:id,first_name,last_name')->where('payment_status', '!=', 'paid')->get()->keyBy('id');
+        $wanted = $payslipIds === null ? null : array_map('intval', $payslipIds);
+        // Filter by model id explicitly (Eloquent's only()/except() re-index the collection).
+        $toPay = $wanted === null ? $unpaid : $unpaid->filter(fn ($p) => in_array((int) $p->id, $wanted, true));
+
+        if ($payslipIds !== null && $toPay->count() !== count(array_unique($payslipIds))) {
+            throw ValidationException::withMessages(['payslip_ids' => 'Some selected employees are not part of this payroll or are already paid.']);
+        }
+
+        $held = $unpaid->reject(fn ($p) => $toPay->contains('id', $p->id));
+        foreach ($held as $slip) {
+            if (trim((string) ($withheld[$slip->id] ?? '')) === '') {
+                throw ValidationException::withMessages(['withheld' => "Give a reason for not paying {$slip->employee?->full_name} now."]);
+            }
+        }
+
+        if ($toPay->isEmpty() && $held->isEmpty()) {
+            throw ValidationException::withMessages(['payslip_ids' => 'Select at least one employee to pay.']);
+        }
+
+        return DB::transaction(function () use ($run, $bank, $date, $payer, $payable, $toPay, $held, $withheld) {
+            $payerId = $payer?->id ?? auth()->id();
+            $journal = null;
+
+            if ($toPay->isNotEmpty()) {
+                $amount = $toPay->reduce(fn ($sum, $p) => bcadd($sum, (string) $p->net_pay, 2), '0.00');
+                $partial = $held->isNotEmpty() || $run->status === 'partially_paid';
+
+                $journal = $this->ledger->record([
+                    'date' => $date,
+                    'type' => 'payroll',
+                    'reference' => 'SALPAY-'.$run->period,
+                    'narration' => "Net salaries paid for {$run->period_label} via {$bank->name}".($partial ? " ({$toPay->count()} staff)" : ''),
+                ], [
+                    ['account_id' => $payable->id, 'debit' => $amount, 'narration' => 'Net salaries cleared'],
+                    ['account_id' => $bank->id, 'credit' => $amount, 'narration' => 'Salary bank transfer'],
+                ], $run);
+
+                $run->payslips()->whereKey($toPay->modelKeys())->update([
+                    'payment_status' => 'paid',
+                    'paid_at' => $date,
+                    'withheld_reason' => null,
+                    'payment_journal_id' => $journal->id,
+                    'paid_by' => $payerId,
+                ]);
+            }
+
+            foreach ($held as $slip) {
+                $slip->forceFill(['payment_status' => 'withheld', 'withheld_reason' => trim($withheld[$slip->id])])->save();
+            }
+
+            $allPaid = ! $run->payslips()->where('payment_status', '!=', 'paid')->exists();
 
             $run->forceFill([
-                'status' => 'paid',
+                'status' => $allPaid ? 'paid' : 'partially_paid',
                 'payment_date' => $date,
-                'paid_by' => $payer?->id ?? auth()->id(),
-                'paid_at' => now(),
+                'paid_by' => $payerId,
+                'paid_at' => $allPaid ? now() : $run->paid_at,
                 'payment_account_id' => $bank->id,
-                'payment_journal_id' => $journal->id,
+                'payment_journal_id' => $journal?->id ?? $run->payment_journal_id,
             ])->save();
 
-            AuditLogger::log('paid', $run, "Payroll {$run->period} paid from {$bank->code} {$bank->name}; journal {$journal->journal_no}", null, ['status' => 'paid'], 'payroll');
+            $summary = "Payroll {$run->period}: paid {$toPay->count()} staff".($journal ? " (journal {$journal->journal_no})" : '').", withheld {$held->count()}";
+            AuditLogger::log('paid', $run, $summary, null, [
+                'status' => $run->status,
+                'paid_payslips' => $toPay->modelKeys(),
+                'withheld' => $held->mapWithKeys(fn ($s) => [$s->id => $withheld[$s->id]])->all(),
+            ], 'payroll');
 
             return $run;
         });

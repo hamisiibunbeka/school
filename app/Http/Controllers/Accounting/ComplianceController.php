@@ -232,7 +232,7 @@ class ComplianceController extends Controller
                 ->value('total');
         } else {
             $base = (string) DB::table('payroll_runs')->where('school_id', $schoolId)
-                ->whereIn('status', ['approved', 'paid'])
+                ->whereIn('status', ['approved', 'partially_paid', 'paid'])
                 ->whereBetween('period', [$start->format('Y-m'), $end->format('Y-m')])
                 ->sum('total_gross');
         }

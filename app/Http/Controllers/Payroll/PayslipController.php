@@ -29,7 +29,7 @@ class PayslipController extends Controller
             ->where('payslips.employee_id', $payslip->employee_id)
             ->where('payroll_runs.period', 'like', "{$year}-%")
             ->where('payroll_runs.period', '<=', $run->period)
-            ->whereIn('payroll_runs.status', ['approved', 'paid'])
+            ->whereIn('payroll_runs.status', ['approved', 'partially_paid', 'paid'])
             ->selectRaw('COALESCE(SUM(payslips.gross_pay),0) as gross, COALESCE(SUM(payslips.paye),0) as paye, COALESCE(SUM(payslips.nssf_employee),0) as nssf, COALESCE(SUM(payslips.net_pay),0) as net')
             ->first();
 
