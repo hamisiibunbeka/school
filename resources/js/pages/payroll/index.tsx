@@ -204,7 +204,7 @@ export default function PayrollIndex({ runs, filters: initial, years, stats, tre
                     />
                     <Input label="Planned payment date" type="date" value={form.data.payment_date} onChange={(e) => form.setData('payment_date', e.target.value)} error={form.errors.payment_date} />
                     <Textarea label="Notes" value={form.data.notes} onChange={(e) => form.setData('notes', e.target.value)} error={form.errors.notes} rows={2} />
-                    <div className="flex justify-end gap-3">
+                    <div className="flex justify-center gap-3">
                         <button type="button" className="btn btn-outline-dark" onClick={() => setOpen(false)}>
                             Cancel
                         </button>

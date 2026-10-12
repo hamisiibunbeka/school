@@ -224,7 +224,7 @@ export default function LessonPlans({ plans, filters: initial, coverage, stats, 
                         <Textarea label="Learning objectives" value={form.data.objectives} onChange={(e) => form.setData('objectives', e.target.value)} error={form.errors.objectives} wrapperClassName="sm:col-span-2 lg:col-span-3" />
                         <Textarea label="Teaching & learning activities" value={form.data.activities} onChange={(e) => form.setData('activities', e.target.value)} error={form.errors.activities} wrapperClassName="sm:col-span-2 lg:col-span-3" />
                     </FormGrid>
-                    <div className="flex justify-end gap-3">
+                    <div className="flex justify-center gap-3">
                         <button type="button" className="btn btn-outline-dark" onClick={() => setOpen(false)}>
                             Cancel
                         </button>

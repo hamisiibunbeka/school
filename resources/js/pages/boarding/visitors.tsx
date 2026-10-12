@@ -14,6 +14,7 @@ import { confirm } from '@/lib/swal';
 import { dateTime, num } from '@/lib/utils';
 import type { Option, Paginated } from '@/types';
 import SearchSelect from './_components/search-select';
+import { DateInput } from '@/components/ui/date-picker';
 
 type Visit = {
     id: number;
@@ -153,7 +154,7 @@ export default function Visitors({ visitors, filters: initial, students, stats }
                         ]}
                         placeholder="All visits"
                     />
-                    <input type="date" className="form-input w-full sm:w-auto" value={filters.date} onChange={(e) => setFilter('date', e.target.value)} />
+                    <DateInput className="form-input w-full sm:w-auto" value={filters.date} onChange={(e) => setFilter('date', e.target.value)} />
                 </FilterBar>
                 <DataTable columns={columns} paginated={visitors} empty="No visitors recorded" />
             </div>
@@ -167,7 +168,7 @@ export default function Visitors({ visitors, filters: initial, students, stats }
                         <SearchSelect label="Student visited (optional)" options={students} value={form.data.student_id} onChange={(v) => form.setData('student_id', v)} error={form.errors.student_id} />
                     </FormGrid>
                     <Input label="Purpose of visit" required value={form.data.purpose} onChange={(e) => form.setData('purpose', e.target.value)} error={form.errors.purpose} placeholder="e.g. Visiting day, delivering supplies" />
-                    <div className="flex justify-end gap-3">
+                    <div className="flex justify-center gap-3">
                         <button type="button" className="btn btn-outline-dark" onClick={() => setOpen(false)}>
                             Cancel
                         </button>

@@ -207,7 +207,7 @@ export default function UsersIndex({ users, filters: initial, roles, credentials
                         onChange={(e) => form.setData((d) => ({ ...d, allow_portal: e.target.checked, role_id: '' }))}
                     />
                     {!editing && <p className="rounded-md bg-info-light p-3 text-xs text-info dark:bg-info-dark-light">A temporary password is generated and shown once after saving. Ask the user to change it after first sign-in.</p>}
-                    <div className="flex justify-end gap-3">
+                    <div className="flex justify-center gap-3">
                         <button type="button" className="btn btn-outline-dark" onClick={() => setOpen(false)}>
                             Cancel
                         </button>
@@ -230,7 +230,7 @@ export default function UsersIndex({ users, filters: initial, roles, credentials
                                 <span className="text-white-dark">Password:</span> <strong className="text-primary">{creds.password}</strong>
                             </div>
                         </div>
-                        <div className="flex justify-end gap-3">
+                        <div className="flex justify-center gap-3">
                             <button
                                 type="button"
                                 className="btn btn-outline-primary"

@@ -95,7 +95,7 @@ export default function Grading({ grades, gaps, canManage }: { grades: Grade[]; 
                         <Input label="Maximum %" type="number" step="0.01" min={0} max={100} required value={form.data.max_score} onChange={(e) => form.setData('max_score', e.target.value)} error={form.errors.max_score} />
                         <Input label="Remark" placeholder="e.g. Excellent" value={form.data.remark} onChange={(e) => form.setData('remark', e.target.value)} error={form.errors.remark} wrapperClassName="sm:col-span-2" />
                     </FormGrid>
-                    <div className="flex justify-end gap-3">
+                    <div className="flex justify-center gap-3">
                         <button type="button" className="btn btn-outline-dark" onClick={() => setOpen(false)}>
                             Cancel
                         </button>

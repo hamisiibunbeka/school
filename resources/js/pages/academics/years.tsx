@@ -204,7 +204,7 @@ export default function Years({ years }: { years: Year[] }) {
                         <Input label="Ends" type="date" required value={yearForm.data.end_date} onChange={(e) => yearForm.setData('end_date', e.target.value)} error={yearForm.errors.end_date} />
                     </FormGrid>
                     <Checkbox label="Set as the current academic year" checked={yearForm.data.is_current} onChange={(e) => yearForm.setData('is_current', e.target.checked)} />
-                    <div className="flex justify-end gap-3">
+                    <div className="flex justify-center gap-3">
                         <button type="button" className="btn btn-outline-dark" onClick={() => setYearModal({ open: false, year: null })}>
                             Cancel
                         </button>
@@ -228,7 +228,7 @@ export default function Years({ years }: { years: Year[] }) {
                         </p>
                     )}
                     <Checkbox label="Set as the current term" checked={termForm.data.is_current} onChange={(e) => termForm.setData('is_current', e.target.checked)} />
-                    <div className="flex justify-end gap-3">
+                    <div className="flex justify-center gap-3">
                         <button type="button" className="btn btn-outline-dark" onClick={() => setTermModal({ open: false, year: null, term: null })}>
                             Cancel
                         </button>

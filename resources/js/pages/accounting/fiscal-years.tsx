@@ -168,7 +168,7 @@ export default function FiscalYears({ years }: { years: Year[] }) {
                         <Input label="Start date" type="date" required value={form.data.start_date} onChange={(e) => form.setData('start_date', e.target.value)} error={form.errors.start_date} />
                         <Input label="End date" type="date" required value={form.data.end_date} onChange={(e) => form.setData('end_date', e.target.value)} error={form.errors.end_date} />
                     </FormGrid>
-                    <div className="flex justify-end gap-3">
+                    <div className="flex justify-center gap-3">
                         <button type="button" className="btn btn-outline-dark" onClick={() => setOpen(false)}>
                             Cancel
                         </button>
@@ -189,7 +189,7 @@ export default function FiscalYears({ years }: { years: Year[] }) {
                 >
                     <p className="text-sm text-white-dark">Reopening allows postings into this period again. This is an authorised, audited action (SRS 4.10).</p>
                     <Textarea label="Reason for reopening" required value={reopen.data.reason} onChange={(e) => reopen.setData('reason', e.target.value)} error={reopen.errors.reason} rows={3} />
-                    <div className="flex justify-end gap-3">
+                    <div className="flex justify-center gap-3">
                         <button type="button" className="btn btn-outline-dark" onClick={() => setReopening(null)}>
                             Cancel
                         </button>

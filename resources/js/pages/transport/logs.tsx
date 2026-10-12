@@ -13,6 +13,7 @@ import StatCard from '@/components/ui/stat-card';
 import { useCan } from '@/hooks/use-can';
 import { compact, date, exportCsv, money, num, titleCase, today } from '@/lib/utils';
 import type { Option, Paginated } from '@/types';
+import { DateRangePicker } from '@/components/ui/date-picker';
 
 type Log = {
     id: number;
@@ -185,8 +186,7 @@ export default function Logs({ logs, filters: initial, vehicles, types, perVehic
                     <SearchInput value={filters.search} onChange={(v) => setFilter('search', v)} placeholder="Search details…" />
                     <FilterSelect value={filters.vehicle} onChange={(v) => setFilter('vehicle', v)} options={vehicles} placeholder="All vehicles" />
                     <FilterSelect value={filters.type} onChange={(v) => setFilter('type', v)} options={types} placeholder="All types" />
-                    <input type="date" className="form-input w-full sm:w-auto" title="From" value={filters.from} onChange={(e) => setFilter('from', e.target.value)} />
-                    <input type="date" className="form-input w-full sm:w-auto" title="To" value={filters.to} onChange={(e) => setFilter('to', e.target.value)} />
+                    <DateRangePicker from={filters.from} to={filters.to} onChange={(f, t) => { setFilter('from', f); setFilter('to', t); }} />
                 </FilterBar>
                 <DataTable columns={columns} paginated={logs} empty="No vehicle logs" />
             </div>
@@ -202,7 +202,7 @@ export default function Logs({ logs, filters: initial, vehicles, types, perVehic
                         <Input label="Odometer (km)" type="number" min={0} value={form.data.odometer} onChange={(e) => form.setData('odometer', e.target.value)} error={form.errors.odometer} />
                     </FormGrid>
                     <Input label="Details" value={form.data.description} onChange={(e) => form.setData('description', e.target.value)} error={form.errors.description} placeholder="e.g. Full tank at Puma Mwenge; brake pads replaced" />
-                    <div className="flex justify-end gap-3">
+                    <div className="flex justify-center gap-3">
                         <button type="button" className="btn btn-outline-dark" onClick={() => setOpen(false)}>
                             Cancel
                         </button>

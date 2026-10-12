@@ -13,6 +13,7 @@ import { useCan } from '@/hooks/use-can';
 import { cleanQuery, cn, compact, date, money, num } from '@/lib/utils';
 import type { Option, Paginated } from '@/types';
 import { MethodBadge, methodMeta } from '../_components/shared';
+import { DateRangePicker } from '@/components/ui/date-picker';
 
 type Row = {
     id: number;
@@ -215,9 +216,7 @@ export default function PaymentsIndex({ payments, filters: initial, stats, byMet
                         placeholder="Any status"
                     />
                     <div className="flex items-center gap-2">
-                        <input type="date" className="form-input w-full sm:w-40" value={filters.from} onChange={(e) => setFilter('from', e.target.value)} title="From date" />
-                        <span className="text-white-dark">–</span>
-                        <input type="date" className="form-input w-full sm:w-40" value={filters.to} onChange={(e) => setFilter('to', e.target.value)} title="To date" />
+                        <DateRangePicker from={filters.from} to={filters.to} onChange={(f, t) => { setFilter('from', f); setFilter('to', t); }} />
                     </div>
                 </FilterBar>
                 <DataTable columns={columns} paginated={payments} empty="No receipts found" emptyDescription="Try a different date range or collect a new payment." />

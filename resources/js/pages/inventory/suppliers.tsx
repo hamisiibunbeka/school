@@ -155,7 +155,7 @@ export default function Suppliers({ suppliers, filters: initial, stats }: Props)
                         <Input label="Address" value={form.data.address} onChange={(e) => form.setData('address', e.target.value)} error={form.errors.address} wrapperClassName="sm:col-span-2" />
                         <Switch checked={form.data.is_active} onChange={(v) => form.setData('is_active', v)} label="Active supplier" />
                     </FormGrid>
-                    <div className="flex justify-end gap-3">
+                    <div className="flex justify-center gap-3">
                         <button type="button" className="btn btn-outline-dark" onClick={() => setOpen(false)}>
                             Cancel
                         </button>

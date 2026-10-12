@@ -105,7 +105,7 @@ class SubscriptionController extends Controller
         });
 
         $this->audit($paid ? 'subscription_paid' : 'subscription_invoiced', $subscription, ($paid ? 'Recorded payment' : 'Issued subscription invoice')." {$subscription->reference} for {$tenant->name}: {$plan->name} ".$start->toDateString().' → '.$end->toDateString(), 'saas', null, ['amount' => $data['amount']]);
-        $this->toast($paid ? "Payment recorded. {$tenant->name} is active until {$end->format('d M Y')}." : 'Subscription invoice issued.');
+        $this->toast($paid ? "Payment recorded. {$tenant->name} is active until {$end->format('d/m/Y')}." : 'Subscription invoice issued.');
 
         return back();
     }

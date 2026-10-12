@@ -16,6 +16,7 @@ import { confirm } from '@/lib/swal';
 import { date, dateTime, exportCsv, num } from '@/lib/utils';
 import type { Option, Paginated } from '@/types';
 import { LeaveModal, type LeaveBalance } from './_components/leave-modal';
+import { DateInput } from '@/components/ui/date-picker';
 
 type Request = {
     id: number;
@@ -222,7 +223,7 @@ export default function Leave({ requests, filters: initial, stats, balances, lea
                         <SearchInput value={filters.search} onChange={(v) => setFilter('search', v)} placeholder="Search employee…" />
                         <FilterSelect value={filters.status} onChange={(v) => setFilter('status', v)} options={statuses} placeholder="Any status" />
                         <FilterSelect value={filters.type} onChange={(v) => setFilter('type', v)} options={typeOptions} placeholder="All leave types" />
-                        <input type="month" className="form-input w-full sm:w-auto" value={filters.month} onChange={(e) => setFilter('month', e.target.value)} title="Starting month" />
+                        <DateInput mode="month" className="form-input w-full sm:w-auto" value={filters.month} onChange={(e) => setFilter('month', e.target.value)} title="Starting month" />
                     </FilterBar>
                     <DataTable columns={columns} paginated={requests} empty="No leave requests found" emptyDescription="Try clearing filters or submit a new application." />
                 </div>
@@ -330,7 +331,7 @@ export default function Leave({ requests, filters: initial, stats, balances, lea
                         <Input label="Days per year" type="number" min={0} max={365} required value={typeForm.data.days_per_year} onChange={(e) => typeForm.setData('days_per_year', e.target.value)} error={typeForm.errors.days_per_year} />
                     </FormGrid>
                     <Checkbox label="Paid leave" checked={typeForm.data.is_paid} onChange={(e) => typeForm.setData('is_paid', e.target.checked)} />
-                    <div className="flex justify-end gap-3">
+                    <div className="flex justify-center gap-3">
                         <button type="button" className="btn btn-outline-dark" onClick={() => setTypeOpen(false)}>
                             Cancel
                         </button>

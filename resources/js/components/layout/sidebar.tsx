@@ -1,5 +1,5 @@
 import { Link, usePage } from '@inertiajs/react';
-import { ChevronDown, ChevronsLeft, GraduationCap, Minus } from 'lucide-react';
+import { ChevronDown, ChevronsLeft, GraduationCap } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import { navigation, type NavItem, type NavLink } from '@/components/layout/navigation';
 import { useCan } from '@/hooks/use-can';
@@ -21,9 +21,10 @@ function useActiveHref(items: NavLink[]) {
 }
 
 export function AppLogo({ compact = false }: { compact?: boolean }) {
-    const { school, name } = usePage().props;
+    const { school, name, auth } = usePage().props;
+    const home = auth.user?.is_super_admin && !school ? '/saas' : '/dashboard';
     return (
-        <Link href="/dashboard" className="main-logo flex shrink-0 items-center gap-2">
+        <Link href={home} className="main-logo flex shrink-0 items-center gap-2">
             {school?.logo_url ? (
                 <img src={school.logo_url} alt="logo" className="h-9 w-9 rounded-md object-cover" />
             ) : (
@@ -47,8 +48,13 @@ export default function Sidebar() {
     const { toggleSidebar, closeMobileSidebar } = useTheme();
     const isPortalUser = auth.user?.role_slug === 'parent' || auth.user?.role_slug === 'student';
 
+    const { school } = usePage().props;
+    const isSuperAdmin = !!auth.user?.is_super_admin;
+
     const visibleSections = navigation
-        .filter((s) => (s.superAdminOnly ? auth.user?.is_super_admin : true))
+        // Platform admins: platform console only until they enter a school (via Tenants → Enter school);
+        // inside a school they see that school's modules (the banner offers "Back to platform").
+        .filter((s) => (isSuperAdmin ? (school ? !s.superAdminOnly : !!s.superAdminOnly) : !s.superAdminOnly))
         .filter((s) => (s.portalOnly ? isPortalUser : true))
         .map((s) => ({
             ...s,
@@ -92,13 +98,9 @@ export default function Sidebar() {
                         </button>
                     </div>
                     <div className="relative flex-1 overflow-y-auto overflow-x-hidden pb-6">
-                        <ul className="relative space-y-0.5 p-4 py-0 font-semibold">
+                        <ul className="relative space-y-0.5 p-4 pt-2 pb-0 font-semibold">
                             {visibleSections.map((section) => (
                                 <li key={section.title}>
-                                    <h2 className="-mx-4 mb-1 flex items-center bg-white-light/30 px-7 py-3 text-[11px] font-extrabold tracking-wider text-[#3b3f5c] uppercase dark:bg-dark/[0.08] dark:text-white-dark">
-                                        <Minus className="hidden h-5 w-4 flex-none" />
-                                        <span>{section.title}</span>
-                                    </h2>
                                     <ul>
                                         {section.items.map((item) => (
                                             <SidebarItem

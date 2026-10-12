@@ -9,9 +9,10 @@ import { Textarea } from '@/components/ui/form';
 import PageHeader from '@/components/ui/page-header';
 import StatCard from '@/components/ui/stat-card';
 import { useCan } from '@/hooks/use-can';
-import { cn, date, dateTime, num } from '@/lib/utils';
+import { cn, date, dateTime, num, weekdayDate } from '@/lib/utils';
 import type { Option } from '@/types';
 import { STATUS_META, StatusToggle, type AttendanceStatus } from './_components/status-toggle';
+import { DateInput } from '@/components/ui/date-picker';
 
 type Student = { id: number; admission_no: string; full_name: string; photo_url: string | null; gender: string; stream: string | null; status: AttendanceStatus | null; remarks: string | null };
 type Register = { class_id: number; stream_id: number | null; name: string; students: number; marked: number; present: number; absent: number; late: number; excused: number };
@@ -91,7 +92,7 @@ export default function AttendanceRegister(props: Props) {
             />
 
             <div className="mb-6 grid grid-cols-2 gap-4 xl:grid-cols-4">
-                <StatCard title="Registers taken" value={`${day.registers_done} / ${day.registers_total}`} icon={ClipboardList} tone="primary" hint={date(initial.date, { weekday: 'long', day: '2-digit', month: 'short', year: 'numeric' })} />
+                <StatCard title="Registers taken" value={`${day.registers_done} / ${day.registers_total}`} icon={ClipboardList} tone="primary" hint={weekdayDate(initial.date)} />
                 <StatCard title="Present" value={num(day.present)} icon={UserCheck} tone="success" hint={day.rate !== null ? `${day.rate}% attendance` : 'No marks yet'} />
                 <StatCard title="Absent" value={num(day.absent)} icon={UserX} tone="danger" hint={`${num(day.marked)} learners marked`} />
                 <StatCard title="Late / Excused" value={`${num(day.late)} / ${num(day.excused)}`} icon={Clock} tone="warning" />
@@ -99,8 +100,8 @@ export default function AttendanceRegister(props: Props) {
 
             <div className="panel mb-6">
                 <FilterBar>
-                    <input
-                        type="date"
+                    <DateInput
+                       
                         className="form-input w-full sm:w-auto"
                         value={filters.date}
                         max={today}
@@ -207,7 +208,7 @@ function RosterForm({ roster, meta, date: day, classId, streamId, title, isPast 
             <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
                 <div>
                     <h5 className="text-lg font-bold dark:text-white-light">
-                        {title} <span className="text-sm font-semibold text-white-dark">· {date(day, { weekday: 'short', day: '2-digit', month: 'short', year: 'numeric' })}</span>
+                        {title} <span className="text-sm font-semibold text-white-dark">· {weekdayDate(day, 'short')}</span>
                     </h5>
                     <p className="text-xs text-white-dark">
                         {meta && meta.saved > 0 ? (

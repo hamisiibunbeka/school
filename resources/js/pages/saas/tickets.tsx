@@ -132,7 +132,7 @@ export default function Tickets({ tickets, filters: initial, statuses, prioritie
                             error={form.errors.resolution}
                             help="The ticket creator is notified in-app when the status changes."
                         />
-                        <div className="flex justify-end gap-3">
+                        <div className="flex justify-center gap-3">
                             <button type="button" className="btn btn-outline-dark" onClick={() => setEditing(null)}>
                                 Cancel
                             </button>

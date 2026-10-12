@@ -164,7 +164,7 @@ function ProfileForm({ school, options, manage }: { school: School; options: Pro
                 </FormGrid>
             </FormSection>
             {manage && (
-                <div className="flex justify-end">
+                <div className="flex justify-center">
                     <button className="btn btn-primary" disabled={form.processing}>
                         {form.processing ? <LoaderCircle className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />} Save profile
                     </button>
@@ -220,7 +220,7 @@ function GeneralForm({ settings, manage }: { settings: Settings; manage: boolean
                 </FormGrid>
             </FormSection>
             {manage && (
-                <div className="flex justify-end">
+                <div className="flex justify-center">
                     <button className="btn btn-primary" disabled={form.processing}>
                         <Save className="h-4 w-4" /> Save settings
                     </button>
@@ -279,7 +279,7 @@ function PaymentForm({ settings, manage, currency }: { settings: Settings; manag
                     )}
                 </FormSection>
                 {manage && (
-                    <div className="flex justify-end">
+                    <div className="flex justify-center">
                         <button className="btn btn-primary" disabled={form.processing}>
                             <Save className="h-4 w-4" /> Save payment details
                         </button>
@@ -361,7 +361,7 @@ function Numbering({ numbering, manage }: { numbering: Sequence[]; manage: boole
                         <div className="text-xs text-white-dark uppercase">Next number will be</div>
                         <div className="font-mono text-lg font-extrabold text-primary">{preview}</div>
                     </div>
-                    <div className="flex justify-end gap-3">
+                    <div className="flex justify-center gap-3">
                         <button type="button" className="btn btn-outline-dark" onClick={() => setEditing(null)}>
                             Cancel
                         </button>

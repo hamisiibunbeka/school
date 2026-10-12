@@ -141,6 +141,7 @@ export const navigation: NavSection[] = [
                     { title: 'Income Statement', href: '/accounting/income-statement' },
                     { title: 'Balance Sheet', href: '/accounting/balance-sheet' },
                     { title: 'Cash Flow', href: '/accounting/cash-flow' },
+                    { title: 'Levies & Compliance', href: '/accounting/compliance' },
                     { title: 'Budgets', href: '/accounting/budgets' },
                     { title: 'Fiscal Years', href: '/accounting/fiscal-years' },
                 ],
@@ -161,6 +162,7 @@ export const navigation: NavSection[] = [
                     { title: 'Leave Management', href: '/hr/leave', permission: 'hr.view' },
                     { title: 'Payroll Runs', href: '/payroll', permission: 'payroll.view' },
                     { title: 'Salary Components', href: '/payroll/components', permission: 'payroll.view' },
+                    { title: 'Statutory Rules (PAYE, NSSF…)', href: '/payroll/statutory', permission: 'payroll.view' },
                 ],
             },
             {

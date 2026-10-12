@@ -1,6 +1,7 @@
 import { router } from '@inertiajs/react';
 import { Search, X } from 'lucide-react';
 import { useEffect, useRef, useState, type ReactNode } from 'react';
+import SearchSelect, { type SearchOption } from '@/components/ui/search-select';
 import { cleanQuery, cn } from '@/lib/utils';
 import type { Option } from '@/types';
 
@@ -77,18 +78,15 @@ export function FilterSelect({
     placeholder: string;
     className?: string;
 }) {
+    const items: SearchOption[] = [
+        { value: '', label: placeholder },
+        ...options.map((o) => (typeof o === 'string' ? { value: o, label: o } : { value: String(o.value), label: o.label })),
+    ];
+
     return (
-        <select value={value ?? ''} onChange={(e) => onChange(e.target.value)} className={cn('form-select w-full sm:w-auto sm:min-w-[160px]', className)}>
-            <option value="">{placeholder}</option>
-            {options.map((o) => {
-                const opt = typeof o === 'string' ? { value: o, label: o } : o;
-                return (
-                    <option key={opt.value} value={opt.value}>
-                        {opt.label}
-                    </option>
-                );
-            })}
-        </select>
+        <div className={cn('w-full sm:w-auto sm:min-w-[180px]', className)}>
+            <SearchSelect value={value === null || value === undefined ? '' : String(value)} onValueChange={onChange} options={items} placeholder={placeholder} />
+        </div>
     );
 }
 

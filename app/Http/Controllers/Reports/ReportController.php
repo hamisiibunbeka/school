@@ -119,7 +119,7 @@ class ReportController extends Controller
             'school' => $school?->name,
             'period' => $report->period($filters),
             'filters' => $report->describeFilters($filters),
-            'generated_at' => now()->setTimezone($school?->timezone ?? 'Africa/Dar_es_Salaam')->format('d M Y, H:i'),
+            'generated_at' => now()->setTimezone($school?->timezone ?? 'Africa/Dar_es_Salaam')->format('d/m/Y H:i'),
             'generated_by' => $request->user()->name,
             'currency' => $school?->currency ?? 'TZS',
         ];

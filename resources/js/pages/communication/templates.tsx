@@ -132,7 +132,7 @@ export default function Templates({ templates, filters: initial, variables }: { 
                             </span>
                         )}
                     </div>
-                    <div className="flex justify-end gap-3">
+                    <div className="flex justify-center gap-3">
                         <button type="button" className="btn btn-outline-dark" onClick={() => setOpen(false)}>
                             Cancel
                         </button>

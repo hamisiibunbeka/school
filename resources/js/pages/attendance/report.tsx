@@ -11,6 +11,7 @@ import StatCard from '@/components/ui/stat-card';
 import Tabs from '@/components/ui/tabs';
 import { cn, date, exportCsv, num } from '@/lib/utils';
 import type { Option } from '@/types';
+import { DateRangePicker } from '@/components/ui/date-picker';
 
 type Counts = { present: number; absent: number; late: number; excused: number; total: number; rate: number | null };
 type StudentRow = Counts & { id: number; admission_no: string; full_name: string; class_name: string };
@@ -120,11 +121,15 @@ export default function AttendanceReport({ filters: initial, classes, students, 
 
             <div className="panel no-print mb-6">
                 <FilterBar>
-                    <div className="flex items-center gap-2">
-                        <input type="date" className="form-input" value={filters.from} max={filters.to} onChange={(e) => setFilter('from', e.target.value)} aria-label="From" />
-                        <span className="text-white-dark">to</span>
-                        <input type="date" className="form-input" value={filters.to} min={filters.from} onChange={(e) => setFilter('to', e.target.value)} aria-label="To" />
-                    </div>
+                    <DateRangePicker
+                        from={filters.from}
+                        to={filters.to}
+                        allowClear={false}
+                        onChange={(f, t) => {
+                            setFilter('from', f);
+                            setFilter('to', t);
+                        }}
+                    />
                     <FilterSelect
                         value={filters.class}
                         onChange={(v) => {

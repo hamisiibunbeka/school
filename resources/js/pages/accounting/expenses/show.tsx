@@ -191,7 +191,7 @@ export default function ExpenseShow({ expense, audits }: { expense: Expense; aud
                 >
                     {mode === 'void' && <p className="text-sm text-white-dark">Voiding posts a reversal journal dated today; the original payment journal remains in the ledger.</p>}
                     <Textarea label="Reason" required value={reason.data.reason} onChange={(e) => reason.setData('reason', e.target.value)} error={reason.errors.reason} rows={3} />
-                    <div className="flex justify-end gap-3">
+                    <div className="flex justify-center gap-3">
                         <button type="button" className="btn btn-outline-dark" onClick={() => setMode(null)}>
                             Cancel
                         </button>

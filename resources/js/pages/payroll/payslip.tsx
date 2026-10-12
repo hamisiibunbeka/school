@@ -28,6 +28,9 @@ type Props = {
             employer?: Line[];
             taxable_income?: string;
             paye_band?: { from: string; to: string | null; rate: string; base_tax: string } | null;
+            paye_explanation?: string | null;
+            tax_status?: string;
+            skipped?: { code: string | null; name: string; reason: string }[];
         };
     };
     run: { id: number; period: string; period_label: string; status: string; payment_date: string | null; rules_version: string | null };
@@ -133,6 +136,21 @@ export default function PayslipPage({ payslip, run, employee, ytd, canViewRun }:
                         <Row label="Total deductions" value={payslip.total_deductions} bold />
                     </div>
                 </div>
+
+                {(b.paye_explanation || (b.skipped ?? []).length > 0) && (
+                    <div className="mt-6 rounded-md bg-[#f6f8fa] p-3 text-xs dark:bg-[#1a2941]">
+                        {b.paye_explanation && (
+                            <div>
+                                <strong>How PAYE was calculated:</strong> taxable income {money(b.taxable_income ?? 0, '')} → {b.paye_explanation}
+                            </div>
+                        )}
+                        {(b.skipped ?? []).map((s, i) => (
+                            <div key={i} className="mt-1 text-white-dark">
+                                {s.name} not applied: {s.reason}
+                            </div>
+                        ))}
+                    </div>
+                )}
 
                 <div className="mt-6 flex flex-wrap items-center justify-between gap-3 rounded-lg bg-primary p-4 text-white">
                     <span className="text-sm font-bold uppercase">Net pay</span>

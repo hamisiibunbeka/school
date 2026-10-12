@@ -340,7 +340,7 @@ export default function Accounts({ accounts, totals, stats, subTypes, parents }:
                         <Checkbox label="Active" checked={form.data.is_active} onChange={(e) => form.setData('is_active', e.target.checked)} />
                     </div>
                     {form.errors.is_postable && <p className="form-error">{form.errors.is_postable}</p>}
-                    <div className="flex justify-end gap-3">
+                    <div className="flex justify-center gap-3">
                         <button type="button" className="btn btn-outline-dark" onClick={() => setOpen(false)}>
                             Cancel
                         </button>

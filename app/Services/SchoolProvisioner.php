@@ -83,6 +83,7 @@ class SchoolProvisioner
         $this->seedGradeScale();
         $this->seedDepartments();
         $this->seedFinanceDefaults();
+        app(StatutoryDefaults::class)->apply();
     }
 
     public function seedChartOfAccounts(): void

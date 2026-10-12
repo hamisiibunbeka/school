@@ -76,6 +76,10 @@ class AppServiceProvider extends ServiceProvider
         Event::listen(Login::class, function (Login $event) {
             if ($event->user instanceof User) {
                 $event->user->forceFill(['last_login_at' => now()])->saveQuietly();
+                // Every sign-in starts in the user's home context (platform console for super admins).
+                if (request()->hasSession()) {
+                    request()->session()->forget('school_id');
+                }
             }
         });
 

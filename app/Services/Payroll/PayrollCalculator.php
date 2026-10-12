@@ -16,15 +16,43 @@ class PayrollCalculator
     /**
      * @param  Collection<int, SalaryComponent>  $components  active components
      * @param  array<int, string|null>  $assigned  salary_component_id => override amount (null = use component value)
-     * @param  array<string, mixed>  $rules  PayrollRules::current() or a stored snapshot
+     * @param  array<string, mixed>  $rules  PayrollRules::forPeriod() or a stored snapshot
+     * @param  array{headcount?: int, period_end?: string, excluded?: array<int, int>}  $context
      * @return array<string, mixed>
      */
-    public function calculate(Employee $employee, Collection $components, array $assigned, array $rules, int $unpaidLeaveDays = 0): array
+    public function calculate(Employee $employee, Collection $components, array $assigned, array $rules, int $unpaidLeaveDays = 0, array $context = []): array
     {
         $basic = $this->round((string) $employee->basic_salary);
         $grossCodes = $rules['statutory_gross_codes'] ?? [];
+        $headcount = (int) ($context['headcount'] ?? PHP_INT_MAX);
+        $periodEnd = $context['period_end'] ?? now()->toDateString();
+        $excluded = $context['excluded'] ?? [];
+        $onProbation = $employee->probation_end_date && $employee->probation_end_date->toDateString() >= $periodEnd;
 
-        $applicable = $components->filter(fn (SalaryComponent $c) => $c->applies_to_all || array_key_exists($c->id, $assigned));
+        // Which components apply to this employee, and why others were skipped (shown on the payslip).
+        $skipped = [];
+        $applicable = $components->filter(function (SalaryComponent $c) use ($assigned, $excluded, $onProbation, $headcount, &$skipped) {
+            if (! $c->applies_to_all && ! array_key_exists($c->id, $assigned)) {
+                return false;
+            }
+            if (in_array($c->id, $excluded, true)) {
+                $skipped[] = ['code' => $c->code, 'name' => $c->name, 'reason' => 'Employee excluded'];
+
+                return false;
+            }
+            if ($c->exclude_on_probation && $onProbation) {
+                $skipped[] = ['code' => $c->code, 'name' => $c->name, 'reason' => 'On probation'];
+
+                return false;
+            }
+            if ($c->min_employees && $headcount < $c->min_employees) {
+                $skipped[] = ['code' => $c->code, 'name' => $c->name, 'reason' => "Employer has {$headcount} employees (threshold {$c->min_employees})"];
+
+                return false;
+            }
+
+            return true;
+        });
 
         // Unpaid leave reduces earned basic pay pro-rata.
         $unpaidAmount = '0.00';
@@ -67,14 +95,18 @@ class PayrollCalculator
             $deductions[] = $this->line($c, $amount, 'nssf');
         }
 
-        if (($rules['paye_taxable'] ?? '') === 'gross_less_nssf_employee') {
+        if (in_array($rules['paye_taxable'] ?? '', ['gross_less_nssf_employee', 'gross_less_pension'], true)) {
             $taxable = bcsub($gross, $nssf, 2);
         }
 
+        $taxStatus = $employee->tax_status ?: 'primary';
+        $payeExplanation = null;
+
         foreach ($deductionComponents->where('calculation', 'paye') as $c) {
-            [$amount, $band] = $this->paye($taxable, $rules['paye_bands'] ?? []);
+            [$amount, $band, $payeExplanation] = $this->payeFor($taxStatus, $taxable, $rules);
             if (isset($assigned[$c->id]) && $assigned[$c->id] !== null) {
                 $amount = $this->round((string) $assigned[$c->id]);
+                $payeExplanation = 'Fixed PAYE override set for this employee: '.number_format((float) $amount, 2);
             }
             $paye = bcadd($paye, $amount, 2);
             $deductions[] = $this->line($c, $amount, 'paye');
@@ -123,6 +155,9 @@ class PayrollCalculator
                 'gross' => $gross,
                 'taxable_income' => $taxable,
                 'paye_band' => $band,
+                'paye_explanation' => $payeExplanation,
+                'tax_status' => $taxStatus,
+                'skipped' => $skipped,
                 'deductions' => $deductions,
                 'employer' => $employer,
                 'net' => $net,
@@ -138,6 +173,42 @@ class PayrollCalculator
                 'rules_version' => $rules['version'] ?? null,
             ],
         ];
+    }
+
+    /**
+     * PAYE by employee tax status, with a human-readable explanation of the working.
+     *
+     * @param  array<string, mixed>  $rules
+     * @return array{0: string, 1: array<string, mixed>|null, 2: string}
+     */
+    public function payeFor(string $taxStatus, string $taxable, array $rules): array
+    {
+        $fmt = fn (string $v) => number_format((float) $v, 0);
+
+        if ($taxStatus === 'exempt') {
+            return ['0.00', null, 'Employee is exempt from PAYE.'];
+        }
+
+        if (in_array($taxStatus, ['secondary', 'non_resident'], true)) {
+            $rate = (string) ($rules[$taxStatus === 'secondary' ? 'secondary_rate' : 'non_resident_rate'] ?? ($taxStatus === 'secondary' ? '30' : '15'));
+            $tax = $this->round(bcdiv(bcmul(max($taxable, '0'), $rate, 6), '100', 6));
+            $label = $taxStatus === 'secondary' ? 'Secondary employment' : 'Non-resident';
+
+            return [$tax, null, "{$label} flat rate: {$fmt($taxable)} × ".(float) $rate."% = {$fmt($tax)}"];
+        }
+
+        [$tax, $band] = $this->paye($taxable, $rules['paye_bands'] ?? []);
+
+        if (! $band) {
+            return [$tax, null, "Taxable income {$fmt($taxable)} — no PAYE due."];
+        }
+
+        $ratePct = (float) bcmul((string) $band['rate'], '100', 3);
+        $explanation = (float) $band['rate'] == 0.0
+            ? "Taxable income {$fmt($taxable)} is within the tax-free band (up to {$fmt((string) $band['to'])}) — no PAYE."
+            : "{$fmt((string) $band['base_tax'])} + {$ratePct}% × ({$fmt($taxable)} − {$fmt((string) $band['from'])}) = {$fmt($tax)}";
+
+        return [$tax, $band, $explanation];
     }
 
     /**
@@ -174,15 +245,20 @@ class PayrollCalculator
             return $this->round((string) $assigned[$c->id]);
         }
 
-        return match ($c->calculation) {
+        $useGross = ($c->base ?? null) === 'gross' || ($c->base === null && $c->is_statutory && in_array($c->code, $grossCodes, true));
+
+        $amount = match ($c->calculation) {
             'fixed' => $this->round((string) $c->value),
-            'percent_of_basic' => $this->round(bcdiv(bcmul(
-                $c->is_statutory && in_array($c->code, $grossCodes, true) ? $gross : $basic,
-                (string) $c->value,
-                6,
-            ), '100', 6)),
+            'percent_of_basic' => $this->round(bcdiv(bcmul($useGross ? $gross : $basic, (string) $c->value, 6), '100', 6)),
             default => '0.00',
         };
+
+        // Optional per-employee monthly ceiling (e.g. contribution caps).
+        if ($c->cap_amount !== null && bccomp($amount, (string) $c->cap_amount, 2) > 0) {
+            $amount = $this->round((string) $c->cap_amount);
+        }
+
+        return $amount;
     }
 
     /** @return array<string, mixed> */
@@ -194,6 +270,7 @@ class PayrollCalculator
             'name' => $c->name,
             'calculation' => $c->calculation,
             'rate' => $c->calculation === 'percent_of_basic' ? (string) (float) $c->value : null,
+            'base' => $c->calculation === 'percent_of_basic' ? ($c->base ?? 'basic') : null,
             'amount' => $amount,
             'account_id' => $c->account_id,
             'kind' => $kind,

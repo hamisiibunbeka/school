@@ -367,7 +367,7 @@ export default function AdmissionShow({ application: a, transitions, decisions, 
                         placeholder={target === 'rejected' ? 'Reason for rejection…' : target === 'withdrawn' ? 'Reason for withdrawal…' : 'Basis for this decision…'}
                     />
                     <p className="text-xs text-white-dark">This action is recorded in the audit trail with your name and the time.</p>
-                    <div className="flex justify-end gap-3">
+                    <div className="flex justify-center gap-3">
                         <button type="button" className="btn btn-outline-dark" onClick={() => setTarget(null)}>
                             Cancel
                         </button>
@@ -407,7 +407,7 @@ export default function AdmissionShow({ application: a, transitions, decisions, 
                         </div>
                     )}
                     {(enrol.errors as Record<string, string>).status && <p className="form-error">{(enrol.errors as Record<string, string>).status}</p>}
-                    <div className="flex justify-end gap-3">
+                    <div className="flex justify-center gap-3">
                         <button type="button" className="btn btn-outline-dark" onClick={() => setEnrolOpen(false)}>
                             Cancel
                         </button>

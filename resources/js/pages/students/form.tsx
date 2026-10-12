@@ -5,6 +5,7 @@ import Avatar from '@/components/ui/avatar';
 import { Checkbox, FormGrid, FormSection, Input, Select, Textarea } from '@/components/ui/form';
 import PageHeader from '@/components/ui/page-header';
 import type { Option } from '@/types';
+import DobAgeField from '@/components/ui/dob-age-field';
 
 type GuardianInput = { id?: number | null; first_name: string; last_name: string; phone: string; email: string; occupation: string; relationship: string; is_primary: boolean };
 
@@ -145,7 +146,7 @@ export default function StudentForm({ student, classes }: Props) {
                                 ]}
                                 error={err.gender}
                             />
-                            <Input label="Date of birth" type="date" name="date_of_birth" value={form.data.date_of_birth} onChange={(e) => form.setData('date_of_birth', e.target.value)} error={err.date_of_birth} />
+                            <DobAgeField value={form.data.date_of_birth} onChange={(v) => form.setData('date_of_birth', v)} error={err.date_of_birth} minAge={2} maxAge={30} typicalAge={14} />
                             <Input label="Birth certificate no." name="birth_cert_no" value={form.data.birth_cert_no} onChange={(e) => form.setData('birth_cert_no', e.target.value)} />
                             <Input label="Nationality" name="nationality" value={form.data.nationality} onChange={(e) => form.setData('nationality', e.target.value)} />
                             <Input label="Religion" name="religion" value={form.data.religion} onChange={(e) => form.setData('religion', e.target.value)} />
@@ -223,7 +224,7 @@ export default function StudentForm({ student, classes }: Props) {
                         </div>
                     </FormSection>
 
-                    <div className="flex items-center justify-end gap-3 pt-2">
+                    <div className="flex items-center justify-center gap-3 pt-2">
                         <Link href={editing ? `/students/${student.id}` : '/students'} className="btn btn-outline-dark">
                             Cancel
                         </Link>

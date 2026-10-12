@@ -4,7 +4,7 @@ import { PrintButton } from '@/components/ui/actions';
 import Chart from '@/components/ui/chart';
 import PageHeader from '@/components/ui/page-header';
 import { cn, compact, exportCsv, money } from '@/lib/utils';
-import { Amt, CheckBadge, DateField, ReportHeader, SectionRow, go, periodLabel, periodPresets, type Meta } from './_components/report';
+import { Amt, CheckBadge, RangeField, ReportHeader, SectionRow, go, periodLabel, type Meta } from './_components/report';
 
 type Line = { id: number; code: string; name: string; amount: string };
 type Activity = { receipts: Line[]; payments: Line[]; total_receipts: string; total_payments: string; net: string };
@@ -71,18 +71,10 @@ export default function CashFlow({ filters, report, meta }: Props) {
 
             <div className="panel no-print mb-5">
                 <div className="flex flex-col gap-3 lg:flex-row lg:flex-wrap lg:items-end">
-                    <DateField label="From" value={q.from} onChange={(v) => setQ({ ...q, from: v })} />
-                    <DateField label="To" value={q.to} onChange={(v) => setQ({ ...q, to: v })} />
+                    <RangeField from={q.from} to={q.to} onChange={(from, to) => go('/accounting/cash-flow', { ...q, from, to })} />
                     <button type="button" className="btn btn-primary" onClick={() => go('/accounting/cash-flow', q)}>
                         Run report
                     </button>
-                </div>
-                <div className="mt-3 flex flex-wrap gap-2">
-                    {periodPresets().map((p) => (
-                        <button key={p.label} type="button" className="btn btn-sm btn-outline-secondary" onClick={() => go('/accounting/cash-flow', { from: p.from, to: p.to })}>
-                            {p.label}
-                        </button>
-                    ))}
                 </div>
             </div>
 

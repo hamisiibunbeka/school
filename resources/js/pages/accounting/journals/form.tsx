@@ -6,6 +6,7 @@ import PageHeader from '@/components/ui/page-header';
 import { cn, today } from '@/lib/utils';
 import type { Option } from '@/types';
 import { fmtZero } from '../_components/report';
+import SearchSelect from '@/components/ui/search-select';
 
 type AccountOption = Option & { type: string; is_control: boolean };
 type Line = { account_id: string; debit: string; credit: string; narration: string };
@@ -126,7 +127,7 @@ export default function JournalForm({ journal, accounts, types }: { journal: Jou
                                         <tr key={i} className="align-top">
                                             <td className="pt-4! text-white-dark">{i + 1}</td>
                                             <td>
-                                                <select className={cn('form-select', errors[`lines.${i}.account_id`] && 'border-danger')} value={line.account_id} onChange={(e) => setLine(i, 'account_id', e.target.value)}>
+                                                <SearchSelect className={cn('form-select', errors[`lines.${i}.account_id`] && 'border-danger')} value={line.account_id} onChange={(e) => setLine(i, 'account_id', e.target.value)}>
                                                     <option value="">Select account…</option>
                                                     {['asset', 'liability', 'equity', 'income', 'expense'].map((t) => (
                                                         <optgroup key={t} label={t[0].toUpperCase() + t.slice(1)}>
@@ -140,7 +141,7 @@ export default function JournalForm({ journal, accounts, types }: { journal: Jou
                                                                 ))}
                                                         </optgroup>
                                                     ))}
-                                                </select>
+                                                </SearchSelect>
                                                 {acc?.is_control && (
                                                     <p className={cn('mt-1 flex items-center gap-1 text-xs', controlAllowed ? 'text-warning' : 'text-danger')}>
                                                         <Lock className="h-3 w-3" /> Control account{controlAllowed ? ' — allowed for this journal type' : ' — only opening/adjustment journals may post here'}
@@ -219,7 +220,7 @@ export default function JournalForm({ journal, accounts, types }: { journal: Jou
                     </div>
                 </div>
 
-                <div className="flex flex-wrap items-center justify-end gap-3">
+                <div className="flex flex-wrap items-center justify-center gap-3">
                     <Link href={journal ? `/accounting/journals/${journal.id}` : '/accounting/journals'} className="btn btn-outline-dark">
                         Cancel
                     </Link>

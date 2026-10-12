@@ -308,7 +308,7 @@ export default function TenantShow({ tenant, schools, admins, usage, subscriptio
                 >
                     <Select label="New plan" value={planForm.data.plan_id} onChange={(e) => planForm.setData('plan_id', e.target.value)} options={plans} error={planForm.errors.plan_id} />
                     <Textarea label="Reason" required value={planForm.data.reason} onChange={(e) => planForm.setData('reason', e.target.value)} error={planForm.errors.reason} />
-                    <div className="flex justify-end gap-3">
+                    <div className="flex justify-center gap-3">
                         <button type="button" className="btn btn-outline-dark" onClick={close}>
                             Cancel
                         </button>
@@ -330,7 +330,7 @@ export default function TenantShow({ tenant, schools, admins, usage, subscriptio
                     <p className="text-sm text-white-dark">Current trial end: {date(tenant.trial_ends_at)}. Extensions start from the later of today or the current end date.</p>
                     <Input label="Extend by (days)" type="number" min={1} max={180} value={trialForm.data.days} onChange={(e) => trialForm.setData('days', e.target.value)} error={trialForm.errors.days} />
                     <Textarea label="Reason" required value={trialForm.data.reason} onChange={(e) => trialForm.setData('reason', e.target.value)} error={trialForm.errors.reason} />
-                    <div className="flex justify-end gap-3">
+                    <div className="flex justify-center gap-3">
                         <button type="button" className="btn btn-outline-dark" onClick={close}>
                             Cancel
                         </button>
@@ -355,7 +355,7 @@ export default function TenantShow({ tenant, schools, admins, usage, subscriptio
                         <Input label="Phone" value={editForm.data.phone} onChange={(e) => editForm.setData('phone', e.target.value)} error={editForm.errors.phone} />
                         <Input label="Country" value={editForm.data.country} onChange={(e) => editForm.setData('country', e.target.value)} error={editForm.errors.country} />
                     </FormGrid>
-                    <div className="flex justify-end gap-3">
+                    <div className="flex justify-center gap-3">
                         <button type="button" className="btn btn-outline-dark" onClick={close}>
                             Cancel
                         </button>

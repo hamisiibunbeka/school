@@ -68,7 +68,7 @@ export default function Profile({ profile }: Props) {
                         <Input label="Email" type="email" name="email" required value={form.data.email} onChange={(e) => form.setData('email', e.target.value)} error={form.errors.email} wrapperClassName="sm:col-span-2" />
                     </FormGrid>
                     {form.errors.avatar && <p className="form-error">{form.errors.avatar}</p>}
-                    <div className="mt-6 flex justify-end">
+                    <div className="mt-6 flex justify-center">
                         <button type="submit" className="btn btn-primary" disabled={form.processing}>
                             {form.processing ? <LoaderCircle className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />} Save changes
                         </button>

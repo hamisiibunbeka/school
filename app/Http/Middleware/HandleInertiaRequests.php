@@ -27,7 +27,6 @@ class HandleInertiaRequests extends Middleware
     public function share(Request $request): array
     {
         $user = $request->user();
-        $school = app(Tenancy::class)->school();
 
         return [
             ...parent::share($request),
@@ -46,22 +45,45 @@ class HandleInertiaRequests extends Middleware
                 ] : null,
                 'permissions' => $user?->permissionList() ?? [],
             ],
-            'school' => $school ? [
-                'id' => $school->id,
-                'name' => $school->name,
-                'motto' => $school->motto,
-                'logo_url' => $school->logo_url,
-                'currency' => $school->currency,
-                'tenant' => $school->tenant?->name,
-                'tenant_status' => $school->tenant?->status,
-                'plan' => $school->tenant?->plan?->name,
-            ] : null,
-            'schools' => fn () => $user?->canSwitchSchools()
-                ? School::query()
-                    ->when(! $user->is_super_admin, fn ($q) => $q->where('tenant_id', $user->tenant_id))
-                    ->orderBy('name')
-                    ->get(['id', 'name'])
-                : [],
+            // Lazy: resolved after route middleware (platform pages clear the school context).
+            'school' => function () {
+                $school = app(Tenancy::class)->school();
+
+                return $school ? [
+                    'id' => $school->id,
+                    'name' => $school->name,
+                    'motto' => $school->motto,
+                    'logo_url' => $school->logo_url,
+                    'currency' => $school->currency,
+                    'tenant' => $school->tenant?->name,
+                    'tenant_status' => $school->tenant?->status,
+                    'plan' => $school->tenant?->plan?->name,
+                ] : null;
+            },
+            // Header school switcher:
+            //  - tenant admins: their own tenant's schools;
+            //  - platform admins: every school (grouped by tenant), but only while inside a school —
+            //    on the platform console they enter schools via SaaS Console → Tenants.
+            'schools' => function () use ($user) {
+                if (! $user?->canSwitchSchools()) {
+                    return [];
+                }
+
+                if ($user->is_super_admin) {
+                    if (! app(Tenancy::class)->hasSchool()) {
+                        return [];
+                    }
+
+                    return School::query()
+                        ->join('tenants', 'tenants.id', '=', 'schools.tenant_id')
+                        ->orderBy('tenants.name')->orderBy('schools.name')
+                        ->get(['schools.id', 'schools.name', 'tenants.name as tenant', 'tenants.status as tenant_status'])
+                        ->map(fn ($s) => ['id' => $s->id, 'name' => $s->name, 'tenant' => $s->tenant, 'tenant_status' => $s->tenant_status])
+                        ->all();
+                }
+
+                return School::query()->where('tenant_id', $user->tenant_id)->orderBy('name')->get(['id', 'name'])->all();
+            },
             'notificationsCount' => fn () => $user?->unreadNotifications()->count() ?? 0,
         ];
     }

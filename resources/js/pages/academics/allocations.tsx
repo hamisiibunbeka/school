@@ -322,7 +322,7 @@ export default function Allocations({ classes, allocations, workload, maxPeriods
                             <AlertTriangle className="h-4 w-4 shrink-0" /> This teacher is already above the {maxPeriods}-period weekly limit.
                         </div>
                     )}
-                    <div className="flex justify-end gap-3">
+                    <div className="flex justify-center gap-3">
                         <button type="button" className="btn btn-outline-dark" onClick={() => setOpen(false)}>
                             Cancel
                         </button>

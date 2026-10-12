@@ -42,7 +42,7 @@ export default function Modal({
                             </button>
                         </div>
                         <div className="p-5">{children}</div>
-                        {footer && <div className="flex items-center justify-end gap-3 border-t border-white-light px-5 py-3 dark:border-[#1b2e4b]">{footer}</div>}
+                        {footer && <div className="flex flex-wrap items-center justify-center gap-3 border-t border-white-light px-5 py-3 dark:border-[#1b2e4b]">{footer}</div>}
                     </DialogPanel>
                 </div>
             </div>

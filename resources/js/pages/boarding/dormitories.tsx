@@ -205,7 +205,7 @@ export default function Dormitories({ dormitories, wardens, stats }: Props) {
                     </FormGrid>
                     <Input label="Description" value={dormForm.data.description} onChange={(e) => dormForm.setData('description', e.target.value)} error={dormForm.errors.description} />
                     <p className="text-xs text-white-dark">Capacity is calculated automatically from the rooms you add.</p>
-                    <div className="flex justify-end gap-3">
+                    <div className="flex justify-center gap-3">
                         <button type="button" className="btn btn-outline-dark" onClick={() => setDormOpen(false)}>
                             Cancel
                         </button>
@@ -220,7 +220,7 @@ export default function Dormitories({ dormitories, wardens, stats }: Props) {
                 <form onSubmit={submitRoom} className="space-y-4">
                     <Input label="Room name / number" required value={roomForm.data.name} onChange={(e) => roomForm.setData('name', e.target.value)} error={roomForm.errors.name} />
                     <Input label="Beds (capacity)" type="number" min={1} required value={roomForm.data.capacity} onChange={(e) => roomForm.setData('capacity', e.target.value)} error={roomForm.errors.capacity} />
-                    <div className="flex justify-end gap-3">
+                    <div className="flex justify-center gap-3">
                         <button type="button" className="btn btn-outline-dark" onClick={() => setRoomFor(null)}>
                             Cancel
                         </button>

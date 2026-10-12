@@ -1,4 +1,6 @@
 import type { InputHTMLAttributes, ReactNode, SelectHTMLAttributes, TextareaHTMLAttributes } from 'react';
+import { DatePicker, type DatePickerMode } from '@/components/ui/date-picker';
+import SearchSelect, { type SearchOption } from '@/components/ui/search-select';
 import { cn } from '@/lib/utils';
 import type { Option } from '@/types';
 
@@ -37,11 +39,32 @@ export function Field({
 
 type InputProps = InputHTMLAttributes<HTMLInputElement> & { label?: ReactNode; error?: string; help?: ReactNode; wrapperClassName?: string };
 
+const pickerModes: Record<string, DatePickerMode> = { date: 'date', 'datetime-local': 'datetime', month: 'month' };
+
 export function Input({ label, error, help, wrapperClassName, className, required, id, ...props }: InputProps) {
     const inputId = id ?? (typeof props.name === 'string' ? props.name : undefined);
+    const pickerMode = props.type ? pickerModes[props.type] : undefined;
+
     return (
         <Field label={label} error={error} help={help} required={required} className={wrapperClassName} htmlFor={inputId}>
-            <input id={inputId} required={required} className={cn('form-input', className)} {...props} />
+            {pickerMode ? (
+                // Date-like inputs use the flatpickr date picker (same value format as the native input).
+                <DatePicker
+                    id={inputId}
+                    name={props.name}
+                    mode={pickerMode}
+                    value={props.value === undefined || props.value === null ? '' : String(props.value)}
+                    onChange={props.onChange}
+                    min={props.min}
+                    max={props.max}
+                    required={required}
+                    disabled={props.disabled}
+                    placeholder={props.placeholder}
+                    className={className}
+                />
+            ) : (
+                <input id={inputId} required={required} className={cn('form-input', className)} {...props} />
+            )}
         </Field>
     );
 }
@@ -55,21 +78,28 @@ type SelectProps = SelectHTMLAttributes<HTMLSelectElement> & {
     wrapperClassName?: string;
 };
 
-export function Select({ label, error, help, options, placeholder, wrapperClassName, className, required, id, ...props }: SelectProps) {
-    const selectId = id ?? (typeof props.name === 'string' ? props.name : undefined);
+/** Searchable select (type to filter). Same props as before: options, placeholder, value, onChange(e). */
+export function Select({ label, error, help, options, placeholder, wrapperClassName, className, required, id, value, onChange, disabled, name, title }: SelectProps) {
+    const selectId = id ?? (typeof name === 'string' ? name : undefined);
+    const items: SearchOption[] = [
+        ...(placeholder !== undefined ? [{ value: '', label: placeholder }] : []),
+        ...options.map((o) => (typeof o === 'string' ? { value: o, label: o } : { value: String(o.value), label: o.label })),
+    ];
+
     return (
         <Field label={label} error={error} help={help} required={required} className={wrapperClassName} htmlFor={selectId}>
-            <select id={selectId} required={required} className={cn('form-select', className)} {...props}>
-                {placeholder !== undefined && <option value="">{placeholder}</option>}
-                {options.map((o) => {
-                    const opt = typeof o === 'string' ? { value: o, label: o } : o;
-                    return (
-                        <option key={opt.value} value={opt.value}>
-                            {opt.label}
-                        </option>
-                    );
-                })}
-            </select>
+            <SearchSelect
+                id={selectId}
+                name={name}
+                title={title}
+                value={value === undefined || value === null ? '' : String(value)}
+                onChange={onChange}
+                options={items}
+                placeholder={placeholder}
+                required={required}
+                disabled={disabled}
+                className={className}
+            />
         </Field>
     );
 }

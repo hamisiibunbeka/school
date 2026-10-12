@@ -4,6 +4,7 @@ import { ArrowDown, ArrowLeft, ArrowUp, ArrowUpDown, Bookmark, CalendarRange, Do
 import { useEffect, useMemo, useState, type FormEvent } from 'react';
 import { flushSync } from 'react-dom';
 import Chart from '@/components/ui/chart';
+import { DatePicker, DateRangePicker } from '@/components/ui/date-picker';
 import EmptyState from '@/components/ui/empty-state';
 import { SearchInput } from '@/components/ui/filters';
 import Letterhead from '@/components/ui/letterhead';
@@ -23,6 +24,7 @@ import {
     type ReportColumn,
     type ReportRow,
 } from './_components/report-kit';
+import SearchSelect from '@/components/ui/search-select';
 
 type FilterOption = { value: string | number; label: string; parent?: string | number | null };
 type FilterDef = {
@@ -157,6 +159,8 @@ export default function ReportShow({ report, category, definitions, filters, res
         toast('Saved filters cleared.', 'info');
     };
 
+    const hasRange = definitions.some((d) => d.key === 'from') && definitions.some((d) => d.key === 'to');
+
     const exportUrl = `/reports/${report.key}/export?${new URLSearchParams(cleanQuery(filters) as Record<string, string>)}`;
     const dirty = JSON.stringify(cleanQuery(values)) !== JSON.stringify(cleanQuery(filters));
 
@@ -228,9 +232,26 @@ export default function ReportShow({ report, category, definitions, filters, res
                 <form onSubmit={submit} className="panel no-print sticky top-[60px] z-30 mb-6 border border-white-light/60 shadow-lg shadow-black/5 dark:border-[#1b2e4b]">
                     <div className="flex flex-col gap-4 xl:flex-row xl:items-end">
                         <div className="grid flex-1 grid-cols-1 gap-3 sm:grid-cols-2 md:grid-cols-3 2xl:grid-cols-5">
-                            {definitions.map((d) => (
-                                <FilterControl key={d.key} def={d} value={values[d.key] ?? ''} parentValue={d.dependsOn ? values[d.dependsOn] ?? '' : ''} onChange={(v) => setValue(d.key, v)} />
-                            ))}
+                            {definitions.map((d) => {
+                                // A from/to pair renders as one period dropdown (Today … Last year, custom range).
+                                if (d.key === 'to' && hasRange) return null;
+                                if (d.key === 'from' && hasRange) {
+                                    return (
+                                        <DateRangePicker
+                                            key="period"
+                                            label="Period"
+                                            from={values.from ?? ''}
+                                            to={values.to ?? ''}
+                                            onChange={(from, to) => {
+                                                const next = { ...values, from, to };
+                                                setValues(next);
+                                                run(next);
+                                            }}
+                                        />
+                                    );
+                                }
+                                return <FilterControl key={d.key} def={d} value={values[d.key] ?? ''} parentValue={d.dependsOn ? values[d.dependsOn] ?? '' : ''} onChange={(v) => setValue(d.key, v)} />;
+                            })}
                         </div>
                         <div className="flex flex-wrap items-center gap-2">
                             <button type="submit" className={cn('btn btn-primary', dirty && 'animate-pulse')} disabled={processing}>
@@ -342,7 +363,7 @@ export default function ReportShow({ report, category, definitions, filters, res
                                 <span>
                                     {num(filtered.length)} of {num(result.rows.length)} rows
                                 </span>
-                                <select
+                                <SearchSelect
                                     value={pageSize}
                                     onChange={(e) => {
                                         setPageSize(Number(e.target.value));
@@ -355,7 +376,7 @@ export default function ReportShow({ report, category, definitions, filters, res
                                             {s ? `${s} / page` : 'Show all'}
                                         </option>
                                     ))}
-                                </select>
+                                </SearchSelect>
                             </div>
                         </div>
                     )}
@@ -483,14 +504,23 @@ function FilterControl({ def, value, parentValue, onChange }: { def: FilterDef; 
         return (
             <label className="block">
                 {label}
-                <select value={value} onChange={(e) => onChange(e.target.value)} className="form-select">
+                <SearchSelect value={value} onChange={(e) => onChange(e.target.value)} className="form-select">
                     {def.placeholder !== null && <option value="">{def.placeholder ?? 'All'}</option>}
                     {options.map((o) => (
                         <option key={o.value} value={o.value}>
                             {o.label}
                         </option>
                     ))}
-                </select>
+                </SearchSelect>
+            </label>
+        );
+    }
+
+    if (def.type === 'date') {
+        return (
+            <label className="block">
+                {label}
+                <DatePicker value={value} min={def.min} max={def.max} onValueChange={onChange} />
             </label>
         );
     }
@@ -499,7 +529,7 @@ function FilterControl({ def, value, parentValue, onChange }: { def: FilterDef; 
         <label className="block">
             {label}
             <input
-                type={def.type === 'date' ? 'date' : def.type === 'number' ? 'number' : 'text'}
+                type={def.type === 'number' ? 'number' : 'text'}
                 value={value}
                 min={def.min}
                 max={def.max}

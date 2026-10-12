@@ -24,6 +24,34 @@ class PayrollRules
      *   working_days_per_month: int, notice: string
      * }
      */
+    /**
+     * Rules for a pay period: the built-in pack overlaid with the school's PAYE
+     * table in force on the period end date (editable under Payroll → Statutory Rules).
+     *
+     * @return array<string, mixed>
+     */
+    public static function forPeriod(string $periodEnd): array
+    {
+        $rules = static::current();
+        $table = \App\Models\TaxTable::inForce($periodEnd);
+
+        if ($table && $table->bands->isNotEmpty()) {
+            $rules['paye_bands'] = $table->toRuleBands();
+            $rules['paye_taxable'] = $table->taxable_base === 'gross' ? 'gross' : 'gross_less_nssf_employee';
+            $rules['secondary_rate'] = (string) $table->secondary_rate;
+            $rules['non_resident_rate'] = (string) $table->non_resident_rate;
+            $rules['tax_table'] = [
+                'id' => $table->id,
+                'name' => $table->name,
+                'effective_from' => $table->effective_from->toDateString(),
+                'jurisdiction' => $table->jurisdiction,
+            ];
+            $rules['version'] = self::VERSION.'+T'.$table->id.'@'.$table->updated_at?->format('YmdHis');
+        }
+
+        return $rules;
+    }
+
     public static function current(): array
     {
         return [
@@ -41,6 +69,9 @@ class PayrollRules
             ],
             // PAYE is charged on gross pay less the employee pension (NSSF) contribution.
             'paye_taxable' => 'gross_less_nssf_employee',
+            // Flat PAYE rates (%) for secondary employment and non-resident employees.
+            'secondary_rate' => '30',
+            'non_resident_rate' => '15',
             // Statutory percentage components computed on GROSS pay instead of basic.
             'statutory_gross_codes' => ['NSSF_EE', 'NSSF_ER', 'WCF', 'SDL'],
             // Employer contribution expense accounts (Dr) by component code; liability (Cr) is the component's GL account.

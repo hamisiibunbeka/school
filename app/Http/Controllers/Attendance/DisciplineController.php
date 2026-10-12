@@ -141,7 +141,7 @@ class DisciplineController extends Controller
                 $positive = $case->type !== 'misconduct';
                 $guardian->user->notify(new SchoolNotification(
                     $positive ? 'Recognition for '.$student->first_name : 'Conduct notice for '.$student->first_name,
-                    "{$case->title} (".$case->incident_date->format('d M Y').')'.($case->action_taken ? " — {$case->action_taken}" : ''),
+                    "{$case->title} (".$case->incident_date->format('d/m/Y').')'.($case->action_taken ? " — {$case->action_taken}" : ''),
                     '/portal',
                     $positive ? 'success' : 'warning',
                 ));

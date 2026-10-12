@@ -234,7 +234,7 @@ export default function LeavePasses({ passes, filters: initial, students, stats 
                         <Input label="Authorised pickup person" required value={form.data.pickup_person} onChange={(e) => form.setData('pickup_person', e.target.value)} error={form.errors.pickup_person} />
                         <Input label="Pickup phone" required value={form.data.pickup_phone} onChange={(e) => form.setData('pickup_phone', e.target.value)} error={form.errors.pickup_phone} />
                     </FormGrid>
-                    <div className="flex justify-end gap-3">
+                    <div className="flex justify-center gap-3">
                         <button type="button" className="btn btn-outline-dark" onClick={() => setOpen(false)}>
                             Cancel
                         </button>

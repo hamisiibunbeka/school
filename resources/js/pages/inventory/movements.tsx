@@ -13,6 +13,7 @@ import { useCan } from '@/hooks/use-can';
 import { cn, compact, date, exportCsv, money, num, titleCase, today } from '@/lib/utils';
 import type { Option, Paginated } from '@/types';
 import SearchSelect from '../boarding/_components/search-select';
+import { DateRangePicker } from '@/components/ui/date-picker';
 
 type Movement = {
     id: number;
@@ -222,8 +223,7 @@ export default function Movements({ movements, filters: initial, items, destinat
                         <SearchInput value={filters.search} onChange={(v) => setFilter('search', v)} placeholder="Search item, reference, destination…" />
                         <FilterSelect value={filters.item} onChange={(v) => setFilter('item', v)} options={items} placeholder="All items" />
                         <FilterSelect value={filters.type} onChange={(v) => setFilter('type', v)} options={types} placeholder="All types" />
-                        <input type="date" className="form-input w-full sm:w-auto" title="From" value={filters.from} onChange={(e) => setFilter('from', e.target.value)} />
-                        <input type="date" className="form-input w-full sm:w-auto" title="To" value={filters.to} onChange={(e) => setFilter('to', e.target.value)} />
+                        <DateRangePicker from={filters.from} to={filters.to} onChange={(f, t) => { setFilter('from', f); setFilter('to', t); }} />
                     </FilterBar>
                     <DataTable columns={columns} paginated={movements} compact empty="No stock movements" />
                 </div>
@@ -347,7 +347,7 @@ export default function Movements({ movements, filters: initial, items, destinat
                         </div>
                     )}
 
-                    <div className="flex justify-end gap-3">
+                    <div className="flex justify-center gap-3">
                         <button type="button" className="btn btn-outline-dark" onClick={() => setOpen(false)}>
                             Cancel
                         </button>

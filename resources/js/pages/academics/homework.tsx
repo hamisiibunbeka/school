@@ -232,7 +232,7 @@ export default function Homework({ assignments, filters: initial, classes, subje
                             <Checkbox label={<span className="inline-flex items-center gap-1 text-danger"><X className="h-3 w-3" /> Remove</span>} checked={form.data.remove_attachment} onChange={(e) => form.setData('remove_attachment', e.target.checked)} />
                         </div>
                     )}
-                    <div className="flex justify-end gap-3">
+                    <div className="flex justify-center gap-3">
                         <button type="button" className="btn btn-outline-dark" onClick={() => setOpen(false)}>
                             Cancel
                         </button>

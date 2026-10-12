@@ -196,7 +196,7 @@ class LeaveController extends Controller
         if ($leave->employee?->user_id && ($user = User::find($leave->employee->user_id))) {
             $user->notify(new SchoolNotification(
                 'Leave '.$status,
-                "Your {$leave->leaveType?->name} request ({$leave->start_date->format('d M')} – {$leave->end_date->format('d M Y')}) was {$status}.",
+                "Your {$leave->leaveType?->name} request ({$leave->start_date->format('d/m')} – {$leave->end_date->format('d/m/Y')}) was {$status}.",
                 '/hr/leave',
                 $status === 'approved' ? 'success' : 'warning',
             ));

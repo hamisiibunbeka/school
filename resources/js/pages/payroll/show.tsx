@@ -395,7 +395,7 @@ function PayModal({ open, onClose, run, bankAccounts, cur }: { open: boolean; on
                 <Select label="Paid from" required placeholder="Select account…" value={form.data.account_id} onChange={(e) => form.setData('account_id', e.target.value)} options={bankAccounts} error={form.errors.account_id} />
                 <Input label="Payment date" type="date" required value={form.data.payment_date} onChange={(e) => form.setData('payment_date', e.target.value)} error={form.errors.payment_date} />
                 <p className="text-xs text-white-dark">Posts Dr 2500 Net Salaries Payable / Cr the selected bank account. Download the bank file to upload the transfers to your bank.</p>
-                <div className="flex justify-end gap-3">
+                <div className="flex justify-center gap-3">
                     <button type="button" className="btn btn-outline-dark" onClick={onClose}>
                         Cancel
                     </button>

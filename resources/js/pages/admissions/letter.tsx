@@ -3,7 +3,7 @@ import { ArrowLeft } from 'lucide-react';
 import { PrintButton } from '@/components/ui/actions';
 import Letterhead from '@/components/ui/letterhead';
 import PageHeader from '@/components/ui/page-header';
-import { date, titleCase, today } from '@/lib/utils';
+import { date, titleCase, today, weekdayDate } from '@/lib/utils';
 
 type Props = {
     application: {
@@ -83,7 +83,7 @@ export default function AdmissionLetter({ application: a }: Props) {
                     </p>
 
                     <p>
-                        The learner is expected to report to school on <strong>{a.reporting_date ? date(a.reporting_date, { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }) : 'the first day of term'}</strong> between 08:00 and 14:00, accompanied by a
+                        The learner is expected to report to school on <strong>{a.reporting_date ? weekdayDate(a.reporting_date) : 'the first day of term'}</strong> between 08:00 and 14:00, accompanied by a
                         parent or guardian.
                     </p>
 

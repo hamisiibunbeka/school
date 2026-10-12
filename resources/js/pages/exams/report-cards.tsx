@@ -5,7 +5,7 @@ import EmptyState from '@/components/ui/empty-state';
 import { FilterBar, FilterSelect, useFilters } from '@/components/ui/filters';
 import Letterhead from '@/components/ui/letterhead';
 import PageHeader from '@/components/ui/page-header';
-import { cn, date, num } from '@/lib/utils';
+import { cn, date, num, weekdayDate } from '@/lib/utils';
 import type { Option } from '@/types';
 
 type ExamOption = Option & { status: string; classes: (Option & { streams: Option[] })[] };
@@ -235,7 +235,7 @@ function ReportCard({ card: c, exam, className, context, scale }: { card: Card; 
             <div className="mt-5 flex flex-wrap items-center justify-between gap-3 border-t border-white-light pt-3 text-xs dark:border-[#1b2e4b]">
                 <span className="font-semibold">
                     <FileText className="me-1 inline h-3.5 w-3.5" />
-                    Next term opens: <b>{context.next_term ? date(context.next_term, { weekday: 'long', day: '2-digit', month: 'long', year: 'numeric' }) : '________________'}</b>
+                    Next term opens: <b>{context.next_term ? weekdayDate(context.next_term) : '________________'}</b>
                 </span>
                 <span className="text-white-dark">Grading: {scale.map((g) => `${g.grade} ${g.min}–${Math.round(g.max)}`).join(' · ')} · Div I 7–17, II 18–21, III 22–25, IV 26–33, 0 34–35</span>
             </div>

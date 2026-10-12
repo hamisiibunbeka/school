@@ -15,6 +15,7 @@ import { confirm } from '@/lib/swal';
 import { compact, date, exportCsv, money, num, titleCase, today } from '@/lib/utils';
 import type { Option, Paginated } from '@/types';
 import { Amt, showErrors } from '../_components/report';
+import { DateRangePicker } from '@/components/ui/date-picker';
 
 export type ExpenseRow = {
     id: number;
@@ -246,8 +247,7 @@ export default function ExpensesIndex({ expenses, filters: initial, stats, byAcc
                     <FilterSelect value={filters.status} onChange={(v) => setFilter('status', v)} options={statuses} placeholder="All statuses" />
                     <FilterSelect value={filters.account} onChange={(v) => setFilter('account', v)} options={expenseAccounts} placeholder="All expense accounts" />
                     <FilterSelect value={filters.method} onChange={(v) => setFilter('method', v)} options={methods} placeholder="Any method" />
-                    <input type="date" className="form-input w-full sm:w-40" value={filters.from} onChange={(e) => setFilter('from', e.target.value)} title="From" />
-                    <input type="date" className="form-input w-full sm:w-40" value={filters.to} onChange={(e) => setFilter('to', e.target.value)} title="To" />
+                    <DateRangePicker from={filters.from} to={filters.to} onChange={(f, t) => { setFilter('from', f); setFilter('to', t); }} />
                 </FilterBar>
                 <DataTable columns={columns} paginated={expenses} empty="No vouchers found" emptyDescription="Try other filters or raise a new payment voucher." />
             </div>
@@ -266,7 +266,7 @@ export default function ExpensesIndex({ expenses, filters: initial, stats, byAcc
                         <Textarea label="Description" required value={form.data.description} onChange={(e) => form.setData('description', e.target.value)} error={form.errors.description} wrapperClassName="sm:col-span-2" rows={2} />
                     </FormGrid>
                     <p className="text-xs text-white-dark">The voucher stays pending until a different user approves it; approval posts Dr expense / Cr cash-bank to the ledger.</p>
-                    <div className="flex justify-end gap-3">
+                    <div className="flex justify-center gap-3">
                         <button type="button" className="btn btn-outline-dark" onClick={() => setOpen(false)}>
                             Cancel
                         </button>
@@ -286,7 +286,7 @@ export default function ExpensesIndex({ expenses, filters: initial, stats, byAcc
                     }}
                 >
                     <Textarea label="Reason" required value={rejectForm.data.reason} onChange={(e) => rejectForm.setData('reason', e.target.value)} error={rejectForm.errors.reason} rows={3} />
-                    <div className="flex justify-end gap-3">
+                    <div className="flex justify-center gap-3">
                         <button type="button" className="btn btn-outline-dark" onClick={() => setRejecting(null)}>
                             Cancel
                         </button>

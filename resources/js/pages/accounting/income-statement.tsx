@@ -6,7 +6,7 @@ import Chart from '@/components/ui/chart';
 import { Checkbox } from '@/components/ui/form';
 import PageHeader from '@/components/ui/page-header';
 import { cn, compact, exportCsv, money } from '@/lib/utils';
-import { Amt, DateField, ReportHeader, SectionRow, go, pct, periodLabel, periodPresets, type Meta } from './_components/report';
+import { Amt, RangeField, ReportHeader, SectionRow, go, pct, periodLabel, type Meta } from './_components/report';
 
 type Line = { id: number; code: string; name: string; sub_type: string | null; amount: string };
 type Section = { rows: Line[]; total: string };
@@ -115,27 +115,16 @@ export default function IncomeStatement({ filters, report, comparative, meta }: 
 
             <div className="panel no-print mb-5">
                 <div className="flex flex-col gap-3 lg:flex-row lg:flex-wrap lg:items-end">
-                    <DateField label="From" value={q.from} onChange={(v) => setQ({ ...q, from: v })} />
-                    <DateField label="To" value={q.to} onChange={(v) => setQ({ ...q, to: v })} />
+                    <RangeField from={q.from} to={q.to} onChange={(from, to) => go('/accounting/income-statement', { ...q, from, to })} />
                     <div className="flex items-center pb-2">
                         <Checkbox label="Comparative period" checked={!!q.compare} onChange={(e) => setQ({ ...q, compare: e.target.checked ? '1' : '', cmp_from: '', cmp_to: '' })} />
                     </div>
                     {q.compare && (
-                        <>
-                            <DateField label="Compare from" value={q.cmp_from} onChange={(v) => setQ({ ...q, cmp_from: v })} />
-                            <DateField label="Compare to" value={q.cmp_to} onChange={(v) => setQ({ ...q, cmp_to: v })} />
-                        </>
+                        <RangeField label="Compare with" from={q.cmp_from} to={q.cmp_to} onChange={(cmp_from, cmp_to) => setQ({ ...q, cmp_from, cmp_to })} />
                     )}
                     <button type="button" className="btn btn-primary" onClick={() => go('/accounting/income-statement', q)}>
                         Run report
                     </button>
-                </div>
-                <div className="mt-3 flex flex-wrap gap-2">
-                    {periodPresets().map((p) => (
-                        <button key={p.label} type="button" className="btn btn-sm btn-outline-secondary" onClick={() => go('/accounting/income-statement', { ...q, from: p.from, to: p.to })}>
-                            {p.label}
-                        </button>
-                    ))}
                 </div>
             </div>
 

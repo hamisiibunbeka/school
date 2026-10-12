@@ -130,7 +130,7 @@ export default function ExamFormModal({ open, onClose, exam, years, terms, class
                         })}
                     </div>
                 </Field>
-                <div className="flex justify-end gap-3">
+                <div className="flex justify-center gap-3">
                     <button type="button" className="btn btn-outline-dark" onClick={onClose}>
                         Cancel
                     </button>

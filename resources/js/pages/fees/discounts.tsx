@@ -267,7 +267,7 @@ export default function FeeDiscounts({ discounts, filters: initial, categories, 
                     </FormGrid>
                     <Switch checked={form.data.is_active} onChange={(v) => form.setData('is_active', v)} label="Active" />
                     <p className="text-xs text-white-dark">Saving records you as the approver. Discounts apply to invoices generated afterwards; issued invoices are not changed.</p>
-                    <div className="flex justify-end gap-3">
+                    <div className="flex justify-center gap-3">
                         <button type="button" className="btn btn-outline-dark" onClick={() => setOpen(false)}>
                             Cancel
                         </button>

@@ -311,7 +311,7 @@ export default function FeeStructures({ structures, term, filters: initial, term
                             </div>
                         </Field>
                     )}
-                    <div className="flex justify-end gap-3">
+                    <div className="flex justify-center gap-3">
                         <button type="button" className="btn btn-outline-dark" onClick={() => setOpen(false)}>
                             Cancel
                         </button>
@@ -350,7 +350,7 @@ export default function FeeStructures({ structures, term, filters: initial, term
                         error={copy.errors.adjust_percent}
                     />
                     <Checkbox label="Overwrite lines that already exist in the target term" checked={copy.data.overwrite} onChange={(e) => copy.setData('overwrite', e.target.checked)} />
-                    <div className="flex justify-end gap-3">
+                    <div className="flex justify-center gap-3">
                         <button type="button" className="btn btn-outline-dark" onClick={() => setCopyOpen(false)}>
                             Cancel
                         </button>

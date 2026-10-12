@@ -15,6 +15,7 @@ import { confirm, toast } from '@/lib/swal';
 import { cleanQuery, cn, dateTime, num, titleCase } from '@/lib/utils';
 import type { Option, Paginated } from '@/types';
 import { postJson, smsCredits, VARIABLE_HINTS } from './_components/helpers';
+import { DateRangePicker } from '@/components/ui/date-picker';
 
 type Log = {
     id: number;
@@ -349,8 +350,7 @@ export default function Messages({ logs, filters: initial, templates, classes, v
                         ]}
                         placeholder="All channels"
                     />
-                    <input type="date" className="form-input w-full sm:w-auto" value={filters.from} onChange={(e) => setFilter('from', e.target.value)} title="From" />
-                    <input type="date" className="form-input w-full sm:w-auto" value={filters.to} onChange={(e) => setFilter('to', e.target.value)} title="To" />
+                    <DateRangePicker from={filters.from} to={filters.to} onChange={(f, t) => { setFilter('from', f); setFilter('to', t); }} />
                 </FilterBar>
                 <DataTable columns={columns} paginated={logs} empty="No messages found" emptyDescription="Sent messages and their delivery status appear here." />
             </div>

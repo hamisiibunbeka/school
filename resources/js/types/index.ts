@@ -25,7 +25,8 @@ export type SharedProps = {
     name: string;
     auth: { user: AuthUser | null; permissions: string[] };
     school: CurrentSchool | null;
-    schools: { id: number; name: string }[];
+    /** Header switcher list (platform admins also get tenant + tenant_status for grouping). */
+    schools: { id: number; name: string; tenant?: string; tenant_status?: string }[];
     notificationsCount: number;
     errors: Record<string, string>;
 };

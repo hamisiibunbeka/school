@@ -172,7 +172,7 @@ export default function Subscriptions({ subscriptions, filters: initial, tenants
                     </FormGrid>
                     <Checkbox label="Payment received — activate / extend the tenant now" checked={form.data.paid} onChange={(e) => form.setData('paid', e.target.checked)} />
                     <p className="text-xs text-white-dark">Unpaid entries are saved as pending invoices and can be marked paid later.</p>
-                    <div className="flex justify-end gap-3">
+                    <div className="flex justify-center gap-3">
                         <button type="button" className="btn btn-outline-dark" onClick={() => setOpen(false)}>
                             Cancel
                         </button>
@@ -196,7 +196,7 @@ export default function Subscriptions({ subscriptions, filters: initial, tenants
                     </p>
                     <Input label="Paid on" type="date" value={payForm.data.paid_at} onChange={(e) => payForm.setData('paid_at', e.target.value)} error={payForm.errors.paid_at} />
                     <Input label="Payment reference" value={payForm.data.reference} onChange={(e) => payForm.setData('reference', e.target.value)} error={payForm.errors.reference} />
-                    <div className="flex justify-end gap-3">
+                    <div className="flex justify-center gap-3">
                         <button type="button" className="btn btn-outline-dark" onClick={() => setPaying(null)}>
                             Cancel
                         </button>

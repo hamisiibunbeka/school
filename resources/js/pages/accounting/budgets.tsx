@@ -11,6 +11,7 @@ import { useCan } from '@/hooks/use-can';
 import { cn, compact, date, exportCsv, money } from '@/lib/utils';
 import type { Option } from '@/types';
 import { Amt, ReportHeader, SectionRow, go, showErrors, type Meta } from './_components/report';
+import SearchSelect from '@/components/ui/search-select';
 
 type Row = { id: number | null; account_id: number; code: string; name: string; type: 'income' | 'expense'; budget: string; actual: string; variance: string; variance_pct: string | null; utilisation: string | null; notes: string | null };
 type Totals = { budget: string; actual: string; variance: string };
@@ -108,13 +109,13 @@ export default function Budgets({ filters, year, years, report, accounts, budget
                 breadcrumbs={[{ title: 'Accounting' }, { title: 'Budgets' }]}
                 actions={
                     <>
-                        <select className="form-select w-auto" value={filters.year} onChange={(e) => go('/accounting/budgets', { year: e.target.value })}>
+                        <SearchSelect className="form-select w-auto" value={filters.year} onChange={(e) => go('/accounting/budgets', { year: e.target.value })}>
                             {years.map((y) => (
                                 <option key={y.value} value={y.value}>
                                     {y.label}
                                 </option>
                             ))}
-                        </select>
+                        </SearchSelect>
                         <button type="button" className="btn btn-outline-primary" onClick={exportRows}>
                             <Download className="h-4 w-4" /> CSV
                         </button>
@@ -249,7 +250,7 @@ export default function Budgets({ filters, year, years, report, accounts, budget
                             </tbody>
                         </table>
                     </div>
-                    <div className="flex justify-end gap-3">
+                    <div className="flex justify-center gap-3">
                         <button type="button" className="btn btn-outline-dark" onClick={() => setOpen(false)}>
                             Cancel
                         </button>

@@ -235,7 +235,7 @@ export default function Announcements({ announcements, filters: initial, classes
                     <p className="rounded-md bg-info-light p-3 text-xs text-info dark:bg-info-dark-light">
                         When the announcement goes live, matching staff, parent and student accounts receive an in-app notification (once per audience).
                     </p>
-                    <div className="flex justify-end gap-3">
+                    <div className="flex justify-center gap-3">
                         <button type="button" className="btn btn-outline-dark" onClick={() => setOpen(false)}>
                             Cancel
                         </button>

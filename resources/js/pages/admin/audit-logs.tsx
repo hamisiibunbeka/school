@@ -8,6 +8,7 @@ import PageHeader from '@/components/ui/page-header';
 import StatCard from '@/components/ui/stat-card';
 import { cleanQuery, cn, dateTime, num, titleCase } from '@/lib/utils';
 import type { Option, Paginated } from '@/types';
+import { DateRangePicker } from '@/components/ui/date-picker';
 
 type Log = {
     id: number;
@@ -98,8 +99,7 @@ export default function AuditLogs({ logs, filters: initial, users, actions, modu
                     <FilterSelect value={filters.user} onChange={(v) => setFilter('user', v)} options={users} placeholder="All users" />
                     <FilterSelect value={filters.action} onChange={(v) => setFilter('action', v)} options={actions.map((a) => ({ value: a, label: titleCase(a) }))} placeholder="All actions" />
                     <FilterSelect value={filters.module} onChange={(v) => setFilter('module', v)} options={modules.map((m) => ({ value: m, label: titleCase(m) }))} placeholder="All modules" />
-                    <input type="date" className="form-input w-full sm:w-auto" value={filters.from} onChange={(e) => setFilter('from', e.target.value)} title="From" />
-                    <input type="date" className="form-input w-full sm:w-auto" value={filters.to} onChange={(e) => setFilter('to', e.target.value)} title="To" />
+                    <DateRangePicker from={filters.from} to={filters.to} onChange={(f, t) => { setFilter('from', f); setFilter('to', t); }} />
                 </FilterBar>
                 <DataTable columns={columns} paginated={logs} empty="No audit events match your filters" compact />
             </div>

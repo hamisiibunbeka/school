@@ -330,7 +330,7 @@ export default function InvoicesIndex({ invoices, filters: initial, stats, class
                         </div>
                     )}
 
-                    <div className="flex flex-wrap justify-end gap-3">
+                    <div className="flex flex-wrap justify-center gap-3">
                         <button type="button" className="btn btn-outline-dark" onClick={() => setBatchOpen(false)}>
                             Cancel
                         </button>

@@ -139,7 +139,7 @@ export default function Departments({ departments, filters: initial, unassigned,
                         <Input label="Name" required value={form.data.name} onChange={(e) => form.setData('name', e.target.value)} error={form.errors.name} placeholder="e.g. Sciences" />
                         <Input label="Code" value={form.data.code} onChange={(e) => form.setData('code', e.target.value)} error={form.errors.code} placeholder="e.g. SCI" />
                     </FormGrid>
-                    <div className="flex justify-end gap-3">
+                    <div className="flex justify-center gap-3">
                         <button type="button" className="btn btn-outline-dark" onClick={() => setOpen(false)}>
                             Cancel
                         </button>

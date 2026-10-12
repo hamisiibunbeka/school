@@ -50,7 +50,7 @@ export default function ExamsIndex({ exams, filters: initial, years, terms, clas
         {
             key: 'dates',
             header: 'Dates',
-            render: (e) => <span className="text-sm whitespace-nowrap">{e.start_date ? `${date(e.start_date, { day: '2-digit', month: 'short' })} – ${date(e.end_date)}` : '—'}</span>,
+            render: (e) => <span className="text-sm whitespace-nowrap">{e.start_date ? `${date(e.start_date)} – ${date(e.end_date)}` : '—'}</span>,
         },
         {
             key: 'classes',

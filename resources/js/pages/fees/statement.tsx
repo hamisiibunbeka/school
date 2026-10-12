@@ -7,6 +7,7 @@ import PageHeader from '@/components/ui/page-header';
 import { useCan } from '@/hooks/use-can';
 import { cn, date, money, titleCase, today } from '@/lib/utils';
 import { PaymentInstructionsBox, type Instructions } from './_components/shared';
+import { DateRangePicker } from '@/components/ui/date-picker';
 
 type Entry = { date: string; type: 'invoice' | 'payment'; id: number; number: string; description: string; debit: string; credit: string; balance: string };
 
@@ -70,12 +71,8 @@ export default function Statement({ student, entries, summary, filters, instruct
 
             <div className="panel no-print mb-6 flex flex-wrap items-end gap-3">
                 <div>
-                    <label>From</label>
-                    <input type="date" className="form-input" value={range.from} onChange={(e) => apply({ ...range, from: e.target.value })} />
-                </div>
-                <div>
-                    <label>To</label>
-                    <input type="date" className="form-input" value={range.to} onChange={(e) => apply({ ...range, to: e.target.value })} />
+                    <label>Statement period</label>
+                    <DateRangePicker from={range.from} to={range.to} placeholder="Full history" onChange={(from, to) => apply({ from, to })} />
                 </div>
                 {(range.from || range.to) && (
                     <button className="btn btn-outline-dark" onClick={() => apply({ from: '', to: '' })}>

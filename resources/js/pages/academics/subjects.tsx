@@ -134,7 +134,7 @@ export default function Subjects({ subjects, filters: initial, departments, stat
                             wrapperClassName="sm:col-span-2"
                         />
                     </FormGrid>
-                    <div className="flex justify-end gap-3">
+                    <div className="flex justify-center gap-3">
                         <button type="button" className="btn btn-outline-dark" onClick={() => setOpen(false)}>
                             Cancel
                         </button>

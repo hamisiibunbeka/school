@@ -6,6 +6,7 @@ import { FormGrid, FormSection, Input, Select, Textarea } from '@/components/ui/
 import PageHeader from '@/components/ui/page-header';
 import StatusBadge from '@/components/ui/status-badge';
 import type { Option } from '@/types';
+import DobAgeField from '@/components/ui/dob-age-field';
 
 type Application = {
     id: number;
@@ -130,7 +131,7 @@ export default function AdmissionForm({ application, classes, years, defaultYear
                                 onChange={(e) => form.setData('gender', e.target.value)}
                                 error={err.gender}
                             />
-                            <Input label="Date of birth" type="date" required value={form.data.date_of_birth} onChange={(e) => form.setData('date_of_birth', e.target.value)} error={err.date_of_birth} />
+                            <DobAgeField required value={form.data.date_of_birth} onChange={(v) => form.setData('date_of_birth', v)} error={err.date_of_birth} minAge={2} maxAge={30} typicalAge={13} />
                             <Input label="Previous school" value={form.data.previous_school} onChange={(e) => form.setData('previous_school', e.target.value)} error={err.previous_school} placeholder="e.g. Mlimani Primary School" />
                             <Input label="Home address" value={form.data.address} onChange={(e) => form.setData('address', e.target.value)} error={err.address} wrapperClassName="sm:col-span-2 lg:col-span-3" placeholder="Street, ward, district, region" />
                         </FormGrid>
@@ -152,7 +153,7 @@ export default function AdmissionForm({ application, classes, years, defaultYear
                         </FormGrid>
                     </FormSection>
 
-                    <div className="flex items-center justify-end gap-3 pt-2">
+                    <div className="flex items-center justify-center gap-3 pt-2">
                         <Link href={editing ? `/admissions/${application.id}` : '/admissions'} className="btn btn-outline-dark">
                             Cancel
                         </Link>

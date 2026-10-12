@@ -235,7 +235,7 @@ export default function Allocations({ allocations, filters: initial, unallocated
                         <Input label="Bed no." value={form.data.bed_no} onChange={(e) => form.setData('bed_no', e.target.value)} error={form.errors.bed_no} placeholder="e.g. 4A" />
                         <Input label="Start date" type="date" required value={form.data.start_date} onChange={(e) => form.setData('start_date', e.target.value)} error={form.errors.start_date} />
                     </FormGrid>
-                    <div className="flex justify-end gap-3">
+                    <div className="flex justify-center gap-3">
                         <button type="button" className="btn btn-outline-dark" onClick={() => setOpen(false)}>
                             Cancel
                         </button>
@@ -271,7 +271,7 @@ export default function Allocations({ allocations, filters: initial, unallocated
                         <Input label="Bed no." value={transfer.data.bed_no} onChange={(e) => transfer.setData('bed_no', e.target.value)} error={transfer.errors.bed_no} />
                         <Input label="Effective date" type="date" required value={transfer.data.date} onChange={(e) => transfer.setData('date', e.target.value)} error={transfer.errors.date} />
                     </FormGrid>
-                    <div className="flex justify-end gap-3">
+                    <div className="flex justify-center gap-3">
                         <button type="button" className="btn btn-outline-dark" onClick={() => setTransferring(null)}>
                             Cancel
                         </button>

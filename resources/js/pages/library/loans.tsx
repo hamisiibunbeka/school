@@ -257,7 +257,7 @@ export default function Loans({ loans, filters: initial, books, students, employ
                         />
                         <Input label="Due date" type="date" required value={issue.data.due_on} onChange={(e) => issue.setData('due_on', e.target.value)} error={issue.errors.due_on} />
                     </FormGrid>
-                    <div className="flex justify-end gap-3">
+                    <div className="flex justify-center gap-3">
                         <button type="button" className="btn btn-outline-dark" onClick={() => setOpen(false)}>
                             Cancel
                         </button>
@@ -300,7 +300,7 @@ export default function Loans({ loans, filters: initial, books, students, employ
                             help={returning ? `Calculated: ${Math.max(0, daysBetween(returning.due_on, ret.data.returned_on || today()))} day(s) × ${money(defaults.fine_per_day, cur)} — editable` : undefined}
                         />
                     </FormGrid>
-                    <div className="flex justify-end gap-3">
+                    <div className="flex justify-center gap-3">
                         <button type="button" className="btn btn-outline-dark" onClick={() => setReturning(null)}>
                             Cancel
                         </button>
@@ -322,7 +322,7 @@ export default function Loans({ loans, filters: initial, books, students, employ
                     <p className="text-sm text-danger">The copy is removed from the collection and {losing?.borrower} is charged the replacement amount.</p>
                     <Input label={`Replacement charge (${cur})`} type="number" min={0} required value={lost.data.fine} onChange={(e) => lost.setData('fine', e.target.value)} error={lost.errors.fine} />
                     <Input label="Notes" value={lost.data.reason} onChange={(e) => lost.setData('reason', e.target.value)} error={lost.errors.reason} />
-                    <div className="flex justify-end gap-3">
+                    <div className="flex justify-center gap-3">
                         <button type="button" className="btn btn-outline-dark" onClick={() => setLosing(null)}>
                             Cancel
                         </button>

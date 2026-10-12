@@ -174,7 +174,7 @@ export default function Plans({ plans, modules }: { plans: Plan[]; modules: Opti
                         {form.errors.modules && <p className="mt-2 text-sm text-danger">{form.errors.modules}</p>}
                     </FormSection>
                     <Switch checked={form.data.is_active} onChange={(v) => form.setData('is_active', v)} label="Available for new subscriptions" />
-                    <div className="flex justify-end gap-3">
+                    <div className="flex justify-center gap-3">
                         <button type="button" className="btn btn-outline-dark" onClick={() => setOpen(false)}>
                             Cancel
                         </button>

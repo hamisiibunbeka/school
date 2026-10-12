@@ -6,7 +6,8 @@ import EmptyState from '@/components/ui/empty-state';
 import PageHeader from '@/components/ui/page-header';
 import { date, exportCsv, titleCase } from '@/lib/utils';
 import type { Option } from '@/types';
-import { Amt, DateField, ReportHeader, SectionRow, go, periodLabel, periodPresets, type Meta } from './_components/report';
+import { Amt, RangeField, ReportHeader, SectionRow, go, periodLabel, type Meta } from './_components/report';
+import SearchSelect from '@/components/ui/search-select';
 
 type Line = { id: number; journal_id: number; journal_no: string; date: string; type: string; status: string; reference: string | null; narration: string; debit: string; credit: string; balance: string };
 type Props = {
@@ -55,26 +56,18 @@ export default function Ledger({ filters, account, ledger, accounts, meta }: Pro
                 <div className="flex flex-col gap-3 lg:flex-row lg:flex-wrap lg:items-end">
                     <label className="mb-0 flex flex-1 flex-col gap-1 text-xs font-semibold text-white-dark">
                         Account
-                        <select className="form-select min-w-0 lg:min-w-[280px]" value={q.account} onChange={(e) => apply({ ...q, account: e.target.value })}>
+                        <SearchSelect className="form-select min-w-0 lg:min-w-[280px]" value={q.account} onChange={(e) => apply({ ...q, account: e.target.value })}>
                             {accounts.map((a) => (
                                 <option key={a.value} value={a.value}>
                                     {a.label}
                                 </option>
                             ))}
-                        </select>
+                        </SearchSelect>
                     </label>
-                    <DateField label="From" value={q.from} onChange={(v) => setQ({ ...q, from: v })} />
-                    <DateField label="To" value={q.to} onChange={(v) => setQ({ ...q, to: v })} />
+                    <RangeField from={q.from} to={q.to} onChange={(from, to) => apply({ ...q, from, to })} />
                     <button type="button" className="btn btn-primary" onClick={() => apply()}>
                         Run report
                     </button>
-                </div>
-                <div className="mt-3 flex flex-wrap gap-2">
-                    {periodPresets().map((p) => (
-                        <button key={p.label} type="button" className="btn btn-sm btn-outline-secondary" onClick={() => apply({ ...q, from: p.from, to: p.to })}>
-                            {p.label}
-                        </button>
-                    ))}
                 </div>
             </div>
 

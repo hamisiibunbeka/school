@@ -594,7 +594,7 @@ function StatusModal({ open, onClose, studentId, current, statuses }: { open: bo
                 <Select label="New status" value={form.data.status} onChange={(e) => form.setData('status', e.target.value)} options={statuses} error={form.errors.status} />
                 <Input label="Effective date" type="date" value={form.data.effective_date} onChange={(e) => form.setData('effective_date', e.target.value)} />
                 <Textarea label="Reason" required value={form.data.reason} onChange={(e) => form.setData('reason', e.target.value)} error={form.errors.reason} placeholder="e.g. Transferred to Azania Secondary School" />
-                <div className="flex justify-end gap-3">
+                <div className="flex justify-center gap-3">
                     <button type="button" className="btn btn-outline-dark" onClick={onClose}>
                         Cancel
                     </button>
@@ -643,7 +643,7 @@ function GuardianModal({ open, onClose, studentId }: { open: boolean; onClose: (
                         <input type="checkbox" className="form-checkbox" checked={form.data.is_primary} onChange={(e) => form.setData('is_primary', e.target.checked)} /> Primary contact
                     </label>
                 </FormGrid>
-                <div className="flex justify-end gap-3">
+                <div className="flex justify-center gap-3">
                     <button type="button" className="btn btn-outline-dark" onClick={onClose}>
                         Cancel
                     </button>
@@ -667,7 +667,7 @@ function DocumentModal({ open, onClose, studentId }: { open: boolean; onClose: (
             <form onSubmit={submit} className="space-y-4">
                 <Input label="Document title" required value={form.data.title} onChange={(e) => form.setData('title', e.target.value)} error={form.errors.title} placeholder="e.g. Birth certificate" />
                 <Input label="File" type="file" required accept=".pdf,.jpg,.jpeg,.png,.doc,.docx" onChange={(e) => form.setData('file', e.target.files?.[0] ?? null)} error={form.errors.file} help="PDF, image or Word document up to 5 MB" />
-                <div className="flex justify-end gap-3">
+                <div className="flex justify-center gap-3">
                     <button type="button" className="btn btn-outline-dark" onClick={onClose}>
                         Cancel
                     </button>

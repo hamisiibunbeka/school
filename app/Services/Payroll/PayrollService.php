@@ -55,10 +55,10 @@ class PayrollService
             throw ValidationException::withMessages(['status' => 'Only draft payroll runs can be recalculated.']);
         }
 
-        $rules = PayrollRules::current();
         $components = SalaryComponent::active()->orderBy('type')->orderBy('id')->get();
         $start = CarbonImmutable::createFromFormat('Y-m-d', $run->period.'-01')->startOfDay();
         $end = $start->endOfMonth()->startOfDay();
+        $rules = PayrollRules::forPeriod($end->toDateString());
 
         $employees = Employee::query()
             ->whereIn('status', ['active', 'on_leave'])
@@ -67,19 +67,32 @@ class PayrollService
             ->orderBy('employee_no')
             ->get();
 
-        $assignments = EmployeeSalaryComponent::whereIn('employee_id', $employees->pluck('id'))->get()
-            ->groupBy('employee_id')
-            ->map(fn ($rows) => $rows->mapWithKeys(fn ($r) => [$r->salary_component_id => $r->amount === null ? null : (string) $r->amount])->all());
+        $rows = EmployeeSalaryComponent::whereIn('employee_id', $employees->pluck('id'))->get()->groupBy('employee_id');
+
+        // Assigned (with optional override) vs explicitly excluded components, per employee.
+        $assignments = $rows->map(fn ($r) => $r->where('is_excluded', false)
+            ->mapWithKeys(fn ($a) => [$a->salary_component_id => $a->amount === null ? null : (string) $a->amount])->all());
+        $exclusions = $rows->map(fn ($r) => $r->where('is_excluded', true)->pluck('salary_component_id')->map(fn ($id) => (int) $id)->all());
 
         $unpaid = $this->unpaidLeaveDays($employees->pluck('id')->all(), $start, $end);
 
-        return DB::transaction(function () use ($run, $rules, $components, $employees, $assignments, $unpaid) {
+        // Headcount drives thresholds such as SDL (payable only by employers with 10+ employees).
+        $headcount = Employee::whereIn('status', ['active', 'on_leave', 'suspended'])
+            ->where(fn ($q) => $q->whereNull('hire_date')->orWhere('hire_date', '<=', $end->toDateString()))
+            ->count();
+        $rules['headcount'] = $headcount;
+
+        return DB::transaction(function () use ($run, $rules, $components, $employees, $assignments, $exclusions, $unpaid, $headcount, $end) {
             $run->payslips()->delete();
 
             $totals = ['gross' => '0.00', 'deductions' => '0.00', 'net' => '0.00', 'employer' => '0.00'];
 
             foreach ($employees as $employee) {
-                $result = $this->calculator->calculate($employee, $components, $assignments[$employee->id] ?? [], $rules, $unpaid[$employee->id] ?? 0);
+                $result = $this->calculator->calculate($employee, $components, $assignments[$employee->id] ?? [], $rules, $unpaid[$employee->id] ?? 0, [
+                    'headcount' => $headcount,
+                    'period_end' => $end->toDateString(),
+                    'excluded' => $exclusions[$employee->id] ?? [],
+                ]);
                 $run->payslips()->create(['employee_id' => $employee->id, ...$result]);
 
                 $totals['gross'] = bcadd($totals['gross'], $result['gross_pay'], 2);
@@ -98,8 +111,10 @@ class PayrollService
                     'calculated_at' => now()->toDateTimeString(),
                     'components' => $components->map(fn ($c) => [
                         'id' => $c->id, 'code' => $c->code, 'name' => $c->name, 'type' => $c->type,
-                        'calculation' => $c->calculation, 'value' => (string) $c->value, 'is_statutory' => $c->is_statutory,
-                        'applies_to_all' => $c->applies_to_all, 'account_id' => $c->account_id,
+                        'calculation' => $c->calculation, 'base' => $c->base, 'value' => (string) $c->value, 'is_statutory' => $c->is_statutory,
+                        'applies_to_all' => $c->applies_to_all, 'exclude_on_probation' => $c->exclude_on_probation,
+                        'min_employees' => $c->min_employees, 'cap_amount' => $c->cap_amount === null ? null : (string) $c->cap_amount,
+                        'account_id' => $c->account_id,
                     ])->values()->all(),
                 ],
             ])->save();

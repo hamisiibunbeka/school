@@ -217,7 +217,7 @@ export default function Classes({ classes, teachers }: { classes: ClassRow[]; te
                             />
                         )}
                     </FormGrid>
-                    <div className="flex justify-end gap-3">
+                    <div className="flex justify-center gap-3">
                         <button type="button" className="btn btn-outline-dark" onClick={() => setClassModal({ open: false, row: null })}>
                             Cancel
                         </button>
@@ -243,7 +243,7 @@ export default function Classes({ classes, teachers }: { classes: ClassRow[]; te
                             wrapperClassName="sm:col-span-2"
                         />
                     </FormGrid>
-                    <div className="flex justify-end gap-3">
+                    <div className="flex justify-center gap-3">
                         <button type="button" className="btn btn-outline-dark" onClick={() => setStreamModal({ open: false, cls: null, row: null })}>
                             Cancel
                         </button>

@@ -10,6 +10,7 @@ import { useCan } from '@/hooks/use-can';
 import { cn, compact, date, num, titleCase } from '@/lib/utils';
 import type { Option, Paginated } from '@/types';
 import { Amt } from '../_components/report';
+import { DateRangePicker } from '@/components/ui/date-picker';
 
 type Row = {
     id: number;
@@ -136,8 +137,7 @@ export default function JournalsIndex({ journals, filters: initial, types, statu
                     <SearchInput value={filters.search} onChange={(v) => setFilter('search', v)} placeholder="Journal no, narration, reference…" />
                     <FilterSelect value={filters.status} onChange={(v) => setFilter('status', v)} options={statuses} placeholder="All statuses" />
                     <FilterSelect value={filters.type} onChange={(v) => setFilter('type', v)} options={types} placeholder="All types" />
-                    <input type="date" className="form-input w-full sm:w-40" value={filters.from} onChange={(e) => setFilter('from', e.target.value)} title="From date" />
-                    <input type="date" className="form-input w-full sm:w-40" value={filters.to} onChange={(e) => setFilter('to', e.target.value)} title="To date" />
+                    <DateRangePicker from={filters.from} to={filters.to} onChange={(f, t) => { setFilter('from', f); setFilter('to', t); }} />
                     {filters.mine === 'approval' && (
                         <span className={cn('badge badge-soft-warning')}>
                             <FileText className="me-1 inline h-3 w-3" /> Awaiting my approval

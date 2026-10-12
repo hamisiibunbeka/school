@@ -94,7 +94,7 @@ export function LeaveModal({
                 </div>
 
                 <Textarea label="Reason" required value={form.data.reason} onChange={(e) => form.setData('reason', e.target.value)} error={form.errors.reason} placeholder="e.g. Family matters in Moshi" />
-                <div className="flex justify-end gap-3">
+                <div className="flex justify-center gap-3">
                     <button type="button" className="btn btn-outline-dark" onClick={onClose}>
                         Cancel
                     </button>

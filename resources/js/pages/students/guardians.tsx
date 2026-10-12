@@ -164,7 +164,7 @@ export default function Guardians({ guardians, filters: initial }: { guardians: 
                         />
                         <Input label="Address" value={form.data.address} onChange={(e) => form.setData('address', e.target.value)} wrapperClassName="sm:col-span-2" />
                     </FormGrid>
-                    <div className="flex justify-end gap-3">
+                    <div className="flex justify-center gap-3">
                         <button type="button" className="btn btn-outline-dark" onClick={() => setOpen(false)}>
                             Cancel
                         </button>
@@ -188,7 +188,7 @@ export default function Guardians({ guardians, filters: initial }: { guardians: 
                         saving.
                     </p>
                     <Input label="Login email" type="email" required value={portal.data.email} onChange={(e) => portal.setData('email', e.target.value)} error={portal.errors.email} />
-                    <div className="flex justify-end gap-3">
+                    <div className="flex justify-center gap-3">
                         <button type="button" className="btn btn-outline-dark" onClick={() => setPortalFor(null)}>
                             Cancel
                         </button>

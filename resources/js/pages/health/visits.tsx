@@ -13,6 +13,7 @@ import { useCan } from '@/hooks/use-can';
 import { dateTime, num, titleCase } from '@/lib/utils';
 import type { Option, Paginated } from '@/types';
 import SearchSelect from '../boarding/_components/search-select';
+import { DateRangePicker } from '@/components/ui/date-picker';
 
 type Visit = {
     id: number;
@@ -232,8 +233,7 @@ export default function Visits({ visits, filters: initial, students, topComplain
                             ]}
                             placeholder="All outcomes"
                         />
-                        <input type="date" className="form-input w-full sm:w-auto" title="From" value={filters.from} onChange={(e) => setFilter('from', e.target.value)} />
-                        <input type="date" className="form-input w-full sm:w-auto" title="To" value={filters.to} onChange={(e) => setFilter('to', e.target.value)} />
+                        <DateRangePicker from={filters.from} to={filters.to} onChange={(f, t) => { setFilter('from', f); setFilter('to', t); }} />
                     </FilterBar>
                     <DataTable columns={columns} paginated={visits} empty="No clinic visits recorded" />
                 </div>
@@ -275,7 +275,7 @@ export default function Visits({ visits, filters: initial, students, topComplain
                     <Textarea label="Treatment / first aid given" value={form.data.treatment} onChange={(e) => form.setData('treatment', e.target.value)} error={form.errors.treatment} />
                     <Input label="Referred to (if any)" value={form.data.referred_to} onChange={(e) => form.setData('referred_to', e.target.value)} error={form.errors.referred_to} placeholder="e.g. Mwananyamala Regional Hospital" />
                     <Checkbox label="Guardian has been notified" checked={form.data.guardian_notified} onChange={(e) => form.setData('guardian_notified', e.target.checked)} />
-                    <div className="flex justify-end gap-3">
+                    <div className="flex justify-center gap-3">
                         <button type="button" className="btn btn-outline-dark" onClick={() => setOpen(false)}>
                             Cancel
                         </button>

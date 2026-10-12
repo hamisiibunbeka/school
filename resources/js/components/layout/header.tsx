@@ -1,7 +1,8 @@
 import { Menu, MenuButton, MenuItem, MenuItems } from '@headlessui/react';
 import { Link, router, usePage } from '@inertiajs/react';
-import { Bell, Building, CalendarDays, Laptop, LogOut, Menu as MenuIcon, Moon, Search, ShieldCheck, Sun, UserRound, Wallet, X } from 'lucide-react';
+import { ArrowLeftRight, Bell, Building, CalendarDays, Laptop, LogOut, Menu as MenuIcon, Moon, Search, ShieldCheck, Sun, UserRound, Wallet, X } from 'lucide-react';
 import { useState, type FormEvent } from 'react';
+import SchoolSwitcher from '@/components/layout/school-switcher';
 import { AppLogo } from '@/components/layout/sidebar';
 import Avatar from '@/components/ui/avatar';
 import { useCan } from '@/hooks/use-can';
@@ -23,6 +24,9 @@ export default function Header() {
     };
 
     const ThemeIcon = theme === 'light' ? Sun : theme === 'dark' ? Moon : Laptop;
+    const isSuperAdmin = !!auth.user?.is_super_admin;
+    // School shortcuts only make sense inside a school (platform admins on the console have none).
+    const inSchool = !!school;
 
     return (
         <header className="no-print sticky top-0 z-40">
@@ -37,14 +41,14 @@ export default function Header() {
 
                     <div className="me-2 hidden sm:block">
                         <ul className="flex items-center gap-2 dark:text-[#d0d2d6]">
-                            {can('academics.view') && (
+                            {inSchool && can('academics.view') && (
                                 <li>
                                     <Link href="/academics/calendar" className="header-icon-btn" title="School calendar">
                                         <CalendarDays className="h-5 w-5" />
                                     </Link>
                                 </li>
                             )}
-                            {can('fees.manage') && (
+                            {inSchool && can('fees.manage') && (
                                 <li>
                                     <Link href="/fees/payments/create" className="header-icon-btn" title="Collect payment">
                                         <Wallet className="h-5 w-5" />
@@ -56,7 +60,7 @@ export default function Header() {
 
                     <div className="ms-auto flex items-center gap-1.5 sm:ms-0 sm:flex-1 lg:gap-2 dark:text-[#d0d2d6]">
                         <div className="sm:me-auto">
-                            {can('students.view') && (
+                            {inSchool && can('students.view') && (
                                 <>
                                     <form
                                         onSubmit={submitSearch}
@@ -88,27 +92,19 @@ export default function Header() {
                             )}
                         </div>
 
-                        {schools.length > 1 && (
-                            <Menu as="div" className="relative hidden md:block">
-                                <MenuButton className="flex items-center gap-2 rounded-full border border-white-light px-3 py-1.5 text-xs font-bold hover:border-primary hover:text-primary dark:border-[#1b2e4b]">
-                                    <Building className="h-4 w-4" />
-                                    <span className="max-w-[140px] truncate">{school?.name ?? 'Select school'}</span>
-                                </MenuButton>
-                                <MenuItems anchor="bottom end" className="dropdown-menu z-50 mt-2 w-64 focus:outline-none">
-                                    <div className="px-4 pb-2 text-xs font-bold text-white-dark uppercase">Switch school</div>
-                                    {schools.map((s) => (
-                                        <MenuItem key={s.id}>
-                                            <button
-                                                className={cn('dropdown-item', s.id === school?.id && 'text-primary')}
-                                                onClick={() => router.post('/switch-school', { school_id: s.id })}
-                                            >
-                                                {s.name}
-                                            </button>
-                                        </MenuItem>
-                                    ))}
-                                </MenuItems>
-                            </Menu>
+                        {isSuperAdmin && inSchool && (
+                            <button
+                                type="button"
+                                onClick={() => router.post('/switch-school', { school_id: null })}
+                                className="btn btn-sm btn-outline-warning hidden rounded-full! md:inline-flex"
+                                title="Leave this school and return to the platform console"
+                            >
+                                <ArrowLeftRight className="h-4 w-4" /> Back to platform
+                            </button>
                         )}
+
+                        {/* Tenant admins: their schools. Platform admins (inside a school): every tenant's schools. */}
+                        {(isSuperAdmin ? inSchool && schools.length > 0 : schools.length > 1) && <SchoolSwitcher />}
 
                         <button type="button" onClick={cycleTheme} className="header-icon-btn" title={`Theme: ${theme}`}>
                             <ThemeIcon className="h-5 w-5" />

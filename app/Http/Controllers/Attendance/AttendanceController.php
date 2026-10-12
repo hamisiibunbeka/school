@@ -215,7 +215,7 @@ class AttendanceController extends Controller
                 if ($guardian->user) {
                     $guardian->user->notify(new SchoolNotification(
                         'Absence alert',
-                        "{$student->full_name} was marked absent on ".CarbonImmutable::parse($data['date'])->format('D, d M Y').'. Please contact the school if this is unexpected.',
+                        "{$student->full_name} was marked absent on ".CarbonImmutable::parse($data['date'])->format('D, d/m/Y').'. Please contact the school if this is unexpected.',
                         '/portal',
                         'warning',
                     ));

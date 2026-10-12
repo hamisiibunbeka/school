@@ -222,7 +222,7 @@ export default function Discipline({ cases, filters: initial, classes, types, st
                         error={form.errors.action_taken}
                     />
                     <Checkbox label="Notify guardian(s) with a parent-portal account" checked={form.data.notify_guardian} onChange={(e) => form.setData('notify_guardian', e.target.checked)} />
-                    <div className="flex justify-end gap-3">
+                    <div className="flex justify-center gap-3">
                         <button type="button" className="btn btn-outline-dark" onClick={() => setOpen(false)}>
                             Cancel
                         </button>

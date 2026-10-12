@@ -236,7 +236,7 @@ export default function JournalShow({ journal, audits, permissions, reverseBlock
                     }}
                 >
                     <Textarea label="Reason for rejection" required value={reject.data.reason} onChange={(e) => reject.setData('reason', e.target.value)} error={reject.errors.reason} rows={4} />
-                    <div className="flex justify-end gap-3">
+                    <div className="flex justify-center gap-3">
                         <button type="button" className="btn btn-outline-dark" onClick={() => setRejectOpen(false)}>
                             Cancel
                         </button>
@@ -260,7 +260,7 @@ export default function JournalShow({ journal, audits, permissions, reverseBlock
                     </div>
                     <Input label="Reversal date" type="date" required value={reverse.data.date} onChange={(e) => reverse.setData('date', e.target.value)} error={reverse.errors.date} />
                     <Textarea label="Reason" required value={reverse.data.reason} onChange={(e) => reverse.setData('reason', e.target.value)} error={reverse.errors.reason} rows={3} />
-                    <div className="flex justify-end gap-3">
+                    <div className="flex justify-center gap-3">
                         <button type="button" className="btn btn-outline-dark" onClick={() => setReverseOpen(false)}>
                             Cancel
                         </button>

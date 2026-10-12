@@ -204,7 +204,7 @@ export default function Assignments({ assignments, filters: initial, routes, stu
                             {route.name}: {route.assigned} of {route.capacity} seats taken — {route.free} free.
                         </div>
                     )}
-                    <div className="flex justify-end gap-3">
+                    <div className="flex justify-center gap-3">
                         <button type="button" className="btn btn-outline-dark" onClick={() => setOpen(false)}>
                             Cancel
                         </button>

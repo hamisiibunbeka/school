@@ -335,7 +335,7 @@ export default function SalaryComponents({ components, assignments, filters: ini
                         <Checkbox label="Applies to all staff" disabled={editing?.is_statutory} checked={form.data.applies_to_all} onChange={(e) => form.setData('applies_to_all', e.target.checked)} />
                         <Checkbox label="Active" checked={form.data.is_active} onChange={(e) => form.setData('is_active', e.target.checked)} />
                     </div>
-                    <div className="flex justify-end gap-3">
+                    <div className="flex justify-center gap-3">
                         <button type="button" className="btn btn-outline-dark" onClick={() => setOpen(false)}>
                             Cancel
                         </button>
@@ -399,7 +399,7 @@ export default function SalaryComponents({ components, assignments, filters: ini
                         error={assignForm.errors.amount}
                         help={selectedComponent ? `Leave blank to use the component default (${describe(selectedComponent, cur)}).` : 'Leave blank to use the component default.'}
                     />
-                    <div className="flex justify-end gap-3">
+                    <div className="flex justify-center gap-3">
                         <button type="button" className="btn btn-outline-dark" onClick={() => setAssignOpen(false)}>
                             Cancel
                         </button>
@@ -431,7 +431,7 @@ export default function SalaryComponents({ components, assignments, filters: ini
                         error={overrideForm.errors.amount}
                         help="Leave blank to use the component default."
                     />
-                    <div className="flex justify-end gap-3">
+                    <div className="flex justify-center gap-3">
                         <button type="button" className="btn btn-outline-dark" onClick={() => setEditAssignment(null)}>
                             Cancel
                         </button>

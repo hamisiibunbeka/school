@@ -195,8 +195,8 @@ class TenantController extends Controller
         ]);
 
         $this->audit('trial_extended', $tenant, "Trial extended by {$data['days']} days: {$data['reason']}", 'saas', ['trial_ends_at' => $old], ['trial_ends_at' => $tenant->trial_ends_at->toDateString()]);
-        $this->notifyAdmins($tenant, 'Trial extended', "Your trial now ends on {$tenant->trial_ends_at->format('d M Y')}.");
-        $this->toast('Trial extended to '.$tenant->trial_ends_at->format('d M Y').'.');
+        $this->notifyAdmins($tenant, 'Trial extended', "Your trial now ends on {$tenant->trial_ends_at->format('d/m/Y')}.");
+        $this->toast('Trial extended to '.$tenant->trial_ends_at->format('d/m/Y').'.');
 
         return back();
     }

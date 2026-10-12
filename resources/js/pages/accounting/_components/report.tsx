@@ -4,6 +4,7 @@ import type { ReactNode } from 'react';
 import Letterhead from '@/components/ui/letterhead';
 import { toast } from '@/lib/swal';
 import { cleanQuery, cn, date, dateTime } from '@/lib/utils';
+import { DateInput, DateRangePicker } from '@/components/ui/date-picker';
 
 export type Meta = { generated_at: string; generated_by: string | null; currency: string };
 
@@ -104,12 +105,22 @@ export function DateField({ label, value, onChange }: { label: string; value: st
     return (
         <label className="mb-0 flex flex-col gap-1 text-xs font-semibold text-white-dark">
             {label}
-            <input type="date" className="form-input w-full sm:w-40" value={value} onChange={(e) => onChange(e.target.value)} />
+            <DateInput className="form-input w-full sm:w-40" value={value} onChange={(e) => onChange(e.target.value)} />
         </label>
     );
 }
 
-const toneText = { primary: 'text-primary', success: 'text-success', danger: 'text-danger', warning: 'text-warning', info: 'text-info', secondary: 'text-secondary' };
+/** Period selector with presets (Today … Last year) and a custom range. */
+export function RangeField({ label = 'Period', from, to, onChange }: { label?: string; from: string; to: string; onChange: (from: string, to: string) => void }) {
+    return (
+        <div className="flex flex-col gap-1 text-xs font-semibold text-white-dark">
+            {label}
+            <DateRangePicker from={from} to={to} onChange={onChange} allowClear={false} placeholder="Choose period" />
+        </div>
+    );
+}
+
+const toneText ={ primary: 'text-primary', success: 'text-success', danger: 'text-danger', warning: 'text-warning', info: 'text-info', secondary: 'text-secondary' };
 
 /** Thin coloured heading row inside statement tables. */
 export function SectionRow({ title, cols, tone = 'primary' }: { title: string; cols: number; tone?: 'primary' | 'success' | 'danger' | 'warning' | 'info' | 'secondary' }) {

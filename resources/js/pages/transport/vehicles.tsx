@@ -227,7 +227,7 @@ export default function Vehicles({ vehicles, filters: initial, drivers, statuses
                         <Input label="Inspection (LATRA) expiry" type="date" value={form.data.inspection_expiry} onChange={(e) => form.setData('inspection_expiry', e.target.value)} error={form.errors.inspection_expiry} />
                         <Input label="Next service date" type="date" value={form.data.next_service_date} onChange={(e) => form.setData('next_service_date', e.target.value)} error={form.errors.next_service_date} />
                     </FormGrid>
-                    <div className="flex justify-end gap-3">
+                    <div className="flex justify-center gap-3">
                         <button type="button" className="btn btn-outline-dark" onClick={() => setOpen(false)}>
                             Cancel
                         </button>

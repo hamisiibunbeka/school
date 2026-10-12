@@ -132,7 +132,7 @@ abstract class Report
                 continue;
             }
             $display = match ($def['type']) {
-                'date' => Carbon::parse($value)->format('d M Y'),
+                'date' => Carbon::parse($value)->format('d/m/Y'),
                 'select' => collect($def['options'] ?? [])->first(fn ($o) => (string) $o['value'] === $value)['label'] ?? $value,
                 default => $value,
             };
@@ -145,7 +145,7 @@ abstract class Report
     /** Reporting period label for the metadata block. @param array<string,string> $values */
     public function period(array $values): string
     {
-        $fmt = fn (string $d) => Carbon::parse($d)->format('d M Y');
+        $fmt = fn (string $d) => Carbon::parse($d)->format('d/m/Y');
         $from = $values['from'] ?? '';
         $to = $values['to'] ?? '';
 
@@ -158,7 +158,7 @@ abstract class Report
             }
         }
 
-        return 'As at '.now()->format('d M Y');
+        return 'As at '.now()->format('d/m/Y');
     }
 
     // ------------------------------------------------------------------

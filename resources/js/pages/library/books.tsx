@@ -184,7 +184,7 @@ export default function Books({ books, filters: initial, categories, stats }: Pr
                             help={editing ? `${editing.on_loan} currently on loan` : undefined}
                         />
                     </FormGrid>
-                    <div className="flex justify-end gap-3">
+                    <div className="flex justify-center gap-3">
                         <button type="button" className="btn btn-outline-dark" onClick={() => setOpen(false)}>
                             Cancel
                         </button>

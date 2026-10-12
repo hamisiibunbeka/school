@@ -85,7 +85,7 @@ export default function Security({ canManageTwoFactor, twoFactorEnabled = false,
                             <Input label="Confirm password" type="password" name="password_confirmation" value={form.data.password_confirmation} onChange={(e) => form.setData('password_confirmation', e.target.value)} />
                         </FormGrid>
                     </div>
-                    <div className="mt-6 flex justify-end">
+                    <div className="mt-6 flex justify-center">
                         <button className="btn btn-primary" disabled={form.processing}>
                             {form.processing && <LoaderCircle className="h-4 w-4 animate-spin" />} Update password
                         </button>

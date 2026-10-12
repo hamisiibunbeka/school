@@ -9,6 +9,8 @@ import StatCard from '@/components/ui/stat-card';
 import { useCan } from '@/hooks/use-can';
 import { cn, date, num, titleCase, today } from '@/lib/utils';
 import type { Option } from '@/types';
+import { DateInput } from '@/components/ui/date-picker';
+import SearchSelect from '@/components/ui/search-select';
 
 type Mark = 'present' | 'absent' | 'on_leave';
 type RosterRow = {
@@ -131,17 +133,17 @@ export default function RollCall({ dormitories, selection, roster, alreadyTaken,
                 <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
                     <div>
                         <label>Dormitory</label>
-                        <select className="form-select" value={selection.dormitory} onChange={(e) => select('dormitory', e.target.value)}>
+                        <SearchSelect className="form-select" value={selection.dormitory} onChange={(e) => select('dormitory', e.target.value)}>
                             {dormitories.map((d) => (
                                 <option key={d.value} value={d.value}>
                                     {d.label}
                                 </option>
                             ))}
-                        </select>
+                        </SearchSelect>
                     </div>
                     <div>
                         <label>Date</label>
-                        <input type="date" className="form-input" max={today()} value={selection.date} onChange={(e) => e.target.value && select('date', e.target.value)} />
+                        <DateInput className="form-input" max={today()} value={selection.date} onChange={(e) => e.target.value && select('date', e.target.value)} />
                     </div>
                     <div>
                         <label>Session</label>

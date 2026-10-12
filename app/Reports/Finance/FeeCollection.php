@@ -81,8 +81,8 @@ class FeeCollection extends Report
             $r = (array) $r;
             $d = Carbon::parse($r['first_date']);
             $r['period'] = match ($f['group']) {
-                'day' => $d->format('D, d M Y'),
-                'week' => 'Week of '.$d->startOfWeek()->format('d M Y'),
+                'day' => $d->format('D, d/m/Y'),
+                'week' => 'Week of '.$d->startOfWeek()->format('d/m/Y'),
                 default => $d->format('F Y'),
             };
             $r['receipts'] = (int) $r['receipts'];

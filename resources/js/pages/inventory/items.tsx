@@ -257,7 +257,7 @@ export default function Items({ items, filters: initial, categories, byCategory,
                         </div>
                     </FormGrid>
                     {!editing && <p className="text-xs text-white-dark">Quantity and average cost start at zero; stock comes in through purchase orders or a stock-count adjustment.</p>}
-                    <div className="flex justify-end gap-3">
+                    <div className="flex justify-center gap-3">
                         <button type="button" className="btn btn-outline-dark" onClick={() => setOpen(false)}>
                             Cancel
                         </button>

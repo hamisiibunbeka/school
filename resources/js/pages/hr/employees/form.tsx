@@ -6,6 +6,7 @@ import { FormGrid, FormSection, Input, Select } from '@/components/ui/form';
 import PageHeader from '@/components/ui/page-header';
 import { money } from '@/lib/utils';
 import type { Option } from '@/types';
+import DobAgeField from '@/components/ui/dob-age-field';
 
 type EmployeeData = {
     id: number;
@@ -132,7 +133,7 @@ export default function EmployeeForm({ employee, departments, categories, types,
                                 ]}
                                 error={err.gender}
                             />
-                            <Input label="Date of birth" type="date" name="date_of_birth" value={form.data.date_of_birth} onChange={set('date_of_birth')} error={err.date_of_birth} />
+                            <DobAgeField value={form.data.date_of_birth} onChange={(v) => form.setData('date_of_birth', v)} error={err.date_of_birth} minAge={16} maxAge={80} typicalAge={30} />
                             <Input label="National ID (NIDA)" name="national_id" value={form.data.national_id} onChange={set('national_id')} error={err.national_id} />
                             <Input label="Qualification" name="qualification" value={form.data.qualification} onChange={set('qualification')} placeholder="e.g. B.Ed Science" />
                         </FormGrid>
@@ -201,7 +202,7 @@ export default function EmployeeForm({ employee, departments, categories, types,
                         </FormGrid>
                     </FormSection>
 
-                    <div className="flex items-center justify-end gap-3 pt-2">
+                    <div className="flex items-center justify-center gap-3 pt-2">
                         <Link href={editing ? `/hr/employees/${employee.id}` : '/hr/employees'} className="btn btn-outline-dark">
                             Cancel
                         </Link>

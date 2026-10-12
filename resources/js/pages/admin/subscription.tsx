@@ -207,7 +207,7 @@ export default function Subscription({ tenant, plan, usage, history, plans, tick
                     {form.errors.plan_id && <p className="text-sm text-danger">{form.errors.plan_id}</p>}
                     <Select label="Requested plan" required placeholder="Choose a plan" value={form.data.plan_id} onChange={(e) => form.setData('plan_id', e.target.value)} options={plans.map((p) => ({ value: p.id, label: p.name }))} />
                     <Textarea label="Notes for the platform team" value={form.data.notes} onChange={(e) => form.setData('notes', e.target.value)} placeholder="e.g. We are opening a second campus in January." />
-                    <div className="flex justify-end gap-3">
+                    <div className="flex justify-center gap-3">
                         <button type="button" className="btn btn-outline-dark" onClick={() => setOpen(false)}>
                             Cancel
                         </button>

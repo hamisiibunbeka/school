@@ -10,6 +10,7 @@ import StatCard from '@/components/ui/stat-card';
 import { cn, date, num, titleCase } from '@/lib/utils';
 import type { Option } from '@/types';
 import { StatusToggle, type StaffStatus } from './_components/status-toggle';
+import { DateInput } from '@/components/ui/date-picker';
 
 type Staff = {
     id: number;
@@ -63,7 +64,7 @@ export default function StaffAttendance({ filters: initial, roster, departments,
             <div className="grid grid-cols-1 gap-6 xl:grid-cols-3">
                 <div className="panel xl:col-span-2">
                     <FilterBar>
-                        <input type="date" className="form-input w-full sm:w-auto" value={filters.date} max={today} onChange={(e) => setFilter('date', e.target.value || today)} aria-label="Date" />
+                        <DateInput className="form-input w-full sm:w-auto" value={filters.date} max={today} onChange={(e) => setFilter('date', e.target.value || today)} aria-label="Date" />
                         <FilterSelect value={filters.department} onChange={(v) => setFilter('department', v)} options={departments} placeholder="All departments" />
                         <FilterSelect
                             value={filters.category}

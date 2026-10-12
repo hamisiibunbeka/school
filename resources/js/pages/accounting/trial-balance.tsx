@@ -5,7 +5,8 @@ import { PrintButton } from '@/components/ui/actions';
 import { Checkbox } from '@/components/ui/form';
 import PageHeader from '@/components/ui/page-header';
 import { date, exportCsv } from '@/lib/utils';
-import { Amt, CheckBadge, DateField, ReportHeader, SectionRow, go, periodLabel, type Meta } from './_components/report';
+import { Amt, CheckBadge, DateField, RangeField, ReportHeader, SectionRow, go, periodLabel, type Meta } from './_components/report';
+import SearchSelect from '@/components/ui/search-select';
 
 type Row = { id: number; code: string; name: string; type: string; sub_type: string | null; period_dr: string; period_cr: string; debit: string; credit: string; cmp_debit: string; cmp_credit: string };
 type Props = {
@@ -58,18 +59,21 @@ export default function TrialBalance({ filters, report, meta }: Props) {
                 <div className="flex flex-col gap-3 lg:flex-row lg:flex-wrap lg:items-end">
                     <label className="mb-0 flex flex-col gap-1 text-xs font-semibold text-white-dark">
                         Basis
-                        <select className="form-select w-full sm:w-44" value={q.mode} onChange={(e) => setQ({ ...q, mode: e.target.value as 'as_at' | 'period' })}>
+                        <SearchSelect className="form-select w-full sm:w-44" value={q.mode} onChange={(e) => setQ({ ...q, mode: e.target.value as 'as_at' | 'period' })}>
                             <option value="as_at">As at date (cumulative)</option>
                             <option value="period">Period movements</option>
-                        </select>
+                        </SearchSelect>
                     </label>
-                    {q.mode === 'period' && <DateField label="From" value={q.from} onChange={(v) => setQ({ ...q, from: v })} />}
-                    <DateField label={q.mode === 'period' ? 'To' : 'As at'} value={q.to} onChange={(v) => setQ({ ...q, to: v })} />
+                    {q.mode === 'period' ? (
+                        <RangeField from={q.from} to={q.to} onChange={(from, to) => setQ({ ...q, from, to })} />
+                    ) : (
+                        <DateField label="As at" value={q.to} onChange={(v) => setQ({ ...q, to: v })} />
+                    )}
                     <div className="flex items-center pb-2">
                         <Checkbox label="Comparative" checked={!!q.compare} onChange={(e) => setQ({ ...q, compare: e.target.checked ? '1' : '', cmp_from: '', cmp_to: '' })} />
                     </div>
-                    {q.compare && q.mode === 'period' && <DateField label="Compare from" value={q.cmp_from} onChange={(v) => setQ({ ...q, cmp_from: v })} />}
-                    {q.compare && <DateField label={q.mode === 'period' ? 'Compare to' : 'Compare as at'} value={q.cmp_to} onChange={(v) => setQ({ ...q, cmp_to: v })} />}
+                    {q.compare && q.mode === 'period' && <RangeField label="Compare with" from={q.cmp_from} to={q.cmp_to} onChange={(cmp_from, cmp_to) => setQ({ ...q, cmp_from, cmp_to })} />}
+                    {q.compare && q.mode !== 'period' && <DateField label="Compare as at" value={q.cmp_to} onChange={(v) => setQ({ ...q, cmp_to: v })} />}
                     <button type="button" className="btn btn-primary" onClick={() => go('/accounting/trial-balance', { ...q, from: q.mode === 'period' ? q.from : '' })}>
                         Run report
                     </button>

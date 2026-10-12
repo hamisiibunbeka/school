@@ -161,7 +161,7 @@ export default function TenantsIndex({ tenants, filters: initial, plans, statuse
                             <Input label="Trial days" type="number" min={0} max={365} value={form.data.trial_days} onChange={(e) => form.setData('trial_days', e.target.value)} error={form.errors.trial_days} />
                         </FormGrid>
                     </FormSection>
-                    <div className="flex justify-end gap-3">
+                    <div className="flex justify-center gap-3">
                         <button type="button" className="btn btn-outline-dark" onClick={() => setOpen(false)}>
                             Cancel
                         </button>

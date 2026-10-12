@@ -28,7 +28,7 @@ import StatusBadge from '@/components/ui/status-badge';
 import Tabs from '@/components/ui/tabs';
 import { useCan } from '@/hooks/use-can';
 import { confirm } from '@/lib/swal';
-import { date, dateTime, money, num, titleCase } from '@/lib/utils';
+import { date, dateTime, money, num, titleCase, weekdayDate } from '@/lib/utils';
 import type { Option } from '@/types';
 import { LeaveModal } from '../_components/leave-modal';
 
@@ -477,7 +477,7 @@ export default function EmployeeShow({ employee, canSeeSalary, leave, leaveTypes
                                     {attendance.recent.map((r) => (
                                         <li key={r.id} className="flex items-center justify-between">
                                             <span>
-                                                {date(r.date, { weekday: 'short', day: '2-digit', month: 'short' })}
+                                                {weekdayDate(r.date, 'short')}
                                                 {r.check_in && <span className="ms-2 text-xs text-white-dark">{r.check_in.slice(0, 5)}</span>}
                                             </span>
                                             <StatusBadge status={r.status} />
@@ -610,7 +610,7 @@ function StatusModal({ open, onClose, employeeId, current, statuses }: { open: b
                 <Input label="Effective date" type="date" value={form.data.effective_date} onChange={(e) => form.setData('effective_date', e.target.value)} error={form.errors.effective_date} />
                 <Textarea label="Reason" required value={form.data.reason} onChange={(e) => form.setData('reason', e.target.value)} error={form.errors.reason} placeholder="e.g. Contract ended / disciplinary hearing pending" />
                 <p className="text-xs text-white-dark">The change and reason are recorded in the audit trail. Suspended or terminated staff lose system access.</p>
-                <div className="flex justify-end gap-3">
+                <div className="flex justify-center gap-3">
                     <button type="button" className="btn btn-outline-dark" onClick={onClose}>
                         Cancel
                     </button>
@@ -638,7 +638,7 @@ function LoginModal({ open, onClose, employee, roles }: { open: boolean; onClose
                 </p>
                 <Input label="Login email" type="email" required value={form.data.email} onChange={(e) => form.setData('email', e.target.value)} error={form.errors.email} />
                 <Select label="Role" required placeholder="Select role…" value={form.data.role_id} onChange={(e) => form.setData('role_id', e.target.value)} options={roles} error={form.errors.role_id} />
-                <div className="flex justify-end gap-3">
+                <div className="flex justify-center gap-3">
                     <button type="button" className="btn btn-outline-dark" onClick={onClose}>
                         Cancel
                     </button>

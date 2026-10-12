@@ -234,7 +234,7 @@ export default function Routes({ routes, filters: initial, vehicles, stats }: Pr
                         <p className="mt-2 text-xs text-white-dark">Times: morning pickup / afternoon drop-off. Removing a stop detaches any students assigned to it.</p>
                     </div>
 
-                    <div className="flex justify-end gap-3">
+                    <div className="flex justify-center gap-3">
                         <button type="button" className="btn btn-outline-dark" onClick={() => setOpen(false)}>
                             Cancel
                         </button>

@@ -142,7 +142,7 @@ export default function FeeCategories({ categories, filters: initial, accounts }
                         <Textarea label="Description" wrapperClassName="sm:col-span-2" value={form.data.description} onChange={(e) => form.setData('description', e.target.value)} error={form.errors.description} />
                     </FormGrid>
                     <Switch checked={form.data.is_active} onChange={(v) => form.setData('is_active', v)} label="Active — available on fee structures and invoices" />
-                    <div className="flex justify-end gap-3">
+                    <div className="flex justify-center gap-3">
                         <button type="button" className="btn btn-outline-dark" onClick={() => setOpen(false)}>
                             Cancel
                         </button>

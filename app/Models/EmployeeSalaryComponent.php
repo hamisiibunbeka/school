@@ -15,7 +15,7 @@ class EmployeeSalaryComponent extends Model
 
     protected function casts(): array
     {
-        return ['amount' => 'decimal:2'];
+        return ['amount' => 'decimal:2', 'is_excluded' => 'boolean'];
     }
 
     public function employee(): BelongsTo

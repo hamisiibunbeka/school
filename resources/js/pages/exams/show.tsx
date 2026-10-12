@@ -119,7 +119,7 @@ export default function ExamShow({ exam, progress, history, canApprove, canEnter
                             <dt className="text-xs text-white-dark">Dates</dt>
                             <dd className="flex items-center gap-1 font-semibold">
                                 <CalendarDays className="h-3.5 w-3.5" />
-                                {exam.start_date ? `${date(exam.start_date, { day: '2-digit', month: 'short' })} – ${date(exam.end_date)}` : '—'}
+                                {exam.start_date ? `${date(exam.start_date)} – ${date(exam.end_date)}` : '—'}
                             </dd>
                         </div>
                         <div>
