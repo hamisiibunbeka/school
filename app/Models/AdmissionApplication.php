@@ -34,6 +34,7 @@ class AdmissionApplication extends SchoolModel
             'interview_date' => 'date',
             'decided_at' => 'datetime',
             'assessment_score' => 'decimal:2',
+            'documents' => 'array',
         ];
     }
 

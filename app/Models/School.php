@@ -18,6 +18,27 @@ class School extends Model
         return ['settings' => 'array', 'is_active' => 'boolean'];
     }
 
+    protected static function booted(): void
+    {
+        // Every school gets a unique public web address: /sites/{slug}
+        static::creating(function (School $school) {
+            if (! $school->slug) {
+                $base = \Illuminate\Support\Str::slug($school->name) ?: 'school';
+                $slug = $base;
+                $n = 2;
+                while (static::where('slug', $slug)->exists()) {
+                    $slug = $base.'-'.$n++;
+                }
+                $school->slug = $slug;
+            }
+        });
+    }
+
+    public function website(): \Illuminate\Database\Eloquent\Relations\HasOne
+    {
+        return $this->hasOne(SchoolWebsite::class)->withoutGlobalScopes();
+    }
+
     public function tenant(): BelongsTo
     {
         return $this->belongsTo(Tenant::class);

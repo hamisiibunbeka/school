@@ -22,11 +22,34 @@ type Plan = {
     modules: string[];
     is_active: boolean;
     tenants_count: number;
+    website_features: WebsiteFeatures;
+    website_tier: string;
 };
 
-const blank = { name: '', code: '', price: '0', billing_interval: 'yearly', max_students: '', max_users: '', max_schools: '1', sms_credits: '0', modules: [] as string[], is_active: true };
+type WebsiteFeatures = {
+    templates: string[];
+    max_pages: number | null;
+    max_gallery: number | null;
+    news: boolean;
+    gallery: boolean;
+    online_admission: boolean;
+    document_uploads: boolean;
+    custom_domain: boolean;
+    remove_branding: boolean;
+};
 
-export default function Plans({ plans, modules }: { plans: Plan[]; modules: Option[] }) {
+const WEBSITE_FLAGS: { key: keyof WebsiteFeatures; label: string }[] = [
+    { key: 'online_admission', label: 'Online admission form' },
+    { key: 'document_uploads', label: 'Document uploads with applications' },
+    { key: 'news', label: 'News & events' },
+    { key: 'gallery', label: 'Photo gallery' },
+    { key: 'custom_domain', label: 'Custom domain' },
+    { key: 'remove_branding', label: 'Remove platform branding' },
+];
+
+const blank = { name: '', code: '', price: '0', billing_interval: 'yearly', max_students: '', max_users: '', max_schools: '1', sms_credits: '0', modules: [] as string[], is_active: true, website_features: null as WebsiteFeatures | null };
+
+export default function Plans({ plans, modules, templates, websiteDefaults }: { plans: Plan[]; modules: Option[]; templates: Option[]; websiteDefaults: Record<string, WebsiteFeatures> }) {
     const [open, setOpen] = useState(false);
     const [editing, setEditing] = useState<Plan | null>(null);
     const form = useForm(blank);
@@ -47,8 +70,9 @@ export default function Plans({ plans, modules }: { plans: Plan[]; modules: Opti
                       sms_credits: String(p.sms_credits),
                       modules: p.modules,
                       is_active: p.is_active,
+                      website_features: p.website_features,
                   }
-                : { ...blank, modules: modules.map((m) => String(m.value)) },
+                : { ...blank, modules: modules.map((m) => String(m.value)), website_features: websiteDefaults.starter },
         );
         setOpen(true);
     };
@@ -60,6 +84,9 @@ export default function Plans({ plans, modules }: { plans: Plan[]; modules: Opti
         if (editing) form.put(`/saas/plans/${editing.id}`, opts);
         else form.post('/saas/plans', opts);
     };
+
+    const wf = form.data.website_features;
+    const setWf = (patch: Partial<WebsiteFeatures>) => wf && form.setData('website_features', { ...wf, ...patch });
 
     const toggleModule = (key: string, on: boolean) => form.setData('modules', on ? [...form.data.modules, key] : form.data.modules.filter((m) => m !== key));
 
@@ -112,6 +139,7 @@ export default function Plans({ plans, modules }: { plans: Plan[]; modules: Opti
                                     `${p.max_schools} school${p.max_schools > 1 ? 's' : ''}`,
                                     `${num(p.sms_credits)} SMS credits / month`,
                                     `${p.modules.length} of ${modules.length} modules`,
+                                    `Website: ${p.website_features.templates.length} template${p.website_features.templates.length === 1 ? '' : 's'}${p.website_features.online_admission ? ' + online admission' : ''}`,
                                 ].map((l) => (
                                     <li key={l} className="flex items-center gap-2">
                                         <Check className="h-4 w-4 text-success" /> {l}
@@ -173,6 +201,39 @@ export default function Plans({ plans, modules }: { plans: Plan[]; modules: Opti
                         </div>
                         {form.errors.modules && <p className="mt-2 text-sm text-danger">{form.errors.modules}</p>}
                     </FormSection>
+                    {wf && (
+                        <FormSection title="School website" description="Templates and website features schools on this plan can use.">
+                            <div className="mb-4">
+                                <label>Templates</label>
+                                <div className="flex flex-wrap gap-2">
+                                    {templates.map((t) => {
+                                        const on = wf.templates.includes(String(t.value));
+                                        return (
+                                            <button
+                                                key={t.value}
+                                                type="button"
+                                                onClick={() => setWf({ templates: on ? wf.templates.filter((x) => x !== t.value) : [...wf.templates, String(t.value)] })}
+                                                className={cn('rounded-full border px-3 py-1.5 text-sm font-semibold transition', on ? 'border-primary bg-primary text-white' : 'border-white-light hover:border-primary dark:border-[#1b2e4b]')}
+                                            >
+                                                {on && <Check className="me-1 inline h-3.5 w-3.5" />}
+                                                {t.label}
+                                            </button>
+                                        );
+                                    })}
+                                </div>
+                                {(form.errors as Record<string, string>)['website_features.templates'] && <p className="form-error">{(form.errors as Record<string, string>)['website_features.templates']}</p>}
+                            </div>
+                            <FormGrid cols={4}>
+                                <Input label="Max custom pages" type="number" min={0} value={wf.max_pages ?? ''} onChange={(e) => setWf({ max_pages: e.target.value === '' ? null : Number(e.target.value) })} placeholder="Unlimited" />
+                                <Input label="Max gallery photos" type="number" min={0} value={wf.max_gallery ?? ''} onChange={(e) => setWf({ max_gallery: e.target.value === '' ? null : Number(e.target.value) })} placeholder="Unlimited" />
+                            </FormGrid>
+                            <div className="mt-4 grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
+                                {WEBSITE_FLAGS.map((f) => (
+                                    <Checkbox key={f.key} label={f.label} checked={!!wf[f.key]} onChange={(e) => setWf({ [f.key]: e.target.checked })} />
+                                ))}
+                            </div>
+                        </FormSection>
+                    )}
                     <Switch checked={form.data.is_active} onChange={(v) => form.setData('is_active', v)} label="Available for new subscriptions" />
                     <div className="flex justify-center gap-3">
                         <button type="button" className="btn btn-outline-dark" onClick={() => setOpen(false)}>

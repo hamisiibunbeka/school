@@ -1,12 +1,17 @@
 <?php
 
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\HomeController;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\PwaController;
 use App\Http\Controllers\SchoolSwitchController;
 use Illuminate\Support\Facades\Route;
 
-Route::get('/', fn () => auth()->check() ? redirect('/dashboard') : redirect('/login'))->name('home');
+// School website when enabled for this host (SaaS Console → Platform Settings / custom domain), else login.
+Route::get('/', HomeController::class)->name('home');
+
+// Public school websites (no login)
+require __DIR__.'/site.php';
 
 // Installable web app (PWA)
 Route::get('manifest.webmanifest', [PwaController::class, 'manifest'])->name('pwa.manifest');

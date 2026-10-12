@@ -31,6 +31,7 @@ class DatabaseSeeder extends Seeder
             HrDemoSeeder::class,
             OperationsDemoSeeder::class,
             CommunicationDemoSeeder::class,
+            WebsiteDemoSeeder::class,
         ];
 
         app(Tenancy::class)->runAs($school, function () use ($moduleSeeders) {

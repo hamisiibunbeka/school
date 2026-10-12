@@ -33,6 +33,7 @@ $modules = [
     'library' => 'Library',
     'health' => 'Health & Welfare',
     'communication' => 'Communication',
+    'website' => 'School Website (CMS)',
     'reports' => 'Reports',
     'administration' => 'Administration',
 ];
@@ -53,7 +54,7 @@ return [
             'name' => 'Principal / Head Teacher',
             'description' => 'Academic oversight, approvals and reports.',
             'permissions' => [
-                ...$all(['dashboard', 'admissions', 'students', 'academics', 'attendance', 'exams', 'communication', 'reports', 'health']),
+                ...$all(['dashboard', 'admissions', 'students', 'academics', 'attendance', 'exams', 'communication', 'reports', 'health', 'website']),
                 'fees.view', 'hr.view', 'boarding.view', 'transport.view', 'library.view', 'accounting.view',
             ],
         ],
@@ -77,7 +78,7 @@ return [
         'admissions-officer' => [
             'name' => 'Admissions Officer',
             'description' => 'Applications, decisions and enrolment.',
-            'permissions' => [...$all(['admissions', 'students']), 'dashboard.view', 'academics.view'],
+            'permissions' => [...$all(['admissions', 'students']), 'dashboard.view', 'academics.view', 'website.view'],
         ],
         'hr-officer' => [
             'name' => 'HR / Payroll Officer',

@@ -1,5 +1,5 @@
 import { Link } from '@inertiajs/react';
-import { CheckCircle2, ClipboardList, Clock3, Download, FileSearch, Hourglass, MessagesSquare, Plus, UserCheck, XCircle, type LucideIcon } from 'lucide-react';
+import { CheckCircle2, ClipboardList, Clock3, Download, FileSearch, Hourglass, MessagesSquare, Plus, UserCheck, XCircle, type LucideIcon, Globe } from 'lucide-react';
 import { RowActions } from '@/components/ui/actions';
 import Avatar from '@/components/ui/avatar';
 import DataTable, { type Column } from '@/components/ui/data-table';
@@ -25,12 +25,16 @@ type Row = {
     interview_date: string | null;
     assessment_score: string | null;
     status: string;
+    source: 'online' | 'office';
+    documents_count: number;
     student_id: number | null;
     created_at: string | null;
 };
 type Props = {
     applications: Paginated<Row>;
-    filters: { search: string; status: string; class: string; year: string; gender: string };
+    filters: { search: string; status: string; class: string; year: string; gender: string; source: string };
+    sourceCounts: { online: number; online_new: number };
+    siteUrl: string;
     counts: Record<string, number>;
     classes: Option[];
     years: Option[];
@@ -47,7 +51,7 @@ const PIPELINE: { key: string; label: string; icon: LucideIcon; tone: string }[]
     { key: 'enrolled', label: 'Enrolled', icon: UserCheck, tone: 'text-primary bg-primary-light dark:bg-primary-dark-light' },
 ];
 
-export default function AdmissionsIndex({ applications, filters: initial, counts, classes, years, statuses }: Props) {
+export default function AdmissionsIndex({ applications, filters: initial, counts, classes, years, statuses, sourceCounts, siteUrl }: Props) {
     const can = useCan();
     const { filters, setFilter, reset } = useFilters(initial);
     const total = Object.values(counts).reduce((a, b) => a + b, 0);
@@ -65,8 +69,13 @@ export default function AdmissionsIndex({ applications, filters: initial, counts
                         <Link href={`/admissions/${a.id}`} className="font-bold text-black hover:text-primary dark:text-white-light">
                             {a.full_name}
                         </Link>
-                        <div className="text-xs text-white-dark">
+                        <div className="flex flex-wrap items-center gap-1.5 text-xs text-white-dark">
                             {a.application_no} · {titleCase(a.gender)}
+                            {a.source === 'online' && (
+                                <span className="badge badge-soft-info inline-flex items-center gap-1 px-1.5! py-0! text-[10px]" title="Submitted through the school website">
+                                    <Globe className="h-3 w-3" /> Online{a.documents_count > 0 ? ` · ${a.documents_count} doc${a.documents_count > 1 ? 's' : ''}` : ''}
+                                </span>
+                            )}
                         </div>
                     </div>
                 </div>
@@ -132,6 +141,9 @@ export default function AdmissionsIndex({ applications, filters: initial, counts
                 breadcrumbs={[{ title: 'Admissions' }]}
                 actions={
                     <>
+                        <a href={siteUrl} target="_blank" rel="noreferrer" className="btn btn-outline-info">
+                            <Globe className="h-4 w-4" /> Online form
+                        </a>
                         <a href={`/admissions/export?${new URLSearchParams(cleanQuery(filters) as Record<string, string>)}`} className="btn btn-outline-primary">
                             <Download className="h-4 w-4" /> Export CSV
                         </a>
@@ -143,6 +155,23 @@ export default function AdmissionsIndex({ applications, filters: initial, counts
                     </>
                 }
             />
+
+            {sourceCounts.online_new > 0 && (
+                <button
+                    type="button"
+                    onClick={() => {
+                        setFilter('source', 'online');
+                        setFilter('status', 'submitted');
+                    }}
+                    className="mb-5 flex w-full items-center gap-3 rounded-md border border-info/30 bg-info-light px-4 py-3 text-start text-sm font-semibold text-info transition hover:shadow-md dark:bg-info-dark-light"
+                >
+                    <Globe className="h-5 w-5 shrink-0" />
+                    <span className="flex-1">
+                        <strong className="text-base">{sourceCounts.online_new}</strong> new online application{sourceCounts.online_new === 1 ? '' : 's'} from the school website awaiting review
+                    </span>
+                    <span className="text-xs underline">Review now</span>
+                </button>
+            )}
 
             {/* Pipeline */}
             <div className="mb-6 grid grid-cols-2 gap-3 sm:grid-cols-4 xl:grid-cols-7">
@@ -195,6 +224,15 @@ export default function AdmissionsIndex({ applications, filters: initial, counts
                     <FilterSelect value={filters.class} onChange={(v) => setFilter('class', v)} options={classes} placeholder="All classes" />
                     <FilterSelect value={filters.year} onChange={(v) => setFilter('year', v)} options={years} placeholder="All intakes" />
                     <FilterSelect value={filters.gender} onChange={(v) => setFilter('gender', v)} options={['male', 'female'].map((g) => ({ value: g, label: titleCase(g) }))} placeholder="Any gender" />
+                    <FilterSelect
+                        value={filters.source}
+                        onChange={(v) => setFilter('source', v)}
+                        options={[
+                            { value: 'online', label: `Online (website) · ${sourceCounts.online}` },
+                            { value: 'office', label: 'Office / walk-in' },
+                        ]}
+                        placeholder="All sources"
+                    />
                 </FilterBar>
                 <DataTable columns={columns} paginated={applications} empty="No applications found" emptyDescription="Try another status tab or record a new application." />
             </div>

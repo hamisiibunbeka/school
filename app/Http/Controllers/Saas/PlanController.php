@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Saas;
 use App\Http\Controllers\Admin\SubscriptionController as TenantSubscription;
 use App\Http\Controllers\Controller;
 use App\Models\Plan;
+use App\Services\Website\WebsiteEntitlements;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -19,10 +20,14 @@ class PlanController extends Controller
         $plans = Plan::withCount('tenants')->orderBy('price')->get()->map(fn (Plan $p) => [
             ...TenantSubscription::planArray($p),
             'tenants_count' => $p->tenants_count,
+            'website_features' => WebsiteEntitlements::resolve($p),
+            'website_tier' => WebsiteEntitlements::tierFor($p),
         ]);
 
         return Inertia::render('saas/plans', [
             'plans' => $plans,
+            'templates' => collect(config('website.templates'))->map(fn ($t, $key) => ['value' => $key, 'label' => $t['name']])->values(),
+            'websiteDefaults' => config('website.plans'),
             'modules' => collect(config('permissions.modules'))->map(fn ($label, $key) => ['value' => $key, 'label' => $label])->values(),
         ]);
     }
@@ -79,6 +84,17 @@ class PlanController extends Controller
             'modules' => ['present', 'array'],
             'modules.*' => [Rule::in(array_keys(config('permissions.modules')))],
             'is_active' => ['boolean'],
-        ]);
+            'website_features' => ['nullable', 'array'],
+            'website_features.templates' => ['required_with:website_features', 'array', 'min:1'],
+            'website_features.templates.*' => [Rule::in(array_keys(config('website.templates')))],
+            'website_features.max_pages' => ['nullable', 'integer', 'min:0', 'max:1000'],
+            'website_features.max_gallery' => ['nullable', 'integer', 'min:0', 'max:100000'],
+            'website_features.news' => ['boolean'],
+            'website_features.gallery' => ['boolean'],
+            'website_features.online_admission' => ['boolean'],
+            'website_features.document_uploads' => ['boolean'],
+            'website_features.custom_domain' => ['boolean'],
+            'website_features.remove_branding' => ['boolean'],
+        ], [], ['website_features.templates' => 'website templates']);
     }
 }

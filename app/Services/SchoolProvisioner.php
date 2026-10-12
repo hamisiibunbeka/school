@@ -12,6 +12,7 @@ use App\Models\Role;
 use App\Models\School;
 use App\Models\Tenant;
 use App\Models\User;
+use App\Services\Website\WebsiteDefaults;
 use App\Support\Tenancy;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -84,6 +85,7 @@ class SchoolProvisioner
         $this->seedDepartments();
         $this->seedFinanceDefaults();
         app(StatutoryDefaults::class)->apply();
+        WebsiteDefaults::ensure(app(Tenancy::class)->school());
     }
 
     public function seedChartOfAccounts(): void

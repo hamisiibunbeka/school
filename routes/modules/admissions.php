@@ -19,4 +19,5 @@ Route::middleware('can:admissions.view')->group(function () {
     Route::get('admissions/export', [AdmissionController::class, 'export'])->name('admissions.export');
     Route::get('admissions/{application}', [AdmissionController::class, 'show'])->name('admissions.show');
     Route::get('admissions/{application}/letter', [AdmissionController::class, 'letter'])->name('admissions.letter');
+    Route::get('admissions/{application}/documents/{index}', [AdmissionController::class, 'document'])->whereNumber('index')->name('admissions.document');
 });

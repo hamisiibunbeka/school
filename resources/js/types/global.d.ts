@@ -11,6 +11,7 @@ declare module '@inertiajs/core' {
         sharedPageProps: SharedProps & { [key: string]: unknown };
         flashDataType: {
             toast?: { type: 'success' | 'error' | 'info' | 'warning'; message: string };
+            site_status?: string;
         };
     }
 }

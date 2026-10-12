@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Saas\DashboardController;
 use App\Http\Controllers\Saas\PlanController;
+use App\Http\Controllers\Saas\SettingsController;
 use App\Http\Controllers\Saas\SubscriptionController;
 use App\Http\Controllers\Saas\TenantController;
 use App\Http\Controllers\Saas\TicketController;
@@ -29,6 +30,9 @@ Route::middleware(EnsureSuperAdmin::class)->prefix('saas')->name('saas.')->group
     Route::post('subscriptions', [SubscriptionController::class, 'store'])->name('subscriptions.store');
     Route::post('subscriptions/{subscription}/paid', [SubscriptionController::class, 'markPaid'])->name('subscriptions.paid');
     Route::post('subscriptions/{subscription}/cancel', [SubscriptionController::class, 'cancel'])->name('subscriptions.cancel');
+
+    Route::get('settings', [SettingsController::class, 'index'])->name('settings.index');
+    Route::put('settings', [SettingsController::class, 'update'])->name('settings.update');
 
     Route::get('tickets', [TicketController::class, 'index'])->name('tickets.index');
     Route::put('tickets/{ticket}', [TicketController::class, 'update'])->name('tickets.update');

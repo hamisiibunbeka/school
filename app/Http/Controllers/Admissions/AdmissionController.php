@@ -24,7 +24,7 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
 /** Admission applications and the SRS 13 admissions workflow (SRS 4.3). */
 class AdmissionController extends Controller
 {
-    private const FILTER_KEYS = ['search', 'status', 'class', 'year', 'gender'];
+    private const FILTER_KEYS = ['search', 'status', 'class', 'year', 'gender', 'source'];
 
     public function index(Request $request): Response
     {
@@ -49,6 +49,8 @@ class AdmissionController extends Controller
                 'interview_date' => $a->interview_date?->toDateString(),
                 'assessment_score' => $a->assessment_score,
                 'status' => $a->status,
+                'source' => $a->source ?? 'office',
+                'documents_count' => count($a->documents ?? []),
                 'student_id' => $a->student_id,
                 'created_at' => $a->created_at?->toDateString(),
             ]);
@@ -63,6 +65,11 @@ class AdmissionController extends Controller
             'classes' => Lookups::classes(),
             'years' => Lookups::academicYears(),
             'statuses' => Lookups::enum(AdmissionApplication::STATUSES),
+            'sourceCounts' => [
+                'online' => AdmissionApplication::where('source', 'online')->count(),
+                'online_new' => AdmissionApplication::where('source', 'online')->where('status', 'submitted')->count(),
+            ],
+            'siteUrl' => url('/sites/'.$this->tenancy()->school()->slug.'/admissions'),
         ]);
     }
 
@@ -73,11 +80,11 @@ class AdmissionController extends Controller
 
         return response()->streamDownload(function () use ($filters) {
             $out = fopen('php://output', 'w');
-            fputcsv($out, ['Application No', 'Applicant', 'Gender', 'Date of Birth', 'Class', 'Year', 'Residence', 'Previous School', 'Guardian', 'Phone', 'Interview', 'Score', 'Status', 'Applied']);
+            fputcsv($out, ['Application No', 'Applicant', 'Gender', 'Date of Birth', 'Class', 'Year', 'Residence', 'Previous School', 'Guardian', 'Phone', 'Interview', 'Score', 'Status', 'Source', 'Applied']);
             $this->filtered($filters)->with(['schoolClass', 'academicYear'])->latest()->chunk(500, function ($chunk) use ($out) {
                 foreach ($chunk as $a) {
                     fputcsv($out, [$a->application_no, $a->full_name, $a->gender, $a->date_of_birth?->toDateString(), $a->schoolClass?->name, $a->academicYear?->name,
-                        $a->residence_type, $a->previous_school, $a->guardian_name, $a->guardian_phone, $a->interview_date?->toDateString(), $a->assessment_score, $a->status, $a->created_at?->toDateString()]);
+                        $a->residence_type, $a->previous_school, $a->guardian_name, $a->guardian_phone, $a->interview_date?->toDateString(), $a->assessment_score, $a->status, $a->source ?? 'office', $a->created_at?->toDateString()]);
                 }
             });
             fclose($out);
@@ -141,6 +148,7 @@ class AdmissionController extends Controller
                 'class' => $application->schoolClass?->name,
                 'year' => $application->academicYear?->name,
                 'decider' => $application->decider?->name,
+                'documents' => collect($application->documents ?? [])->map(fn ($d, $i) => ['index' => $i, 'title' => $d['title'] ?? 'Document', 'size' => $d['size'] ?? null, 'mime' => $d['mime'] ?? null])->values(),
                 'student' => $application->student ? ['id' => $application->student->id, 'name' => $application->student->full_name, 'admission_no' => $application->student->admission_no] : null,
             ],
             'history' => $history,
@@ -150,6 +158,16 @@ class AdmissionController extends Controller
             'classes' => Lookups::classes(),
             'currentYear' => AcademicYear::current()?->name,
         ]);
+    }
+
+    /** Securely stream a document uploaded with an online application (private storage). */
+    public function document(AdmissionApplication $application, int $index): \Symfony\Component\HttpFoundation\StreamedResponse
+    {
+        $doc = ($application->documents ?? [])[$index] ?? null;
+        abort_unless($doc && \Illuminate\Support\Facades\Storage::disk('local')->exists($doc['path']), 404);
+        $this->audit('viewed_document', $application, "Viewed document '{$doc['title']}' of application {$application->application_no}", 'admissions');
+
+        return \Illuminate\Support\Facades\Storage::disk('local')->download($doc['path'], $doc['title']);
     }
 
     public function edit(AdmissionApplication $application): Response|RedirectResponse
@@ -393,7 +411,8 @@ class AdmissionController extends Controller
             ->when($filters['status'] ?? null, fn ($q, $v) => $q->where('status', $v))
             ->when($filters['class'] ?? null, fn ($q, $v) => $q->where('school_class_id', $v))
             ->when($filters['year'] ?? null, fn ($q, $v) => $q->where('academic_year_id', $v))
-            ->when($filters['gender'] ?? null, fn ($q, $v) => $q->where('gender', $v));
+            ->when($filters['gender'] ?? null, fn ($q, $v) => $q->where('gender', $v))
+            ->when($filters['source'] ?? null, fn ($q, $v) => $q->where('source', $v));
     }
 
     /** @return array<string, mixed> */

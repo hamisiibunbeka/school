@@ -11,7 +11,7 @@ class Plan extends Model
 
     protected function casts(): array
     {
-        return ['price' => 'decimal:2', 'modules' => 'array', 'is_active' => 'boolean'];
+        return ['price' => 'decimal:2', 'modules' => 'array', 'website_features' => 'array', 'is_active' => 'boolean'];
     }
 
     public function tenants(): HasMany

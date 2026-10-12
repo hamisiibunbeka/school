@@ -568,6 +568,16 @@ span.flatpickr-weekday {
     border-color: #253b5c;
 }
 
+/* CMS editor content */
+.cms-prose h2 { font-size: 1.35rem; font-weight: 800; margin: 0.9em 0 0.4em; }
+.cms-prose h3 { font-size: 1.1rem; font-weight: 700; margin: 0.8em 0 0.35em; }
+.cms-prose p { margin: 0 0 0.7em; line-height: 1.7; }
+.cms-prose ul { list-style: disc; padding-inline-start: 1.4em; margin: 0 0 0.8em; }
+.cms-prose ol { list-style: decimal; padding-inline-start: 1.4em; margin: 0 0 0.8em; }
+.cms-prose blockquote { border-inline-start: 3px solid #4361ee; padding-inline-start: 0.9em; color: #888ea8; font-style: italic; margin: 0 0 0.8em; }
+.cms-prose a { color: #4361ee; text-decoration: underline; }
+.cms-prose img { max-width: 100%; border-radius: 0.5rem; margin: 0.5em 0; }
+
 /* Inertia progress bar */
 #nprogress .bar {
     background: #4361ee !important;
