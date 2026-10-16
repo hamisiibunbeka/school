@@ -5,7 +5,7 @@ import { cn } from '@/lib/utils';
 import { ContactDetails, EventsNoticesSection, FaqSection, GallerySection, LeaderMessage, MissionVision, NewsSection, statItems, StatNumber, TestimonialsSection } from '../_components/blocks';
 import type { HomeData, SiteChrome } from '../_components/types';
 import { Crest, HighlightIcon, SiteImage, SocialLinks } from '../_components/ui';
-import { BrandingCredit, isActive, MenuButton, MobileNav, quickLinks, useCurrentPath, useMenu, useScrolled } from './shell';
+import { BrandingCredit, isActive, MenuButton, MobileNav, quickLinks, useCurrentPath, useMenu, useScrolled, NavMore, splitNav } from './shell';
 import { Container, Section, themes } from './theme';
 
 const t = themes.minimal;
@@ -28,7 +28,7 @@ export function MinimalLayout({ site, children }: { site: SiteChrome; children: 
                     </Link>
                     <nav aria-label="Main" className="hidden lg:block">
                         <ul className="flex items-center gap-7">
-                            {site.nav.map((item) => {
+                            {splitNav(site.nav).main.map((item) => {
                                 const active = isActive(item, path, site.base);
                                 return (
                                     <li key={item.href}>
@@ -46,6 +46,7 @@ export function MinimalLayout({ site, children }: { site: SiteChrome; children: 
                                     </li>
                                 );
                             })}
+                            <NavMore items={splitNav(site.nav).more} triggerClass={'relative py-2 text-sm whitespace-nowrap text-neutral-500 transition hover:text-neutral-950'} />
                         </ul>
                     </nav>
                     <div className="flex items-center gap-2">

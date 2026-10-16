@@ -1,0 +1,468 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Accounts Primer</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&family=JetBrains+Mono:wght@500;700&display=swap">
+<style>
+/* Layout: a training handout — single reading column, wide figures and tables, prints on A4. */
+:root {
+  color-scheme: light;
+  --paper: #f3f5fb;
+  --surface: #ffffff;
+  --ink: #18203a;
+  --muted: #5a6382;
+  --line: #dde2ee;
+  --accent: #4361ee;
+  --callout: #e5397b;
+  --dr: #1f7a52;          /* debit side colour in worked examples */
+  --cr: #b5452a;          /* credit side colour in worked examples */
+  --warn: #b7791f;
+  --accent-soft: #e7ebfd;
+  --dr-soft: #e3f4ec;
+  --cr-soft: #fbe9e4;
+  --font-body: "Nunito", "Segoe UI", system-ui, -apple-system, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, "Cascadia Mono", Consolas, monospace;
+  --measure: 70ch;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+    --paper: #0b1120; --surface: #121a2c; --ink: #e4e8f4; --muted: #9aa5c4; --line: #26324e;
+    --accent: #8197ff; --callout: #ff5c97; --dr: #4fd39a; --cr: #ff8a6b; --warn: #e8b453;
+    --accent-soft: #1b2648; --dr-soft: #10291f; --cr-soft: #2f1712;
+  }
+}
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --paper: #0b1120; --surface: #121a2c; --ink: #e4e8f4; --muted: #9aa5c4; --line: #26324e;
+  --accent: #8197ff; --callout: #ff5c97; --dr: #4fd39a; --cr: #ff8a6b; --warn: #e8b453;
+  --accent-soft: #1b2648; --dr-soft: #10291f; --cr-soft: #2f1712;
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+@media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
+body { margin: 0; background: var(--paper); color: var(--ink); font: 400 16px/1.65 var(--font-body); }
+a { color: var(--accent); }
+a:focus-visible, summary:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; border-radius: 4px; }
+h1, h2, h3 { text-wrap: balance; line-height: 1.2; margin: 0; }
+p { margin: 0; }
+code, .mono { font-family: var(--font-mono); font-size: .86em; }
+.wrap { max-width: 1060px; margin: 0 auto; padding-inline: clamp(16px, 4vw, 48px); padding-block: 0 72px; }
+
+.topbar { display: flex; flex-wrap: wrap; gap: 8px 18px; align-items: center; justify-content: space-between; padding-block: 18px; border-bottom: 1px solid var(--line); font-size: 14px; font-weight: 700; }
+.topbar .who { color: var(--muted); font-weight: 600; }
+header.hero { padding-block: 40px 28px; }
+.kicker { font-size: 12px; font-weight: 800; letter-spacing: .14em; text-transform: uppercase; color: var(--muted); }
+.hero .kicker { color: var(--accent); }
+.hero h1 { font-size: clamp(32px, 5vw, 48px); font-weight: 900; letter-spacing: -.02em; margin-top: 8px; }
+.hero .lede { margin-top: 14px; max-width: var(--measure); font-size: 18px; color: var(--muted); }
+
+nav.contents { margin-top: 22px; display: flex; flex-wrap: wrap; gap: 6px; }
+nav.contents a { font-size: 13.5px; font-weight: 700; text-decoration: none; padding: 4px 11px; border-radius: 999px; border: 1px solid var(--line); background: var(--surface); color: var(--ink); }
+nav.contents a:hover { border-color: var(--accent); color: var(--accent); }
+
+section { padding-block: 40px 4px; border-top: 1px solid var(--line); }
+section > h2 { font-size: clamp(24px, 3vw, 32px); font-weight: 900; letter-spacing: -.01em; margin-top: 6px; }
+section h3 { font-size: 19px; font-weight: 800; margin-top: 30px; }
+section p, section ul, section ol { max-width: var(--measure); }
+section h2 + p, section h3 + p, section p + p, .kicker + h2 + p { margin-top: 10px; }
+section ul, section ol { margin: 10px 0 0; padding-left: 22px; }
+li + li { margin-top: 5px; }
+
+.equation { margin-top: 18px; display: flex; flex-wrap: wrap; align-items: center; gap: 10px; font-family: var(--font-mono); font-weight: 700; font-size: clamp(15px, 2.2vw, 20px); background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 18px 20px; }
+.equation span { padding: 4px 12px; border-radius: 8px; background: var(--accent-soft); color: var(--accent); }
+.equation i { font-style: normal; color: var(--muted); }
+
+.rule { margin-top: 16px; max-width: var(--measure); padding: 14px 18px; border-radius: 12px; background: var(--surface); border: 2px solid var(--accent); font-size: 17px; font-weight: 700; }
+.rule .dr { color: var(--dr); } .rule .cr { color: var(--cr); }
+
+.table-wrap { overflow-x: auto; margin-top: 16px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); }
+table { border-collapse: collapse; width: 100%; font-size: 14.5px; }
+th, td { text-align: left; padding: 9px 12px; border-bottom: 1px solid var(--line); vertical-align: top; }
+th { font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); background: var(--paper); }
+tbody tr:last-child td { border-bottom: 0; }
+td.num, th.num { text-align: right; font-family: var(--font-mono); font-variant-numeric: tabular-nums; white-space: nowrap; }
+td .code { font-family: var(--font-mono); font-weight: 700; }
+.side { display: inline-block; font-size: 12px; font-weight: 800; padding: 1px 8px; border-radius: 6px; }
+.side.dr { background: var(--dr-soft); color: var(--dr); }
+.side.cr { background: var(--cr-soft); color: var(--cr); }
+
+.examples { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 16px; margin-top: 16px; }
+.example { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 16px; display: flex; flex-direction: column; gap: 10px; }
+.example h4 { margin: 0; font-size: 15.5px; font-weight: 800; }
+.example p { font-size: 14px; color: var(--muted); }
+.example table { font-size: 13.5px; }
+.example th, .example td { padding: 6px 8px; }
+.example .why { font-size: 13.5px; color: var(--ink); border-top: 1px dashed var(--line); padding-top: 8px; }
+
+figure.shot { margin: 20px 0 0; }
+figure.shot img { display: block; width: 100%; height: auto; aspect-ratio: 16 / 10; max-width: 100%; border-radius: 12px; border: 1px solid var(--line); box-shadow: 0 14px 34px -18px rgba(20, 30, 60, .35); }
+ol.key { list-style: none; padding: 0; margin-top: 12px; display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 8px 22px; max-width: none; }
+ol.key li { display: flex; gap: 10px; align-items: flex-start; font-size: 14.5px; margin: 0; }
+ol.key .num { flex: none; width: 23px; height: 23px; border-radius: 50%; background: var(--callout); color: #fff; font-weight: 900; font-size: 12.5px; display: grid; place-items: center; margin-top: 1px; }
+
+.fields { margin-top: 18px; display: grid; gap: 12px; }
+.field { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 14px 18px; display: grid; grid-template-columns: 34px minmax(0, 1fr); gap: 4px 12px; }
+.field .num { grid-row: span 3; width: 28px; height: 28px; border-radius: 50%; background: var(--callout); color: #fff; font-weight: 900; font-size: 13px; display: grid; place-items: center; }
+.field h3 { margin: 0; font-size: 17px; }
+.field dl { margin: 4px 0 0; display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: 4px 14px; font-size: 14.5px; }
+.field dt { font-size: 11.5px; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); padding-top: 3px; }
+.field dd { margin: 0; }
+.field dd.sys { color: var(--accent); font-weight: 600; }
+
+.note { margin-top: 16px; max-width: var(--measure); border-radius: 10px; padding: 12px 16px; background: var(--surface); border: 1px solid var(--line); font-size: 15px; }
+.note b:first-child { display: block; font-size: 12px; letter-spacing: .1em; text-transform: uppercase; color: var(--accent); margin-bottom: 2px; }
+.note.warn { border-color: color-mix(in srgb, var(--warn) 45%, var(--line)); }
+.note.warn b:first-child { color: var(--warn); }
+
+ol.steps { list-style: none; padding: 0; counter-reset: s; }
+ol.steps > li { counter-increment: s; position: relative; padding-left: 40px; min-height: 28px; }
+ol.steps > li::before { content: counter(s); position: absolute; left: 0; top: 0; width: 27px; height: 27px; border-radius: 8px; background: var(--accent-soft); color: var(--accent); font-weight: 900; font-size: 14px; display: grid; place-items: center; }
+ol.steps > li + li { margin-top: 10px; }
+
+dl.glossary { margin-top: 16px; display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 10px 26px; }
+dl.glossary div { padding-block: 8px; border-bottom: 1px solid var(--line); }
+dl.glossary dt { font-weight: 800; }
+dl.glossary dd { margin: 2px 0 0; font-size: 14.5px; color: var(--muted); }
+
+.quiz { margin-top: 16px; display: grid; gap: 10px; max-width: 860px; }
+.quiz details { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 12px 16px; }
+.quiz summary { cursor: pointer; font-weight: 700; }
+.quiz details p { margin-top: 8px; color: var(--muted); }
+.quiz details[open] summary { color: var(--accent); }
+
+footer { margin-top: 48px; padding-top: 18px; border-top: 1px solid var(--line); font-size: 13.5px; color: var(--muted); max-width: var(--measure); }
+
+@media print {
+  body { background: #fff; color: #000; font-size: 11pt; }
+  .topbar a, nav.contents { display: none; }
+  section { break-before: page; border: 0; }
+  figure.shot, .example, .field, table { break-inside: avoid; }
+  .quiz details { border: 0; padding: 4px 0; }
+  .quiz details > p { display: block; }
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="topbar">
+    <a href="index.html#accounting">← Back to the user guide</a>
+    <span class="who">Training handout · for bursars, accountants and the people who train them</span>
+  </div>
+
+  <header class="hero">
+    <p class="kicker">Accounting basics · Mzenzi School Management</p>
+    <h1>Accounts primer for school staff</h1>
+    <p class="lede">What every field on the chart of accounts means, the rules the system enforces, and how fees, payroll and purchases turn into ledger entries. No accounting background needed.</p>
+    <nav class="contents" aria-label="On this page">
+      <a href="#rule">The one rule</a><a href="#classes">Five classes</a><a href="#examples">Worked examples</a><a href="#form">The account form</a><a href="#subtypes">Sub-types</a><a href="#list">Reading the list</a><a href="#auto">Automatic postings</a><a href="#setup">Setup checklist</a><a href="#trouble">Troubleshooting</a><a href="#glossary">Glossary</a><a href="#quiz">Self-check</a>
+    </nav>
+  </header>
+
+  <!-- 1 -->
+  <section id="rule">
+    <p class="kicker">Part 1</p>
+    <h2>The one rule: every transaction is recorded twice</h2>
+    <p>Every movement of money touches at least two accounts. One side is recorded as a <b>debit (Dr)</b> and the other as a <b>credit (Cr)</b>, and the two sides are always equal. This is called double entry. It keeps one equation true at every moment:</p>
+    <div class="equation" role="img" aria-label="Assets equal liabilities plus equity plus income minus expenses"><span>Assets</span><i>=</i><span>Liabilities</span><i>+</i><span>Equity</span><i>+</i><span>(Income − Expenses)</span></div>
+    <p style="margin-top:14px">Debit and credit are not "plus" and "minus". They are simply the <b>left</b> and <b>right</b> columns. Whether a debit increases or decreases an account depends on the account's class:</p>
+    <div class="rule"><span class="dr">Assets and Expenses grow with a Debit.</span> <span class="cr">Liabilities, Equity and Income grow with a Credit.</span></div>
+    <p style="margin-top:14px">This is why the journal screen will not let you submit until <b>Difference</b> shows <code>0.00</code>: an entry whose two sides differ would break the equation.</p>
+  </section>
+
+  <!-- 2 -->
+  <section id="classes">
+    <p class="kicker">Part 2</p>
+    <h2>The five classes of account</h2>
+    <div class="table-wrap"><table>
+      <thead><tr><th>Class</th><th>What it means</th><th>Grows with</th><th>Codes here</th><th>Shown on</th><th>School examples</th></tr></thead>
+      <tbody>
+        <tr><td><b>Assets</b></td><td>What the school owns or is owed</td><td><span class="side dr">Debit</span></td><td class="mono">1000–1999</td><td>Balance Sheet</td><td>Cash on hand, CRDB/NMB bank, M-Pesa float, fees owed by parents, stores, buildings</td></tr>
+        <tr><td><b>Liabilities</b></td><td>What the school owes to others</td><td><span class="side cr">Credit</span></td><td class="mono">2000–2999</td><td>Balance Sheet</td><td>Supplier bills, PAYE and NSSF owed, salaries not yet paid, fees paid in advance</td></tr>
+        <tr><td><b>Equity &amp; Funds</b></td><td>The owners' or founders' stake and accumulated surplus</td><td><span class="side cr">Credit</span></td><td class="mono">3000–3999</td><td>Balance Sheet</td><td>Capital, retained surplus, reserves, opening balances</td></tr>
+        <tr><td><b>Income</b></td><td>Money earned in the period</td><td><span class="side cr">Credit</span></td><td class="mono">4000–4999</td><td>Income Statement</td><td>Tuition, boarding, meals and exam fees, grants, donations</td></tr>
+        <tr><td><b>Expenses</b></td><td>Money used up running the school</td><td><span class="side dr">Debit</span></td><td class="mono">5000–6999</td><td>Income Statement</td><td>Teaching materials (5000s, direct costs), salaries, electricity, repairs (6000s, operating)</td></tr>
+      </tbody>
+    </table></div>
+    <div class="note"><b>Two statements</b>The <b>Balance Sheet</b> is a photo of one day: what the school owns and owes. The <b>Income Statement</b> is a video of a period: what was earned and spent between two dates. At year end, the surplus from the Income Statement moves into Equity.</div>
+  </section>
+
+  <!-- 3 -->
+  <section id="examples">
+    <p class="kicker">Part 3</p>
+    <h2>Worked examples</h2>
+    <p>Real school transactions written as journal lines. In each one, the debits equal the credits.</p>
+    <div class="examples">
+      <article class="example">
+        <h4>1 · Term fees are billed</h4>
+        <p>Fees of TZS 950,000 are invoiced to a Form One student.</p>
+        <table><thead><tr><th>Account</th><th class="num">Dr</th><th class="num">Cr</th></tr></thead><tbody>
+          <tr><td><span class="code">1300</span> Student Fees Receivable</td><td class="num">950,000</td><td class="num"></td></tr>
+          <tr><td><span class="code">4100</span> Tuition Fees</td><td class="num"></td><td class="num">950,000</td></tr>
+        </tbody></table>
+        <p class="why">The parent now owes money (asset up = Dr) and the school has earned it (income up = Cr), even though no cash has moved yet.</p>
+      </article>
+      <article class="example">
+        <h4>2 · The parent pays by M-Pesa</h4>
+        <p>TZS 500,000 arrives in the mobile-money float.</p>
+        <table><thead><tr><th>Account</th><th class="num">Dr</th><th class="num">Cr</th></tr></thead><tbody>
+          <tr><td><span class="code">1250</span> Mobile Money Float</td><td class="num">500,000</td><td class="num"></td></tr>
+          <tr><td><span class="code">1300</span> Student Fees Receivable</td><td class="num"></td><td class="num">500,000</td></tr>
+        </tbody></table>
+        <p class="why">Cash goes up (Dr) and the amount owed goes down (Cr). Income is <b>not</b> touched again: it was earned when billed.</p>
+      </article>
+      <article class="example">
+        <h4>3 · Electricity bill paid from CRDB</h4>
+        <p>A payment voucher of TZS 320,000 is approved and paid.</p>
+        <table><thead><tr><th>Account</th><th class="num">Dr</th><th class="num">Cr</th></tr></thead><tbody>
+          <tr><td><span class="code">6xxx</span> Electricity &amp; Water</td><td class="num">320,000</td><td class="num"></td></tr>
+          <tr><td><span class="code">1200</span> CRDB Bank – Operations</td><td class="num"></td><td class="num">320,000</td></tr>
+        </tbody></table>
+        <p class="why">The expense goes up (Dr) and the bank goes down (Cr).</p>
+      </article>
+      <article class="example">
+        <h4>4 · Stationery bought on credit</h4>
+        <p>A purchase order for TZS 1,200,000 is received; the supplier will be paid later.</p>
+        <table><thead><tr><th>Account</th><th class="num">Dr</th><th class="num">Cr</th></tr></thead><tbody>
+          <tr><td><span class="code">1400</span> Inventory – Stores</td><td class="num">1,200,000</td><td class="num"></td></tr>
+          <tr><td><span class="code">2100</span> Accounts Payable – Suppliers</td><td class="num"></td><td class="num">1,200,000</td></tr>
+        </tbody></table>
+        <p class="why">Stock goes up (Dr) and the school owes the supplier (liability up = Cr). When stock is issued to a class, it moves from Inventory to an expense.</p>
+      </article>
+      <article class="example">
+        <h4>5 · Payroll is approved</h4>
+        <p>Gross pay 2,000,000; PAYE 150,000 and employee NSSF 200,000 are deducted.</p>
+        <table><thead><tr><th>Account</th><th class="num">Dr</th><th class="num">Cr</th></tr></thead><tbody>
+          <tr><td>Salaries expense</td><td class="num">2,000,000</td><td class="num"></td></tr>
+          <tr><td>PAYE payable</td><td class="num"></td><td class="num">150,000</td></tr>
+          <tr><td>NSSF payable</td><td class="num"></td><td class="num">200,000</td></tr>
+          <tr><td>Salaries payable (net)</td><td class="num"></td><td class="num">1,650,000</td></tr>
+        </tbody></table>
+        <p class="why">The full cost is an expense. What is owed to TRA, NSSF and the staff sits in liabilities until it is paid. Employer contributions add a further expense and liability.</p>
+      </article>
+      <article class="example">
+        <h4>6 · Salaries are paid</h4>
+        <p>The net pay leaves the bank.</p>
+        <table><thead><tr><th>Account</th><th class="num">Dr</th><th class="num">Cr</th></tr></thead><tbody>
+          <tr><td>Salaries payable</td><td class="num">1,650,000</td><td class="num"></td></tr>
+          <tr><td><span class="code">1210</span> NMB Bank</td><td class="num"></td><td class="num">1,650,000</td></tr>
+        </tbody></table>
+        <p class="why">The liability is cleared (Dr) and the bank goes down (Cr). The expense was already recorded at approval.</p>
+      </article>
+    </div>
+    <div class="note"><b>For developers</b>The system writes all six of these automatically from Fees, Expenses, Purchase Orders and Payroll. Staff only write journals by hand for corrections, opening balances, transfers between bank accounts and depreciation.</div>
+  </section>
+
+  <!-- 4 -->
+  <section id="form">
+    <p class="kicker">Part 4</p>
+    <h2>The "New ledger account" form, field by field</h2>
+    <p>Open it from <b>Accounting › Chart of Accounts › New account</b>. The numbers match the arrows.</p>
+    <figure class="shot"><img src="img/acc-new.jpg" alt="New ledger account form with every field labelled" width="1280" height="800" loading="lazy"></figure>
+    <div class="fields">
+      <div class="field"><span class="num">1</span><h3>Account code <small>(required)</small></h3><dl>
+        <dt>Means</dt><dd>A short number that gives the account its place. The first digit is its class: 1 assets, 2 liabilities, 3 equity, 4 income, 5 direct costs, 6 operating expenses.</dd>
+        <dt>System</dt><dd class="sys">Must be unique in the school. Letters, digits, dots and dashes only.</dd>
+        <dt>Teach</dt><dd>Leave gaps (1200, 1210, 1220) so new accounts fit in order. Never reuse an old code for something else.</dd></dl></div>
+      <div class="field"><span class="num">2</span><h3>Account name <small>(required)</small></h3><dl>
+        <dt>Means</dt><dd>The words people will see on every report.</dd>
+        <dt>Teach</dt><dd>Be specific: "NMB Bank – Fees Collection", not "Bank 2". If two accounts sound alike, staff will post to the wrong one.</dd></dl></div>
+      <div class="field"><span class="num">3</span><h3>Class <small>(required)</small></h3><dl>
+        <dt>Means</dt><dd>Asset, liability, equity &amp; funds, income or expense. It decides which statement the account appears on.</dd>
+        <dt>System</dt><dd class="sys">Cannot be changed once the account has postings.</dd>
+        <dt>Teach</dt><dd>Ask: "Do we own it, owe it, earn it or spend it?"</dd></dl></div>
+      <div class="field"><span class="num">4</span><h3>Sub-type <small>(optional, but important)</small></h3><dl>
+        <dt>Means</dt><dd>A finer label the software reads to place the account in reports and dropdowns. See the <a href="#subtypes">sub-type table</a>.</dd>
+        <dt>System</dt><dd class="sys">Only cash, bank and mobile-money accounts appear in "Deposit account", "Paid from" and payment dropdowns. Sub-types also split the balance sheet into current and non-current, and the income statement into direct and operating costs.</dd>
+        <dt>Teach</dt><dd>A new bank account that does not appear when collecting fees almost always has the wrong sub-type.</dd></dl></div>
+      <div class="field"><span class="num">5</span><h3>Parent account</h3><dl>
+        <dt>Means</dt><dd>Places the account under a group so reports can subtotal (1000 Assets → 1200 CRDB Bank).</dd>
+        <dt>System</dt><dd class="sys">The parent must be the same class, cannot be the account itself or one of its children, and must have no postings of its own.</dd>
+        <dt>Teach</dt><dd>Parents are folders; money goes into the files inside them.</dd></dl></div>
+      <div class="field"><span class="num">6</span><h3>Normal balance</h3><dl>
+        <dt>Means</dt><dd>The side the account usually sits on: Debit for assets and expenses, Credit for the rest. It is filled in from the class.</dd>
+        <dt>System</dt><dd class="sys">Cannot be changed once the account has postings. Balances in the list are shown on this side.</dd>
+        <dt>Teach</dt><dd>The one common exception is a <b>contra</b> account such as Accumulated Depreciation: an asset that sits on the Credit side because it reduces the value of equipment.</dd></dl></div>
+      <div class="field"><span class="num">7</span><h3>Description</h3><dl>
+        <dt>Means</dt><dd>A note for people.</dd>
+        <dt>Teach</dt><dd>Write when to use it: "Termly NECTA exam fees only" or "Diesel for school buses".</dd></dl></div>
+      <div class="field"><span class="num">8</span><h3>Postable (accepts journal lines)</h3><dl>
+        <dt>Means</dt><dd>Ticked: a real account that money can be posted to. Unticked: a <b>header</b> used only to group and subtotal.</dd>
+        <dt>System</dt><dd class="sys">Headers never appear in posting dropdowns. An account with postings must stay postable.</dd>
+        <dt>Teach</dt><dd>Untick only for group rows such as "6000 Operating Expenses".</dd></dl></div>
+      <div class="field"><span class="num">9</span><h3>Control account (sub-ledger only)</h3><dl>
+        <dt>Means</dt><dd>The balance is the total of detailed records kept elsewhere in the system. Here: <b>1300 Student Fees Receivable</b> (every student's statement) and <b>2100 Accounts Payable – Suppliers</b> (every supplier's balance).</dd>
+        <dt>System</dt><dd class="sys">Manual journals cannot post to a control account, except journals of type <b>Opening</b> or <b>Adjustment</b>.</dd>
+        <dt>Teach</dt><dd>If someone posts to 1300 by hand, the ledger no longer equals the sum of the students' statements, and nobody can reconcile them. Fix fees in Fees, and supplier bills in Purchase Orders.</dd></dl></div>
+      <div class="field"><span class="num">10</span><h3>Active</h3><dl>
+        <dt>Means</dt><dd>Untick to retire an account.</dd>
+        <dt>System</dt><dd class="sys">Retired accounts keep their history and stay in reports but disappear from dropdowns. Accounts are never deleted once used.</dd></dl></div>
+    </div>
+  </section>
+
+  <!-- 5 -->
+  <section id="subtypes">
+    <p class="kicker">Part 5</p>
+    <h2>Sub-types and what the software does with them</h2>
+    <div class="table-wrap"><table>
+      <thead><tr><th>Class</th><th>Sub-type</th><th>Effect in the system</th></tr></thead>
+      <tbody>
+        <tr><td rowspan="5">Asset</td><td><code>cash</code> · <code>bank</code> · <code>mobile_money</code></td><td>Offered as deposit / paid-from accounts for fees, vouchers, payroll and levies. Counted as cash in the <b>Cash Flow</b> statement. Current asset.</td></tr>
+        <tr><td><code>receivable</code> · <code>current_asset</code> · <code>inventory</code> · <code>prepaid</code></td><td>Balance Sheet → <b>current assets</b> (turn into cash within a year).</td></tr>
+        <tr><td><code>fixed_asset</code> · <code>non_current_asset</code> · <code>investment</code></td><td>Balance Sheet → <b>non-current assets</b>. Shown as investing activity in Cash Flow.</td></tr>
+        <tr><td><code>contra_asset</code></td><td>Reduces another asset (Accumulated Depreciation). Normal balance Credit.</td></tr>
+        <tr><td><code>header</code></td><td>Grouping row only.</td></tr>
+        <tr><td rowspan="2">Liability</td><td><code>payable</code> · <code>current_liability</code> · <code>statutory</code> · <code>salaries_payable</code> · <code>deferred_income</code></td><td>Balance Sheet → <b>current liabilities</b>. Approved net pay waits in <code>salaries_payable</code> until it is paid.</td></tr>
+        <tr><td><code>long_term_liability</code></td><td>Balance Sheet → <b>non-current liabilities</b> (loans repaid over years).</td></tr>
+        <tr><td>Equity</td><td><code>capital</code> · <code>retained_earnings</code> · <code>reserve</code> · <code>opening_balance</code></td><td>Balance Sheet → equity &amp; funds.</td></tr>
+        <tr><td>Income</td><td><code>fee_income</code> · <code>sales</code> · <code>other_income</code></td><td>Income Statement → income. Fee categories point to these accounts.</td></tr>
+        <tr><td rowspan="2">Expense</td><td><code>direct_cost</code> · <code>cost_of_sales</code></td><td>Income Statement → <b>direct costs</b>: the cost of delivering teaching (exam papers, teaching materials, meals).</td></tr>
+        <tr><td><code>payroll_expense</code> · <code>operating_expense</code> · <code>other_expense</code></td><td>Income Statement → <b>operating expenses</b>.</td></tr>
+      </tbody>
+    </table></div>
+  </section>
+
+  <!-- 6 -->
+  <section id="list">
+    <p class="kicker">Part 6</p>
+    <h2>Reading the chart of accounts list</h2>
+    <figure class="shot"><img src="img/acc-columns.jpg" alt="Chart of accounts columns labelled" width="1280" height="800" loading="lazy"></figure>
+    <ol class="key">
+      <li><span class="num">1</span><span><b>Sub-type</b>: how reports treat the account.</span></li>
+      <li><span class="num">2</span><span><b>Normal</b>: the account's usual side, Dr or Cr.</span></li>
+      <li><span class="num">3</span><span><b>Flags</b>: <b>Header</b> (group row), <b>Postable</b> (real account) or <b>Control</b> (sub-ledger).</span></li>
+      <li><span class="num">4</span><span><b>Balance</b>, shown on the normal side as a positive number. <b>Red in brackets means the balance has crossed to the wrong side.</b></span></li>
+      <li><span class="num">5</span><span>A control account. Post to it only through Fees or Purchase Orders.</span></li>
+    </ol>
+    <h3>The cards above the list</h3>
+    <ul>
+      <li><b>Accounts, Postable, Control accounts, Inactive</b> count the accounts by type. Accounts minus postable = the number of header rows.</li>
+      <li><b>Assets, Liabilities, Equity &amp; Funds, Income, Expenses</b> are live totals from <b>posted</b> journals only. Drafts and journals awaiting approval are not included.</li>
+      <li>Sanity check: Assets should equal Liabilities + Equity + (Income − Expenses).</li>
+    </ul>
+    <h3>When a balance shows red in brackets</h3>
+    <p>An asset with a credit balance, or a liability with a debit balance, almost always means something was posted to the wrong account. The usual cases in a school:</p>
+    <ul>
+      <li><b>A bank account in red</b>: more has been paid out of it than ever went in. Usually receipts were deposited to a different account (another bank or the M-Pesa float) while payments came out of this one. Check where fees were deposited. If the money really moved between accounts, record a <b>transfer journal</b>: Dr the bank that received, Cr the bank it came from.</li>
+      <li><b>Staff Advances &amp; Loans in red</b>: more has been recovered from salaries than was advanced. Look for a recovery deduction with no matching advance.</li>
+      <li><b>Student Fees Receivable in red</b>: parents have paid more than was invoiced (prepaid fees). Check that the term's invoices were generated.</li>
+    </ul>
+    <p>Investigate red balances the same week. They only get harder to trace.</p>
+  </section>
+
+  <!-- 7 -->
+  <section id="auto">
+    <p class="kicker">Part 7</p>
+    <h2>How each module posts to the ledger</h2>
+    <p>This is the bridge between the software and the books. Every row is posted automatically when the user does the action.</p>
+    <div class="table-wrap"><table>
+      <thead><tr><th>User does this</th><th>Debit</th><th>Credit</th><th>Accounts it depends on</th></tr></thead>
+      <tbody>
+        <tr><td>Generate fee invoices</td><td>1300 Student Fees Receivable</td><td>Income account of each fee category</td><td>Fee categories → income accounts</td></tr>
+        <tr><td>Collect a fee payment</td><td>Chosen cash / bank / M-Pesa account</td><td>1300 Student Fees Receivable</td><td>Sub-types <code>cash</code>, <code>bank</code>, <code>mobile_money</code></td></tr>
+        <tr><td>Void a receipt</td><td colspan="2">The exact reverse of the original entry (nothing is deleted)</td><td>–</td></tr>
+        <tr><td>Approve payroll</td><td>Salary and employer-contribution expenses</td><td>PAYE, NSSF and other payables; net pay to Salaries Payable</td><td>Salary components' GL accounts, statutory rules</td></tr>
+        <tr><td>Pay salaries</td><td>Salaries Payable</td><td>Bank chosen in "Paid from"</td><td>Bank sub-types</td></tr>
+        <tr><td>Approve &amp; pay an expense voucher</td><td>The voucher's expense account</td><td>The bank or cash account paid from</td><td>Expense accounts</td></tr>
+        <tr><td>Receive a purchase order</td><td>Inventory – Stores</td><td>2100 Accounts Payable – Suppliers</td><td>Inventory and payable accounts</td></tr>
+        <tr><td>Record a levy payment (Compliance)</td><td>The levy's expense account</td><td>Cash / bank paid from</td><td>Each obligation's expense account</td></tr>
+        <tr><td>Manual journal (approved by a second user)</td><td colspan="2">Whatever lines were entered; must balance</td><td>Postable, active accounts only</td></tr>
+      </tbody>
+    </table></div>
+    <div class="note"><b>The three things to get right at setup</b>1. Every fee category points to the correct income account. 2. Every bank, cash and M-Pesa account has the right sub-type. 3. Payroll's payable accounts and each salary component's GL account exist. After that, the books fill themselves.</div>
+  </section>
+
+  <!-- 8 -->
+  <section id="setup">
+    <p class="kicker">Part 8</p>
+    <h2>Setting up a new school's accounts</h2>
+    <p>New schools start with a ready Tanzanian school chart of accounts. Adjust it before any money is recorded.</p>
+    <ol class="steps">
+      <li>Rename the bank accounts to the school's real banks and add one account per real bank account or M-Pesa till. Give each the sub-type <code>bank</code>, <code>cash</code> or <code>mobile_money</code>.</li>
+      <li>Check the income accounts (4000s) match how the school wants to see fees: tuition, boarding, meals, exams, transport. Then link each <b>fee category</b> to its income account (<i>Fees &amp; Billing › Fee Categories</i>).</li>
+      <li>Add expense accounts the school actually uses. Mark teaching costs as <code>direct_cost</code> and running costs as <code>operating_expense</code>.</li>
+      <li>Check payroll: each <b>salary component</b> points to a GL account, and the statutory rules point to the PAYE, NSSF, WCF, SDL and HESLB payable accounts.</li>
+      <li>Open the fiscal year (<i>Accounting › Fiscal Years</i>).</li>
+      <li>Enter opening balances with one <b>Opening</b> journal dated the first day of the year: bank and cash balances, fees owed, supplier balances, fixed assets, and the difference to Opening Balance Equity. A second user approves it.</li>
+      <li>Run the <b>Trial Balance</b>. Debits must equal credits, and the bank balances should match the bank statements.</li>
+    </ol>
+  </section>
+
+  <!-- 9 -->
+  <section id="trouble">
+    <p class="kicker">Part 9</p>
+    <h2>Rules to drill, and what to do when the system says no</h2>
+    <ol class="steps">
+      <li><b>Debits must equal credits.</b> The system will not post an unbalanced entry.</li>
+      <li><b>Never post to headers or control accounts by hand.</b> Use Fees, Payroll or Purchase Orders.</li>
+      <li><b>Posted is permanent.</b> To fix a mistake, <b>reverse</b> the journal and post a correct one. The history stays visible to auditors.</li>
+      <li><b>Two people for every manual entry.</b> One prepares, a different user approves.</li>
+      <li><b>Closed years are locked.</b> Nothing can be posted into a closed fiscal year.</li>
+      <li><b>Red brackets get investigated the same week.</b></li>
+      <li><b>Pick the most specific account.</b> A growing "Other expenses" hides where money goes.</li>
+    </ol>
+    <div class="table-wrap"><table>
+      <thead><tr><th>What you see</th><th>Why</th><th>What to do</th></tr></thead>
+      <tbody>
+        <tr><td>A new bank account is missing from "Deposit account" when collecting fees</td><td>Its sub-type is not <code>bank</code>, <code>cash</code> or <code>mobile_money</code>, or it is inactive or not postable</td><td>Edit the account: set the sub-type, tick Postable and Active</td></tr>
+        <tr><td>"… is a control account updated through its sub-ledger"</td><td>A manual journal line uses 1300 or 2100</td><td>Correct it in Fees or Purchase Orders. For opening balances use an <b>Opening</b> journal</td></tr>
+        <tr><td>"This account has postings; its class and normal balance cannot be changed"</td><td>Changing them would rewrite past statements</td><td>Create a new account with the right class, move the balance with a journal, then deactivate the old one</td></tr>
+        <tr><td>"The chosen parent has postings; choose a header"</td><td>Money was posted directly to the would-be parent</td><td>Choose a header as the parent, or create a new header</td></tr>
+        <tr><td>"The journal does not balance"</td><td>Total debits ≠ total credits</td><td>Add the missing line. The <b>=</b> button fills the balancing amount</td></tr>
+        <tr><td>"This account has postings and must remain postable"</td><td>You tried to turn a used account into a header</td><td>Leave it postable; create a separate header above it</td></tr>
+        <tr><td>Cannot approve your own journal or voucher</td><td>Maker–checker control</td><td>Ask another user with accounting rights to approve</td></tr>
+        <tr><td>Cannot post into last year</td><td>The fiscal year is closed</td><td>Post the correction in the current year with a clear narration</td></tr>
+      </tbody>
+    </table></div>
+  </section>
+
+  <!-- 10 -->
+  <section id="glossary">
+    <p class="kicker">Part 10</p>
+    <h2>Glossary</h2>
+    <dl class="glossary">
+      <div><dt>Debit (Dr)</dt><dd>The left column of an entry. Increases assets and expenses.</dd></div>
+      <div><dt>Credit (Cr)</dt><dd>The right column. Increases liabilities, equity and income.</dd></div>
+      <div><dt>Journal</dt><dd>One balanced entry with two or more lines. Numbered JV-…</dd></div>
+      <div><dt>Ledger</dt><dd>The running list of every posting to one account, with its balance.</dd></div>
+      <div><dt>Chart of accounts</dt><dd>The full, numbered list of accounts the school uses.</dd></div>
+      <div><dt>Trial balance</dt><dd>Every account's balance on one page. Total debits must equal total credits.</dd></div>
+      <div><dt>Receivable</dt><dd>Money owed <i>to</i> the school, such as unpaid fees.</dd></div>
+      <div><dt>Payable</dt><dd>Money the school owes, such as supplier bills or PAYE.</dd></div>
+      <div><dt>Control account</dt><dd>A ledger account whose balance is the total of a detailed sub-ledger.</dd></div>
+      <div><dt>Sub-ledger</dt><dd>The detail behind a control account: student statements, supplier balances.</dd></div>
+      <div><dt>Header account</dt><dd>A non-postable grouping row that subtotals its children.</dd></div>
+      <div><dt>Contra account</dt><dd>An account that reduces another, so it sits on the opposite side (Accumulated Depreciation).</dd></div>
+      <div><dt>Accrual</dt><dd>Recording income when earned and expenses when incurred, not when cash moves. Billing fees before they are paid is an accrual.</dd></div>
+      <div><dt>Reversal</dt><dd>A new journal that exactly cancels an earlier one. Used instead of deleting.</dd></div>
+      <div><dt>Maker–checker</dt><dd>One person prepares, a different person approves.</dd></div>
+      <div><dt>Fiscal year close</dt><dd>Locking a finished year so its figures can no longer change.</dd></div>
+    </dl>
+  </section>
+
+  <!-- 11 -->
+  <section id="quiz">
+    <p class="kicker">Part 11</p>
+    <h2>Self-check for training sessions</h2>
+    <p>Ask the group first, then open the answer.</p>
+    <div class="quiz">
+      <details><summary>1. A parent pays TZS 300,000 cash at the bursar's office. Which account is debited?</summary><p><b>Cash on Hand (1100).</b> Cash is an asset and it went up. The credit goes to 1300 Student Fees Receivable, because the parent now owes less.</p></details>
+      <details><summary>2. Why can't the bursar type a journal that debits 1300 Student Fees Receivable?</summary><p>1300 is a <b>control account</b>. Its balance must always equal the sum of the student statements, which only the Fees module maintains. Billing is done by generating or issuing invoices.</p></details>
+      <details><summary>3. The school opens a new Equity Bank account. What three settings make it usable for fee collection?</summary><p>Class <b>Asset</b>, sub-type <b>bank</b>, and <b>Postable</b> and <b>Active</b> ticked.</p></details>
+      <details><summary>4. A journal was posted to the wrong expense account last week. How do we fix it?</summary><p><b>Reverse</b> the journal and post a correct one (or post a correcting journal moving the amount). Posted journals are never edited or deleted.</p></details>
+      <details><summary>5. CRDB Bank shows a red bracketed balance. What does it mean and where do we look first?</summary><p>The bank account is on the credit side: more was paid out than recorded coming in. Check whether fee receipts were deposited to a different account, and compare with the CRDB bank statement.</p></details>
+      <details><summary>6. Is Accumulated Depreciation an asset or a liability, and what is its normal balance?</summary><p>An <b>asset</b> (a contra-asset) with a <b>Credit</b> normal balance. It reduces the value of equipment and vehicles.</p></details>
+    </div>
+  </section>
+
+  <footer>
+    <p>Accounts primer · Mzenzi School Management · October 2026. Account codes match the default chart created for new schools; your school may have renamed or added accounts. Figures in the examples are illustrative.</p>
+    <p style="margin-top:6px"><a href="index.html#accounting">← Back to the user guide</a></p>
+  </footer>
+</div>
+</body>
+</html>

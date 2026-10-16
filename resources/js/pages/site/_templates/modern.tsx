@@ -5,7 +5,7 @@ import { cn } from '@/lib/utils';
 import { ContactDetails, EventsNoticesSection, FaqSection, GallerySection, LeaderMessage, MissionVision, NewsSection, statItems, StatNumber, TestimonialsSection } from '../_components/blocks';
 import type { HomeData, SiteChrome } from '../_components/types';
 import { Crest, HighlightIcon, Reveal, SiteImage, SocialLinks, telHref } from '../_components/ui';
-import { BrandingCredit, isActive, MenuButton, MobileNav, quickLinks, useCurrentPath, useMenu, useScrolled } from './shell';
+import { BrandingCredit, isActive, MenuButton, MobileNav, quickLinks, useCurrentPath, useMenu, useScrolled, NavMore, splitNav } from './shell';
 import { Container, Section, SectionHeading, themes } from './theme';
 
 const t = themes.modern;
@@ -33,7 +33,7 @@ export function ModernLayout({ site, children }: { site: SiteChrome; children: R
                     </Link>
                     <nav aria-label="Main" className="hidden lg:block">
                         <ul className="flex items-center gap-1 rounded-full bg-slate-100/80 p-1">
-                            {site.nav.map((item) => {
+                            {splitNav(site.nav).main.map((item) => {
                                 const active = isActive(item, path, site.base);
                                 return (
                                     <li key={item.href}>
@@ -50,6 +50,7 @@ export function ModernLayout({ site, children }: { site: SiteChrome; children: R
                                     </li>
                                 );
                             })}
+                            <NavMore items={splitNav(site.nav).more} triggerClass={'block rounded-full px-3.5 py-2 text-sm font-bold whitespace-nowrap text-slate-600 transition hover:text-slate-900 xl:px-4'} />
                         </ul>
                     </nav>
                     <div className="flex items-center gap-2">

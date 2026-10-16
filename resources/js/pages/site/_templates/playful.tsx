@@ -5,7 +5,7 @@ import { cn } from '@/lib/utils';
 import { ContactDetails, EventsNoticesSection, FaqSection, GallerySection, LeaderMessage, MissionVision, NewsSection, statItems, StatNumber, TestimonialsSection } from '../_components/blocks';
 import type { HomeData, SiteChrome } from '../_components/types';
 import { Crest, HighlightIcon, Reveal, SiteImage, SocialLinks } from '../_components/ui';
-import { BrandingCredit, isActive, MenuButton, MobileNav, quickLinks, useCurrentPath, useMenu } from './shell';
+import { BrandingCredit, isActive, MenuButton, MobileNav, quickLinks, useCurrentPath, useMenu, NavMore, splitNav } from './shell';
 import { Container, Section, SectionHeading, themes } from './theme';
 
 const t = themes.playful;
@@ -64,7 +64,7 @@ export function PlayfulLayout({ site, children }: { site: SiteChrome; children: 
                     </Link>
                     <nav aria-label="Main" className="hidden lg:block">
                         <ul className="flex items-center gap-1">
-                            {site.nav.map((item, i) => {
+                            {splitNav(site.nav).main.map((item, i) => {
                                 const active = isActive(item, path, site.base);
                                 return (
                                     <li key={item.href}>
@@ -82,6 +82,7 @@ export function PlayfulLayout({ site, children }: { site: SiteChrome; children: 
                                     </li>
                                 );
                             })}
+                            <NavMore items={splitNav(site.nav).more} triggerClass={'block rounded-full px-3 py-2 text-sm font-black whitespace-nowrap text-slate-700 transition hover:bg-slate-100 xl:px-3.5'} />
                         </ul>
                     </nav>
                     <div className="flex items-center gap-1.5">

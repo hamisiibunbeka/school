@@ -4,6 +4,10 @@ namespace App\Providers;
 
 use App\Models\User;
 use App\Services\AuditLogger;
+use App\Services\Messaging\Beem\BeemClient;
+use App\Services\Messaging\Beem\BeemSmsGateway;
+use App\Services\Messaging\LogSmsGateway;
+use App\Services\Messaging\SmsGateway;
 use App\Support\Tenancy;
 use Carbon\CarbonImmutable;
 use Illuminate\Auth\Events\Failed;
@@ -21,6 +25,11 @@ class AppServiceProvider extends ServiceProvider
     public function register(): void
     {
         $this->app->scoped(Tenancy::class);
+
+        // Outbound SMS provider: SMS_DRIVER=beem sends through Beem Africa, anything else only logs.
+        $this->app->bind(SmsGateway::class, fn () => config('services.sms.driver') === 'beem'
+            ? new BeemSmsGateway(BeemClient::fromConfig())
+            : new LogSmsGateway);
     }
 
     public function boot(): void

@@ -24,14 +24,14 @@ class MessageService
         return $this->gateway;
     }
 
-    /** SMS credits used by a message (one credit per 160 characters). Email uses no SMS credits. */
+    /** SMS credits used by a message: 160 GSM characters for one SMS, 153 per part when longer. Email uses no SMS credits. */
     public static function credits(string $message, string $channel = 'sms'): int
     {
         if ($channel !== 'sms') {
             return 0;
         }
 
-        return max(1, (int) ceil(mb_strlen($message) / self::SMS_SEGMENT));
+        return GsmText::segments($message);
     }
 
     /** Normalise a Tanzanian / international number to +XXXXXXXXXXXX, or null when invalid. */

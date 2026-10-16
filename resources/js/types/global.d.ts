@@ -12,6 +12,7 @@ declare module '@inertiajs/core' {
         flashDataType: {
             toast?: { type: 'success' | 'error' | 'info' | 'warning'; message: string };
             site_status?: string;
+            pocket_money_receipt?: number;
         };
     }
 }

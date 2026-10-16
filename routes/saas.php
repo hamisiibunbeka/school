@@ -33,6 +33,8 @@ Route::middleware(EnsureSuperAdmin::class)->prefix('saas')->name('saas.')->group
 
     Route::get('settings', [SettingsController::class, 'index'])->name('settings.index');
     Route::put('settings', [SettingsController::class, 'update'])->name('settings.update');
+    Route::get('settings/sms-status', [SettingsController::class, 'smsStatus'])->name('settings.sms-status');
+    Route::post('settings/sms-test', [SettingsController::class, 'smsTest'])->middleware('throttle:6,1')->name('settings.sms-test');
 
     Route::get('tickets', [TicketController::class, 'index'])->name('tickets.index');
     Route::put('tickets/{ticket}', [TicketController::class, 'update'])->name('tickets.update');

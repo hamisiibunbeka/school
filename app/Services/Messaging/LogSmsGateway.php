@@ -18,16 +18,26 @@ class LogSmsGateway implements SmsGateway
 
     public function send(string $channel, string $recipient, string $message, array $meta = []): MessageLog
     {
-        return MessageLog::create([
+        return $this->deliver(MessageLog::create([
             'channel' => $channel,
             'recipient' => $recipient,
             'recipient_name' => $meta['recipient_name'] ?? null,
             'subject' => $meta['subject'] ?? null,
             'message' => $message,
-            'status' => 'sent',
-            'provider_reference' => 'LOG-'.strtoupper(Str::random(12)),
+            'status' => 'queued',
             'credits' => $meta['credits'] ?? 1,
             'sent_by' => $meta['sent_by'] ?? auth()->id(),
-        ]);
+        ]));
+    }
+
+    public function deliver(MessageLog $log): MessageLog
+    {
+        $log->forceFill([
+            'status' => 'sent',
+            'provider' => $this->name(),
+            'provider_reference' => 'LOG-'.strtoupper(Str::random(12)),
+        ])->save();
+
+        return $log;
     }
 }

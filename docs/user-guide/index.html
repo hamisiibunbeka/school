@@ -1,0 +1,1442 @@
+<title>Mzenzi School User Guide</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&family=JetBrains+Mono:wght@500&display=swap">
+<style>
+/* Layout: a printed-manual feel — fixed contents rail on the left, chapters on the right;
+   text held to a reading measure while screenshots run the full chapter width. */
+:root {
+  --paper: #f3f5fb;      /* page ground, faint blue bias like the app */
+  --surface: #ffffff;    /* figures, notes, cards */
+  --ink: #18203a;        /* text */
+  --muted: #5a6382;      /* secondary text */
+  --line: #dde2ee;       /* rules and borders */
+  --accent: #4361ee;     /* the app's primary blue */
+  --callout: #e5397b;    /* the arrow colour used on every screenshot */
+  --ok: #0d9f5a;
+  --warn: #b7791f;
+  --accent-soft: #e7ebfd;
+  --callout-soft: #fde8f0;
+  --font-body: "Nunito", "Segoe UI", system-ui, -apple-system, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, "Cascadia Mono", Consolas, monospace;
+  --rail: 272px;
+  --measure: 70ch;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+    --paper: #0b1120; --surface: #121a2c; --ink: #e4e8f4; --muted: #9aa5c4; --line: #26324e;
+    --accent: #8197ff; --callout: #ff5c97; --ok: #3ccf8a; --warn: #e8b453;
+    --accent-soft: #1b2648; --callout-soft: #3a1628;
+  }
+}
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --paper: #0b1120; --surface: #121a2c; --ink: #e4e8f4; --muted: #9aa5c4; --line: #26324e;
+  --accent: #8197ff; --callout: #ff5c97; --ok: #3ccf8a; --warn: #e8b453;
+  --accent-soft: #1b2648; --callout-soft: #3a1628;
+}
+
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; scroll-padding-top: 16px; }
+@media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
+body { margin: 0; background: var(--paper); color: var(--ink); font: 400 16px/1.65 var(--font-body); }
+a { color: var(--accent); }
+a:focus-visible, button:focus-visible, input:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; border-radius: 4px; }
+img { max-width: 100%; }
+h1, h2, h3, h4 { text-wrap: balance; line-height: 1.2; margin: 0; }
+p { margin: 0; }
+code, .mono { font-family: var(--font-mono); font-size: .86em; }
+
+/* ---------- shell ---------- */
+.shell { display: grid; grid-template-columns: var(--rail) minmax(0, 1fr); min-height: 100vh; }
+.rail { position: sticky; top: 0; height: 100vh; overflow-y: auto; border-right: 1px solid var(--line); background: var(--surface); padding: 22px 18px 40px; }
+.brand { display: flex; align-items: center; gap: 10px; margin-bottom: 18px; }
+.brand-mark { width: 36px; height: 36px; border-radius: 10px; background: var(--accent); color: #fff; display: grid; place-items: center; font-weight: 900; font-size: 15px; }
+.brand b { display: block; font-weight: 900; font-size: 15px; letter-spacing: .01em; }
+.brand span { font-size: 12px; color: var(--muted); }
+.toc-filter { width: 100%; font: inherit; font-size: 14px; padding: 8px 12px; border-radius: 8px; border: 1px solid var(--line); background: var(--paper); color: var(--ink); margin-bottom: 14px; }
+.toc-group { margin: 14px 0 4px; font-size: 11px; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; color: var(--muted); }
+.toc a { display: flex; gap: 8px; align-items: baseline; padding: 5px 8px; border-radius: 7px; color: var(--ink); text-decoration: none; font-size: 14.5px; font-weight: 600; }
+.toc a:hover { background: var(--accent-soft); color: var(--accent); }
+.toc a.active { background: var(--accent); color: #fff; }
+.toc a .n { font-family: var(--font-mono); font-size: 11px; color: var(--muted); min-width: 18px; }
+.toc a.active .n { color: #dfe5ff; }
+.toc a[hidden] { display: none; }
+
+main { padding: 0 clamp(16px, 4vw, 56px) 80px; min-width: 0; }
+.mobile-toc { display: none; }
+
+/* ---------- cover ---------- */
+.cover { padding-block: 56px 40px; border-bottom: 1px solid var(--line); max-width: 1120px; }
+.cover .kicker { color: var(--accent); }
+.cover h1 { font-size: clamp(34px, 5vw, 52px); font-weight: 900; letter-spacing: -.02em; margin-top: 10px; }
+.cover .lede { margin-top: 16px; max-width: var(--measure); font-size: 18px; color: var(--muted); }
+.edition { margin-top: 18px; display: flex; flex-wrap: wrap; gap: 8px 18px; font-size: 13.5px; color: var(--muted); }
+.edition b { color: var(--ink); }
+.roles { margin-top: 32px; display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 12px; }
+.role { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px; }
+.role h3 { font-size: 15.5px; font-weight: 800; }
+.role p { font-size: 13.5px; color: var(--muted); margin-top: 4px; }
+.role .links { margin-top: 8px; display: flex; flex-wrap: wrap; gap: 4px 10px; font-size: 13.5px; font-weight: 700; }
+.role .links a { text-decoration: none; }
+.role .links a:hover { text-decoration: underline; }
+
+/* ---------- chapters ---------- */
+.chapter { padding-block: 56px 8px; border-bottom: 1px solid var(--line); max-width: 1120px; }
+.kicker { font-size: 12px; font-weight: 800; letter-spacing: .14em; text-transform: uppercase; color: var(--muted); }
+.chapter > h2 { font-size: clamp(28px, 3.4vw, 38px); font-weight: 900; letter-spacing: -.015em; margin-top: 6px; }
+.chapter .lede { margin-top: 12px; max-width: var(--measure); font-size: 17.5px; color: var(--muted); }
+.facts { margin-top: 18px; display: grid; grid-template-columns: max-content 1fr; gap: 6px 16px; font-size: 14.5px; max-width: var(--measure); }
+.facts dt { font-weight: 800; color: var(--muted); font-size: 12px; letter-spacing: .1em; text-transform: uppercase; padding-top: 3px; }
+.facts dd { margin: 0; }
+.path { font-family: var(--font-mono); font-size: 13px; background: var(--accent-soft); color: var(--accent); padding: 2px 8px; border-radius: 6px; white-space: nowrap; display: inline-block; margin: 1px 4px 1px 0; }
+.chip { display: inline-block; font-size: 12.5px; font-weight: 700; padding: 1px 9px; border: 1px solid var(--line); border-radius: 999px; margin: 1px 4px 1px 0; background: var(--surface); }
+.chip.manage { border-color: var(--accent); color: var(--accent); }
+
+.chapter h3 { font-size: 21px; font-weight: 800; margin-top: 40px; scroll-margin-top: 16px; }
+.chapter h4 { font-size: 16.5px; font-weight: 800; margin-top: 22px; }
+.chapter p, .chapter ul, .chapter ol { max-width: var(--measure); }
+.chapter h3 + p, .chapter h4 + p, .chapter p + p { margin-top: 10px; }
+.chapter ul, .chapter ol { margin: 10px 0 0; padding-left: 22px; }
+.chapter li + li { margin-top: 5px; }
+
+ol.steps { list-style: none; padding: 0; counter-reset: s; }
+ol.steps > li { counter-increment: s; position: relative; padding-left: 40px; min-height: 28px; }
+ol.steps > li::before { content: counter(s); position: absolute; left: 0; top: 0; width: 27px; height: 27px; border-radius: 8px; background: var(--accent-soft); color: var(--accent); font-weight: 900; font-size: 14px; display: grid; place-items: center; }
+ol.steps > li + li { margin-top: 10px; }
+
+figure.shot { margin: 22px 0 0; }
+figure.shot a { display: block; border-radius: 12px; overflow: hidden; border: 1px solid var(--line); box-shadow: 0 1px 2px rgba(20, 30, 60, .06), 0 14px 34px -18px rgba(20, 30, 60, .35); background: var(--surface); }
+figure.shot img { display: block; width: 100%; height: auto; aspect-ratio: 16 / 10; }
+figure.shot figcaption { margin-top: 8px; font-size: 13.5px; color: var(--muted); max-width: var(--measure); }
+figure.shot figcaption b { color: var(--ink); }
+
+ol.key { list-style: none; padding: 0; margin-top: 12px; display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 8px 22px; max-width: none; }
+ol.key li { display: flex; gap: 10px; align-items: flex-start; font-size: 14.5px; margin: 0; }
+ol.key li + li { margin-top: 0; }
+ol.key .num { flex: none; width: 23px; height: 23px; border-radius: 50%; background: var(--callout); color: #fff; font-weight: 900; font-size: 12.5px; display: grid; place-items: center; margin-top: 1px; }
+
+.note { margin-top: 18px; max-width: var(--measure); border-radius: 10px; padding: 12px 16px; background: var(--surface); border: 1px solid var(--line); font-size: 15px; }
+.note b:first-child { display: block; font-size: 12px; letter-spacing: .1em; text-transform: uppercase; color: var(--accent); margin-bottom: 2px; }
+.note.warn b:first-child { color: var(--warn); }
+.note.warn { border-color: color-mix(in srgb, var(--warn) 45%, var(--line)); }
+
+.flow { margin-top: 14px; display: flex; flex-wrap: wrap; align-items: center; gap: 6px; font-size: 13.5px; font-weight: 700; }
+.flow span { padding: 3px 11px; border-radius: 999px; background: var(--surface); border: 1px solid var(--line); }
+.flow span.end { border-color: var(--ok); color: var(--ok); }
+.flow span.stop { border-color: var(--callout); color: var(--callout); }
+.flow i { font-style: normal; color: var(--muted); }
+
+.grid2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 18px 26px; }
+.grid2 figure.shot { margin-top: 18px; }
+
+.table-wrap { overflow-x: auto; margin-top: 16px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); }
+table { border-collapse: collapse; width: 100%; font-size: 14px; }
+th, td { text-align: left; padding: 8px 12px; border-bottom: 1px solid var(--line); vertical-align: top; }
+th { font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); background: var(--paper); position: sticky; top: 0; }
+tbody tr:last-child td { border-bottom: 0; }
+td.c { text-align: center; font-weight: 800; }
+td.c.m { color: var(--accent); }
+td.c.v { color: var(--muted); }
+
+.back-top { margin-top: 26px; font-size: 13px; font-weight: 700; }
+footer.colophon { padding-block: 40px; color: var(--muted); font-size: 13.5px; max-width: var(--measure); }
+
+@media (max-width: 960px) {
+  .shell { grid-template-columns: 1fr; }
+  .rail { display: none; }
+  .mobile-toc { display: block; margin-top: 24px; }
+  .mobile-toc select { width: 100%; font: inherit; padding: 10px 12px; border-radius: 10px; border: 1px solid var(--line); background: var(--surface); color: var(--ink); }
+}
+@media print {
+  .rail, .mobile-toc, .back-top { display: none !important; }
+  .shell { display: block; }
+  body { background: #fff; color: #000; font-size: 11pt; }
+  .chapter { break-before: page; border: 0; }
+  figure.shot { break-inside: avoid; }
+  figure.shot a { box-shadow: none; }
+}
+</style>
+
+<div class="shell">
+<nav class="rail" aria-label="Contents">
+  <div class="brand"><div class="brand-mark">MS</div><div><b>User Guide</b><span>Mzenzi School Management</span></div></div>
+  <label for="toc-filter" class="toc-group" style="display:block;margin-top:0">Find a topic</label>
+  <input id="toc-filter" class="toc-filter" type="search" placeholder="e.g. receipt, PAYE, timetable" autocomplete="off">
+  <div class="toc" id="toc">
+    <div class="toc-group">Start here</div>
+    <a href="#start" data-k="login sign in register password two-factor 2fa theme search notifications import excel export date picker dropdown install app pwa profile"><span class="n">1</span>Getting started</a>
+    <a href="#dashboard" data-k="home kpi alerts charts"><span class="n">2</span>Dashboard</a>
+    <div class="toc-group">Student life</div>
+    <a href="#admissions" data-k="application online interview accept enrol letter"><span class="n">3</span>Admissions</a>
+    <a href="#students" data-k="student guardian parent id card promotion transfer"><span class="n">4</span>Students &amp; Guardians</a>
+    <a href="#academics" data-k="year term class stream subject teacher allocation timetable lesson plan homework calendar"><span class="n">5</span>Academics</a>
+    <a href="#attendance" data-k="register absent late staff discipline incident award"><span class="n">6</span>Attendance &amp; Discipline</a>
+    <a href="#exams" data-k="exam marks results report card grading division moderation"><span class="n">7</span>Examinations</a>
+    <div class="toc-group">Finance</div>
+    <a href="#fees" data-k="fees invoice receipt payment structure discount scholarship arrears statement"><span class="n">8</span>Fees &amp; Billing</a>
+    <a href="#accounting" data-k="ledger journal expense voucher trial balance income statement balance sheet cash flow budget levy compliance fiscal"><span class="n">9</span>Accounting</a>
+    <div class="toc-group">People &amp; operations</div>
+    <a href="#hr" data-k="employee staff department leave"><span class="n">10</span>Human Resources</a>
+    <a href="#payroll" data-k="payroll payslip paye nssf wcf sdl heslb salary components bank file"><span class="n">11</span>Payroll</a>
+    <a href="#boarding" data-k="dormitory bed roll call exeat leave pass visitor"><span class="n">12</span>Boarding</a>
+    <a href="#transport" data-k="bus vehicle route stop manifest fuel"><span class="n">13</span>Transport</a>
+    <a href="#inventory" data-k="stock store item purchase order supplier"><span class="n">14</span>Inventory</a>
+    <a href="#library" data-k="book loan issue return"><span class="n">15</span>Library</a>
+    <a href="#health" data-k="clinic sick bay visit"><span class="n">16</span>Health &amp; Welfare</a>
+    <div class="toc-group">Engagement</div>
+    <a href="#communication" data-k="announcement sms email template"><span class="n">17</span>Communication</a>
+    <a href="#website" data-k="website cms template pages news events gallery enquiries online admission"><span class="n">18</span>School Website</a>
+    <a href="#reports" data-k="reports export csv print favourites"><span class="n">19</span>Reports</a>
+    <div class="toc-group">Administration</div>
+    <a href="#admin" data-k="settings users roles permissions audit subscription"><span class="n">20</span>Administration</a>
+    <a href="#portal" data-k="parent student portal"><span class="n">21</span>Parent &amp; Student Portal</a>
+    <a href="#platform" data-k="saas tenants plans subscriptions tickets platform settings super admin"><span class="n">22</span>Platform Console</a>
+    <a href="#access" data-k="roles who can access matrix permissions"><span class="n">A</span>Who can use what</a>
+  </div>
+</nav>
+
+<main>
+<header class="cover" id="top">
+  <p class="kicker">User guide · October 2026 edition</p>
+  <h1>Mzenzi School Management</h1>
+  <p class="lede">How to run your school day to day in the system: admissions, students, teaching, exams, fees, accounting, staff, payroll, boarding, transport, stores, the school website and reports. Each chapter shows the real screens, with numbered pink arrows that match the notes underneath.</p>
+  <div class="edition"><span><b>Covers</b> 22 modules</span><span><b>Currency</b> Tanzanian shillings (TZS)</span><span><b>Dates</b> shown as dd/mm/yyyy</span><span><b>Screens</b> captured from the demo school, Mzenzi Secondary School</span></div>
+  <nav class="mobile-toc" aria-label="Jump to chapter"><label for="jump" class="kicker">Jump to a chapter</label><select id="jump"></select></nav>
+
+  <h2 class="kicker" style="margin-top:36px">Start with the chapters for your role</h2>
+  <div class="roles">
+    <div class="role"><h3>School administrator</h3><p>Sets the school up and manages users.</p><div class="links"><a href="#start">Getting started</a><a href="#admin">Administration</a><a href="#academics">Academics</a><a href="#website">Website</a></div></div>
+    <div class="role"><h3>Principal / head teacher</h3><p>Oversees learning, approvals and reports.</p><div class="links"><a href="#dashboard">Dashboard</a><a href="#exams">Exams</a><a href="#admissions">Admissions</a><a href="#reports">Reports</a></div></div>
+    <div class="role"><h3>Bursar / accountant</h3><p>Bills, collects and keeps the books.</p><div class="links"><a href="#fees">Fees</a><a href="#accounting">Accounting</a><a href="#payroll">Payroll</a><a href="#reports">Reports</a><a href="accounts.html">Accounts primer</a></div></div>
+    <div class="role"><h3>Teacher</h3><p>Takes registers, plans lessons, enters marks.</p><div class="links"><a href="#attendance">Attendance</a><a href="#academics">Lesson plans</a><a href="#exams">Mark entry</a></div></div>
+    <div class="role"><h3>Admissions officer</h3><p>Handles applications, office and online.</p><div class="links"><a href="#admissions">Admissions</a><a href="#students">Students</a><a href="#website">Online form</a></div></div>
+    <div class="role"><h3>HR / payroll officer</h3><p>Staff records, leave and monthly pay.</p><div class="links"><a href="#hr">HR</a><a href="#payroll">Payroll</a></div></div>
+    <div class="role"><h3>Operations staff</h3><p>Boarding, transport, stores, library, clinic.</p><div class="links"><a href="#boarding">Boarding</a><a href="#transport">Transport</a><a href="#inventory">Inventory</a><a href="#library">Library</a><a href="#health">Health</a></div></div>
+    <div class="role"><h3>Parent or student</h3><p>Fees, results, attendance and homework.</p><div class="links"><a href="#portal">Portal</a></div></div>
+  </div>
+</header>
+
+<!-- ============ 1. GETTING STARTED ============ -->
+<section class="chapter" id="start">
+  <p class="kicker">Chapter 1 · Start here</p>
+  <h2>Getting started</h2>
+  <p class="lede">Signing in, finding your way around, and the controls you will meet on every page: search, filters, date pickers, searchable dropdowns, Excel import and export.</p>
+
+  <h3 id="signin">Sign in</h3>
+  <p>Open the school's web address in any modern browser (Chrome, Edge, Firefox or Safari) on a computer, tablet or phone. If your school's website is shown, click <b>Portal login</b> in its menu.</p>
+  <figure class="shot"><a href="img/login.jpg" target="_blank" rel="noopener"><img src="img/login.jpg" alt="Sign-in page with email and password fields" loading="lazy" width="1280" height="800"></a></figure>
+  <ol class="key">
+    <li><span class="num">1</span><span>Type the email address your school registered for you.</span></li>
+    <li><span class="num">2</span><span>Type your password. The eye icon shows what you typed.</span></li>
+    <li><span class="num">3</span><span>Tick <b>Keep me signed in</b> only on your own device.</span></li>
+    <li><span class="num">4</span><span>Click <b>Sign in</b>. You land on your dashboard (parents and students land on the portal).</span></li>
+  </ol>
+  <div class="note"><b>Forgot your password?</b>Click <b>Forgot password?</b> on the sign-in page, enter your email and click <b>Email reset link</b>. Open the email and choose a new password. If the email does not arrive, ask your school administrator to reset it from <span class="path">Administration › Users</span>.</div>
+  <figure class="shot"><a href="img/forgot.jpg" target="_blank" rel="noopener"><img src="img/forgot.jpg" alt="Password reset page" loading="lazy" width="1280" height="800"></a><figcaption><b>Password reset.</b> ① The email you sign in with. ② <b>Email reset link</b>.</figcaption></figure>
+  <div class="note"><b>Two-factor sign-in</b>If two-factor authentication is on for your account, after your password you will be asked for the 6-digit code from your authenticator app (or one of your recovery codes).</div>
+
+  <h3 id="register">Register a new school</h3>
+  <p>A school that is not yet on the platform can sign itself up and start a free 30-day trial. Click <b>Register your school</b> under the sign-in button.</p>
+  <figure class="shot"><a href="img/register.jpg" target="_blank" rel="noopener"><img src="img/register.jpg" alt="Register your school form" loading="lazy" width="1280" height="800"></a></figure>
+  <ol class="key">
+    <li><span class="num">1</span><span>Enter the school's official name.</span></li>
+    <li><span class="num">2</span><span>Choose the level (nursery, primary, secondary…) and whether it is day, boarding or both. These set sensible defaults.</span></li>
+    <li><span class="num">3</span><span>Enter your own name, phone, email and a password, then click <b>Create school account</b>.</span></li>
+  </ol>
+  <p>Registration creates the school with a ready chart of accounts, an academic year with terms, a grading scale, departments, Tanzanian statutory payroll rules and an unpublished website. You become its School Administrator.</p>
+
+  <h3 id="workspace">Find your way around</h3>
+  <figure class="shot"><a href="img/workspace.jpg" target="_blank" rel="noopener"><img src="img/workspace.jpg" alt="The main workspace with sidebar and header controls labelled" loading="lazy" width="1280" height="800"></a></figure>
+  <ol class="key">
+    <li><span class="num">1</span><span><b>Sidebar.</b> Every module you have permission for. Click a module to open its pages. Modules you cannot use are not shown.</span></li>
+    <li><span class="num">2</span><span><b>Student search.</b> Type a name or admission number from any page to jump to a student.</span></li>
+    <li><span class="num">3</span><span><b>Shortcuts</b> to the school calendar and to <b>Collect payment</b>.</span></li>
+    <li><span class="num">4</span><span><b>School switcher.</b> If you work for more than one school in a group, switch between them here.</span></li>
+    <li><span class="num">5</span><span><b>Notifications.</b> The badge counts unread items such as approvals waiting for you.</span></li>
+    <li><span class="num">6</span><span><b>Theme.</b> Cycles light, dark and your device setting.</span></li>
+    <li><span class="num">7</span><span><b>Your menu.</b> Profile, password &amp; security, and sign out.</span></li>
+  </ol>
+  <p>While a page loads, a small spinner appears and the page body fades slightly. The sidebar and header stay usable.</p>
+  <div class="note"><b>Install as an app</b>When your browser supports it, an <b>Install app</b> button appears in the header. Installing adds the system to your phone's home screen or your computer's start menu so it opens in its own window like a normal app.</div>
+
+  <h3 id="lists">Lists, search, filters and export</h3>
+  <p>Most modules open on a list. Every list works the same way.</p>
+  <figure class="shot"><a href="img/list-tools.jpg" target="_blank" rel="noopener"><img src="img/list-tools.jpg" alt="Student list with search, filters, export and import labelled" loading="lazy" width="1280" height="800"></a></figure>
+  <ol class="key">
+    <li><span class="num">1</span><span><b>Search</b> filters as you type.</span></li>
+    <li><span class="num">2</span><span><b>Filters</b> narrow the list (class, status, gender…). A <b>Clear filters</b> button appears when any are set.</span></li>
+    <li><span class="num">3</span><span><b>Export CSV</b> downloads exactly the rows you filtered, ready for Excel. Every export is recorded in the audit trail.</span></li>
+    <li><span class="num">4</span><span><b>Import</b> adds many records at once from Excel (see below).</span></li>
+    <li><span class="num">5</span><span><b>Row actions</b>: view, edit and delete. Action buttons in forms (Save, Cancel) are always centred at the bottom.</span></li>
+  </ol>
+
+  <h3 id="dates">Dates and date ranges</h3>
+  <p>All dates are shown and typed as <b>dd/mm/yyyy</b>, for example <code>14/10/2026</code>. Every date field has a calendar: click the field, or type the date directly.</p>
+  <p>Reports and filters use a date-range picker with ready-made periods.</p>
+  <figure class="shot"><a href="img/daterange.jpg" target="_blank" rel="noopener"><img src="img/daterange.jpg" alt="Date range picker showing presets" loading="lazy" width="1280" height="800"></a></figure>
+  <ol class="key">
+    <li><span class="num">1</span><span>Presets: Today, Yesterday, This week, Last week, This month, Last month, This year, Last year.</span></li>
+    <li><span class="num">2</span><span><b>Last month</b> means the whole previous calendar month.</span></li>
+    <li><span class="num">3</span><span><b>Custom range</b> lets you click a start and an end date on the calendar.</span></li>
+  </ol>
+
+  <div class="grid2">
+    <div>
+      <h4>Dropdowns you can search</h4>
+      <p>Every dropdown has a search box. Click it and start typing to narrow long lists such as classes, accounts or employees.</p>
+      <figure class="shot"><a href="img/searchselect.jpg" target="_blank" rel="noopener"><img src="img/searchselect.jpg" alt="A searchable dropdown open" loading="lazy" width="1280" height="800"></a></figure>
+      <ol class="key">
+        <li><span class="num">1</span><span>Type part of the name.</span></li>
+        <li><span class="num">2</span><span>Pick from the matching options.</span></li>
+      </ol>
+    </div>
+    <div>
+      <h4>Date of birth or age</h4>
+      <p>On student, employee and admission forms you can enter either the date of birth or the age in years. Each one fills in the other.</p>
+      <figure class="shot"><a href="img/dobage.jpg" target="_blank" rel="noopener"><img src="img/dobage.jpg" alt="Date of birth and age fields" loading="lazy" width="1280" height="800"></a></figure>
+      <ol class="key">
+        <li><span class="num">1</span><span>Date of birth, with a calendar.</span></li>
+        <li><span class="num">2</span><span>Or the age. Typing 13 sets a date of birth 13 years ago, which you can then correct.</span></li>
+      </ol>
+    </div>
+  </div>
+
+  <h3 id="import">Import from Excel</h3>
+  <p>Students, guardians, employees, departments, subjects, classes, streams, library books, inventory items and suppliers can all be imported. Look for the green <b>Import</b> button on that list.</p>
+  <figure class="shot"><a href="img/import.jpg" target="_blank" rel="noopener"><img src="img/import.jpg" alt="Import from Excel dialog" loading="lazy" width="1280" height="800"></a></figure>
+  <ol class="key">
+    <li><span class="num">1</span><span><b>Download template (.xlsx)</b>. It has the right columns and notes on each one. Fill one record per row and keep the header row.</span></li>
+    <li><span class="num">2</span><span>Drop the filled file here, or click to browse (.xlsx or .csv, up to 5,000 rows). Every row is checked first and marked <b>valid</b>, <b>duplicate</b> or <b>invalid</b> with the reason. Nothing is saved until you confirm.</span></li>
+  </ol>
+  <div class="note"><b>Tip</b>Fix invalid rows in Excel and upload again. Duplicates (for example a student with the same admission number) are skipped, so re-uploading a corrected file is safe.</div>
+
+  <h3 id="account">Your profile and security</h3>
+  <div class="grid2">
+    <figure class="shot"><a href="img/profile.jpg" target="_blank" rel="noopener"><img src="img/profile.jpg" alt="My profile page" loading="lazy" width="1280" height="800"></a><figcaption><b>My Profile.</b> ① Update your name, phone and email.</figcaption></figure>
+    <figure class="shot"><a href="img/security.jpg" target="_blank" rel="noopener"><img src="img/security.jpg" alt="Password and security page" loading="lazy" width="1280" height="800"></a><figcaption><b>Password &amp; Security.</b> ① Change your password. ② Turn on two-factor sign-in.</figcaption></figure>
+  </div>
+  <ol class="steps">
+    <li>Open your menu (top right) and choose <b>Password &amp; Security</b>. You are asked for your password once more.</li>
+    <li>Under <b>Two-factor authentication</b>, click enable and scan the QR code with an authenticator app (Google Authenticator, Microsoft Authenticator…).</li>
+    <li>Type the 6-digit code to confirm. Save the <b>recovery codes</b> somewhere safe; each can be used once if you lose your phone.</li>
+  </ol>
+  <div class="note warn"><b>Recommended</b>Turn on two-factor sign-in if you are an administrator, bursar, or anyone who approves payments or sees sensitive records.</div>
+
+  <h3 id="notifications">Notifications</h3>
+  <figure class="shot"><a href="img/notifications.jpg" target="_blank" rel="noopener"><img src="img/notifications.jpg" alt="Notifications page" loading="lazy" width="1280" height="800"></a></figure>
+  <ol class="key"><li><span class="num">1</span><span><b>Open</b> takes you straight to the record: the leave request, the voucher waiting for approval, the new online application, and so on.</span></li></ol>
+  <p class="back-top"><a href="#top">Back to top</a></p>
+</section>
+
+<!-- ============ 2. DASHBOARD ============ -->
+<section class="chapter" id="dashboard">
+  <p class="kicker">Chapter 2 · Overview</p>
+  <h2>Dashboard</h2>
+  <p class="lede">The first page after sign-in. It shows today's figures and the work waiting for you, and only includes what your role is allowed to see.</p>
+  <dl class="facts"><dt>Menu</dt><dd><span class="path">Dashboard</span></dd><dt>Who</dt><dd><span class="chip">Every staff role</span></dd></dl>
+  <figure class="shot"><a href="img/dashboard.jpg" target="_blank" rel="noopener"><img src="img/dashboard.jpg" alt="Dashboard with quick actions and alerts" loading="lazy" width="1280" height="800"></a></figure>
+  <ol class="key">
+    <li><span class="num">1</span><span><b>Quick actions</b> for the most common tasks: take attendance, collect fees.</span></li>
+    <li><span class="num">2</span><span><b>Alerts.</b> Each card is a link to the filtered list behind it, for example overdue invoices.</span></li>
+    <li><span class="num">3</span><span>Work waiting for a decision: applications, leave requests, vouchers, low stock, overdue books, expiring vehicle documents.</span></li>
+  </ol>
+  <figure class="shot"><a href="img/dashboard-charts.jpg" target="_blank" rel="noopener"><img src="img/dashboard-charts.jpg" alt="Dashboard charts" loading="lazy" width="1280" height="800"></a></figure>
+  <ol class="key">
+    <li><span class="num">1</span><span><b>Collections vs Expenses</b> by month: fees received against money spent.</span></li>
+    <li><span class="num">2</span><span><b>Students by gender</b> and other enrolment breakdowns.</span></li>
+  </ol>
+  <div class="note"><b>Tip</b>Hover over any chart to see exact figures. Click an alert card to go straight to the records that need attention.</div>
+  <p class="back-top"><a href="#top">Back to top</a></p>
+</section>
+
+<!-- ============ 3. ADMISSIONS ============ -->
+<section class="chapter" id="admissions">
+  <p class="kicker">Chapter 3 · Student life</p>
+  <h2>Admissions</h2>
+  <p class="lede">Every application, whether typed in at the office or sent by a parent through the school website, from first contact to enrolment.</p>
+  <dl class="facts"><dt>Menu</dt><dd><span class="path">Admissions › Applications</span><span class="path">Admissions › New Application</span></dd><dt>Who</dt><dd><span class="chip manage">Admissions officer</span><span class="chip manage">Principal</span><span class="chip manage">School admin</span></dd></dl>
+
+  <h3>How an application moves</h3>
+  <div class="flow"><span>Submitted</span><i>→</i><span>Under review</span><i>→</i><span>Interview</span><i>→</i><span>Accepted</span><i>→</i><span class="end">Enrolled</span></div>
+  <p>At review or interview an application can also be <b>Waitlisted</b> or <b>Rejected</b>, and the family can <b>Withdraw</b> at any time before enrolment. Decisions need a short note, which is kept in the history.</p>
+
+  <h3>The applications list</h3>
+  <figure class="shot"><a href="img/adm-list.jpg" target="_blank" rel="noopener"><img src="img/adm-list.jpg" alt="Admissions list" loading="lazy" width="1280" height="800"></a></figure>
+  <ol class="key">
+    <li><span class="num">1</span><span>New applications sent through the school website. Click to see only those.</span></li>
+    <li><span class="num">2</span><span>The pipeline: how many applications are at each stage. Click a stage to filter.</span></li>
+    <li><span class="num">3</span><span><b>Online form</b> opens the public application form, to share with parents.</span></li>
+    <li><span class="num">4</span><span><b>New application</b> records a walk-in or paper application.</span></li>
+    <li><span class="num">5</span><span><b>Source</b>: office or online. Online applications carry a globe badge.</span></li>
+  </ol>
+
+  <h3>Record a walk-in application</h3>
+  <ol class="steps">
+    <li>Click <b>New application</b>.</li>
+    <li>Choose the intake year, the class applied for and day or boarding.</li>
+    <li>Enter the learner's details. Use the date of birth or the age.</li>
+    <li>Enter the parent or guardian's name, relationship and phone, then any health notes.</li>
+    <li>Click <b>Save</b>. The application gets a number such as <code>APP-00041</code> and starts as <b>Submitted</b>.</li>
+  </ol>
+  <figure class="shot"><a href="img/adm-create.jpg" target="_blank" rel="noopener"><img src="img/adm-create.jpg" alt="New application form" loading="lazy" width="1280" height="800"></a></figure>
+  <ol class="key">
+    <li><span class="num">1</span><span>Intake year.</span></li>
+    <li><span class="num">2</span><span>Class applied for.</span></li>
+    <li><span class="num">3</span><span>Date of birth or age.</span></li>
+  </ol>
+
+  <h3>Review, interview and decide</h3>
+  <figure class="shot"><a href="img/adm-show.jpg" target="_blank" rel="noopener"><img src="img/adm-show.jpg" alt="Application detail page" loading="lazy" width="1280" height="800"></a></figure>
+  <ol class="key">
+    <li><span class="num">1</span><span>The buttons offer only the next allowed steps, here <b>Start review</b>.</span></li>
+    <li><span class="num">2</span><span><b>Reject</b> or <b>Withdraw</b>. You are asked for a reason.</span></li>
+    <li><span class="num">3</span><span>Parent / guardian contact details and health notes.</span></li>
+  </ol>
+  <ol class="steps">
+    <li>Open the application and click <b>Start review</b>.</li>
+    <li>To invite the learner, click <b>Schedule interview</b> and set the date. After the interview, record the assessment score.</li>
+    <li>Click <b>Accept</b>, <b>Waitlist</b> or <b>Reject</b> and write the decision note.</li>
+    <li>For accepted learners, print the <b>Admission letter</b>, then click <b>Enrol as student</b>. Confirm the class, stream and admission date. This creates the student record, links the guardian and assigns an admission number.</li>
+  </ol>
+  <div class="grid2">
+    <figure class="shot"><a href="img/adm-accepted.jpg" target="_blank" rel="noopener"><img src="img/adm-accepted.jpg" alt="An accepted application" loading="lazy" width="1280" height="800"></a><figcaption><b>An accepted application.</b> ① <b>Enrol as student</b>. ② Print the admission letter. ③ The progress bar shows the current stage.</figcaption></figure>
+    <figure class="shot"><a href="img/adm-letter.jpg" target="_blank" rel="noopener"><img src="img/adm-letter.jpg" alt="Admission letter" loading="lazy" width="1280" height="800"></a><figcaption><b>Admission letter</b> on the school letterhead, ready to print.</figcaption></figure>
+  </div>
+
+  <h3>Online applications</h3>
+  <p>When the school website is published, parents can apply at <span class="path">/sites/&lt;your-school&gt;/admissions</span> (see <a href="#website">Chapter 18</a>). Their application appears in this list with the <b>Online</b> badge and any uploaded documents. Staff with admissions access get a notification. Parents receive a tracking code to check progress themselves.</p>
+  <figure class="shot"><a href="img/adm-online.jpg" target="_blank" rel="noopener"><img src="img/adm-online.jpg" alt="An online application" loading="lazy" width="1280" height="800"></a><figcaption><b>An online application.</b> Uploaded documents are listed in their own panel; click one to download it.</figcaption></figure>
+  <p class="back-top"><a href="#top">Back to top</a></p>
+</section>
+
+<!-- ============ 4. STUDENTS ============ -->
+<section class="chapter" id="students">
+  <p class="kicker">Chapter 4 · Student life</p>
+  <h2>Students &amp; Guardians</h2>
+  <p class="lede">The student directory, each learner's full profile, parents and guardians with their portal access, ID cards and end-of-year promotion.</p>
+  <dl class="facts"><dt>Menu</dt><dd><span class="path">Students › Student Directory</span><span class="path">Add Student</span><span class="path">Guardians</span><span class="path">Promotions</span></dd><dt>Who</dt><dd><span class="chip manage">Admissions officer</span><span class="chip manage">Principal</span><span class="chip manage">School admin</span><span class="chip">Teachers, bursar and others view</span></dd></dl>
+
+  <h3>Add a student</h3>
+  <p>Students usually arrive through <a href="#admissions">Admissions › Enrol</a>. Use <b>Add student</b> for learners who joined before the system, or import them in bulk from Excel.</p>
+  <figure class="shot"><a href="img/stu-create.jpg" target="_blank" rel="noopener"><img src="img/stu-create.jpg" alt="Admit new student form" loading="lazy" width="1280" height="800"></a></figure>
+  <ol class="key">
+    <li><span class="num">1</span><span>Leave the admission number blank to get the next number automatically (for example <code>MZSS/2026/0042</code>).</span></li>
+    <li><span class="num">2</span><span>Class, stream and day/boarding decide which fees, timetable and registers the learner appears in.</span></li>
+  </ol>
+
+  <h3>The student profile</h3>
+  <figure class="shot"><a href="img/stu-show.jpg" target="_blank" rel="noopener"><img src="img/stu-show.jpg" alt="Student profile" loading="lazy" width="1280" height="800"></a></figure>
+  <ol class="key">
+    <li><span class="num">1</span><span>Tabs: overview, guardians, results, fees, attendance, documents, and history &amp; conduct.</span></li>
+    <li><span class="num">2</span><span><b>ID card</b>: printable student ID.</span></li>
+    <li><span class="num">3</span><span><b>Receive payment</b> opens fee collection for this learner.</span></li>
+    <li><span class="num">4</span><span><b>Change status</b>: on leave, suspended, transferred, graduated, withdrawn. A reason is kept in the history.</span></li>
+  </ol>
+  <div class="grid2">
+    <figure class="shot"><a href="img/stu-fees.jpg" target="_blank" rel="noopener"><img src="img/stu-fees.jpg" alt="Student fees tab" loading="lazy" width="1280" height="800"></a><figcaption><b>Fees tab:</b> invoices, payments and balance for this learner.</figcaption></figure>
+    <figure class="shot"><a href="img/stu-idcard.jpg" target="_blank" rel="noopener"><img src="img/stu-idcard.jpg" alt="Student ID card" loading="lazy" width="1280" height="800"></a><figcaption><b>ID card.</b> ① Print on card stock.</figcaption></figure>
+  </div>
+
+  <h3>Parents and guardians</h3>
+  <figure class="shot"><a href="img/guardians.jpg" target="_blank" rel="noopener"><img src="img/guardians.jpg" alt="Guardians list" loading="lazy" width="1280" height="800"></a></figure>
+  <ol class="key">
+    <li><span class="num">1</span><span><b>Add guardian</b> and link them to one or more children.</span></li>
+    <li><span class="num">2</span><span><b>Parent portal access</b> creates or resets the parent's login so they can see fees, results and attendance.</span></li>
+    <li><span class="num">3</span><span>Search by name, phone or email.</span></li>
+  </ol>
+
+  <h3>End-of-year promotion</h3>
+  <figure class="shot"><a href="img/promotions.jpg" target="_blank" rel="noopener"><img src="img/promotions.jpg" alt="Class promotion page" loading="lazy" width="1280" height="800"></a></figure>
+  <ol class="key">
+    <li><span class="num">1</span><span>The class being promoted.</span></li>
+    <li><span class="num">2</span><span>The class they move to. Leave it empty for a graduating class.</span></li>
+    <li><span class="num">3</span><span>The academic year they move into.</span></li>
+  </ol>
+  <ol class="steps">
+    <li>Create the new academic year first (<a href="#academics">Academics › Years &amp; Terms</a>).</li>
+    <li>Choose the class, the next class and the new year. The learners are listed.</li>
+    <li>For each learner choose <b>Promote</b>, <b>Repeat</b> or <b>Graduate</b>, then confirm. Each learner's history keeps the previous class.</li>
+  </ol>
+  <p class="back-top"><a href="#top">Back to top</a></p>
+</section>
+
+
+<!-- ============ 5. ACADEMICS ============ -->
+<section class="chapter" id="academics">
+  <p class="kicker">Chapter 5 · Student life</p>
+  <h2>Academics</h2>
+  <p class="lede">The structure everything else depends on: years and terms, classes and streams, subjects, who teaches what, the timetable, lesson plans, homework and the school calendar.</p>
+  <dl class="facts"><dt>Menu</dt><dd><span class="path">Academics › Years &amp; Terms</span><span class="path">Classes &amp; Streams</span><span class="path">Subjects</span><span class="path">Teacher Allocation</span><span class="path">Timetable</span><span class="path">Lesson Plans</span><span class="path">Homework</span><span class="path">School Calendar</span></dd><dt>Who</dt><dd><span class="chip manage">Teachers</span><span class="chip manage">Principal</span><span class="chip manage">School admin</span><span class="chip">Admissions officer views</span></dd></dl>
+  <div class="note"><b>Set up in this order</b>Years &amp; terms → classes &amp; streams → subjects → teacher allocation → timetable. Fees, attendance and exams all read from this structure.</div>
+
+  <h3>Academic years and terms</h3>
+  <figure class="shot"><a href="img/years.jpg" target="_blank" rel="noopener"><img src="img/years.jpg" alt="Academic years and terms" loading="lazy" width="1280" height="800"></a></figure>
+  <ol class="key">
+    <li><span class="num">1</span><span><b>New academic year</b> with its start and end dates.</span></li>
+    <li><span class="num">2</span><span><b>Set current</b> marks the active year and term. Registers, fees and exams default to it.</span></li>
+    <li><span class="num">3</span><span><b>Add term</b> inside each year (Term I, Term II…).</span></li>
+  </ol>
+
+  <h3>Classes and streams</h3>
+  <figure class="shot"><a href="img/classes.jpg" target="_blank" rel="noopener"><img src="img/classes.jpg" alt="Classes and streams" loading="lazy" width="1280" height="800"></a></figure>
+  <ol class="key">
+    <li><span class="num">1</span><span><b>New class</b>: a level such as Form One, with its capacity and class teacher.</span></li>
+    <li><span class="num">2</span><span><b>Add stream</b> to split a class (Form One A, Form One B).</span></li>
+    <li><span class="num">3</span><span>Import classes or streams from Excel.</span></li>
+  </ol>
+
+  <div class="grid2">
+    <div>
+      <h3>Subjects</h3>
+      <figure class="shot"><a href="img/subjects.jpg" target="_blank" rel="noopener"><img src="img/subjects.jpg" alt="Subjects list" loading="lazy" width="1280" height="800"></a></figure>
+      <ol class="key">
+        <li><span class="num">1</span><span><b>Add subject</b> with its code, type (core/optional) and department.</span></li>
+        <li><span class="num">2</span><span>Filter by type or department.</span></li>
+      </ol>
+    </div>
+    <div>
+      <h3>Teacher allocation</h3>
+      <figure class="shot"><a href="img/allocations.jpg" target="_blank" rel="noopener"><img src="img/allocations.jpg" alt="Teacher allocation" loading="lazy" width="1280" height="800"></a></figure>
+      <ol class="key">
+        <li><span class="num">1</span><span><b>Add subject to class</b> and choose the teacher and periods per week.</span></li>
+        <li><span class="num">2</span><span>Views: by class, a class × subject matrix, and each teacher's workload.</span></li>
+        <li><span class="num">3</span><span>Teaching load shows who is under- or over-loaded.</span></li>
+      </ol>
+    </div>
+  </div>
+  <p>A teacher only sees mark entry and lesson plans for the class-subjects allocated to them here.</p>
+
+  <h3>Timetable</h3>
+  <figure class="shot"><a href="img/timetable.jpg" target="_blank" rel="noopener"><img src="img/timetable.jpg" alt="Weekly timetable grid" loading="lazy" width="1280" height="800"></a></figure>
+  <ol class="key">
+    <li><span class="num">1</span><span>Pick a class, or a single stream.</span></li>
+    <li><span class="num">2</span><span>Or switch to one teacher's week.</span></li>
+    <li><span class="num">3</span><span><b>Add lesson</b>: day, period, subject, teacher and room. The system refuses a lesson that would double-book a teacher, class or room.</span></li>
+    <li><span class="num">4</span><span><b>Print timetable</b> for notice boards.</span></li>
+  </ol>
+
+  <div class="grid2">
+    <div>
+      <h3>Lesson plans and schemes of work</h3>
+      <figure class="shot"><a href="img/lessonplans.jpg" target="_blank" rel="noopener"><img src="img/lessonplans.jpg" alt="Lesson plans" loading="lazy" width="1280" height="800"></a></figure>
+      <ol class="key">
+        <li><span class="num">1</span><span><b>New lesson plan</b>: week, topic, objectives for a class-subject.</span></li>
+        <li><span class="num">2</span><span><b>Mark taught</b> when delivered (or skipped, with a reason).</span></li>
+        <li><span class="num">3</span><span><b>Syllabus coverage</b> per class-subject, for heads of department.</span></li>
+      </ol>
+    </div>
+    <div>
+      <h3>Homework</h3>
+      <figure class="shot"><a href="img/homework.jpg" target="_blank" rel="noopener"><img src="img/homework.jpg" alt="Homework list" loading="lazy" width="1280" height="800"></a></figure>
+      <ol class="key">
+        <li><span class="num">1</span><span><b>New assignment</b> with instructions, due date, maximum score and attachments.</span></li>
+        <li><span class="num">2</span><span>Filter by due date and status (draft, published, closed).</span></li>
+      </ol>
+      <p>Published homework appears on the student and parent portals.</p>
+    </div>
+  </div>
+
+  <h3>School calendar</h3>
+  <figure class="shot"><a href="img/calendar.jpg" target="_blank" rel="noopener"><img src="img/calendar.jpg" alt="School calendar" loading="lazy" width="1280" height="800"></a></figure>
+  <ol class="key">
+    <li><span class="num">1</span><span><b>Add event</b>: holiday, exam, meeting, sports, trip, event or deadline, with its audience.</span></li>
+    <li><span class="num">2</span><span>Filter by type and audience.</span></li>
+    <li><span class="num">3</span><span><b>Coming up</b> lists the next events. Public events also show on the school website.</span></li>
+  </ol>
+  <p class="back-top"><a href="#top">Back to top</a></p>
+</section>
+
+<!-- ============ 6. ATTENDANCE ============ -->
+<section class="chapter" id="attendance">
+  <p class="kicker">Chapter 6 · Student life</p>
+  <h2>Attendance &amp; Discipline</h2>
+  <p class="lede">The daily class register, the staff register, attendance reports, and the conduct record of incidents and awards.</p>
+  <dl class="facts"><dt>Menu</dt><dd><span class="path">Attendance › Student Register</span><span class="path">Staff Attendance</span><span class="path">Attendance Report</span><span class="path">Discipline</span></dd><dt>Who</dt><dd><span class="chip manage">Teachers</span><span class="chip manage">Principal</span><span class="chip manage">School admin</span></dd></dl>
+
+  <h3>Take the daily register</h3>
+  <figure class="shot"><a href="img/att-register.jpg" target="_blank" rel="noopener"><img src="img/att-register.jpg" alt="Daily attendance overview" loading="lazy" width="1280" height="800"></a></figure>
+  <ol class="key">
+    <li><span class="num">1</span><span>The register date. It defaults to today.</span></li>
+    <li><span class="num">2</span><span><b>Take register</b> for a class. Classes already marked show their totals.</span></li>
+    <li><span class="num">3</span><span>Switch to the staff register.</span></li>
+  </ol>
+  <ol class="steps">
+    <li>Click <b>Take register</b> next to your class.</li>
+    <li>Everyone starts as <b>Present</b>. Change only the exceptions to <b>Absent</b>, <b>Late</b> or <b>Excused</b>, adding a note if useful.</li>
+    <li>Click <b>Save register</b>. You can correct it later the same day.</li>
+  </ol>
+  <figure class="shot"><a href="img/att-take.jpg" target="_blank" rel="noopener"><img src="img/att-take.jpg" alt="Class register being marked" loading="lazy" width="1280" height="800"></a><figcaption><b>A class register.</b> One row per learner with Present / Absent / Late / Excused.</figcaption></figure>
+
+  <div class="grid2">
+    <div>
+      <h3>Staff attendance</h3>
+      <figure class="shot"><a href="img/att-staff.jpg" target="_blank" rel="noopener"><img src="img/att-staff.jpg" alt="Staff attendance register" loading="lazy" width="1280" height="800"></a></figure>
+      <ol class="key">
+        <li><span class="num">1</span><span><b>Mark all present</b> to start.</span></li>
+        <li><span class="num">2</span><span>Change exceptions: late, absent, on leave. Check-in and check-out times are recorded.</span></li>
+        <li><span class="num">3</span><span><b>Save staff register</b>.</span></li>
+      </ol>
+    </div>
+    <div>
+      <h3>Attendance reports</h3>
+      <figure class="shot"><a href="img/att-report.jpg" target="_blank" rel="noopener"><img src="img/att-report.jpg" alt="Attendance report" loading="lazy" width="1280" height="800"></a></figure>
+      <ol class="key">
+        <li><span class="num">1</span><span>Period presets, or any date range.</span></li>
+        <li><span class="num">2</span><span><b>Threshold %</b>: learners below this attendance rate are listed for follow-up.</span></li>
+        <li><span class="num">3</span><span>Export to CSV or print.</span></li>
+      </ol>
+    </div>
+  </div>
+
+  <h3>Discipline and conduct</h3>
+  <figure class="shot"><a href="img/discipline.jpg" target="_blank" rel="noopener"><img src="img/discipline.jpg" alt="Discipline records" loading="lazy" width="1280" height="800"></a></figure>
+  <ol class="key">
+    <li><span class="num">1</span><span><b>Report incident</b>: what happened, the action taken (warning, detention, suspension…) and whether parents were informed.</span></li>
+    <li><span class="num">2</span><span><b>Record award</b> for commendations and achievements.</span></li>
+    <li><span class="num">3</span><span><b>Resolve</b> an incident when it is closed.</span></li>
+  </ol>
+  <div class="note"><b>Privacy</b>Discipline records are only visible to staff with attendance permission and appear on the learner's <b>History &amp; Conduct</b> tab.</div>
+  <p class="back-top"><a href="#top">Back to top</a></p>
+</section>
+
+<!-- ============ 7. EXAMS ============ -->
+<section class="chapter" id="exams">
+  <p class="kicker">Chapter 7 · Student life</p>
+  <h2>Examinations</h2>
+  <p class="lede">Plan an exam, collect marks from every subject teacher, check them, publish results, and print report cards with positions, grades and divisions.</p>
+  <dl class="facts"><dt>Menu</dt><dd><span class="path">Examinations › Exams</span><span class="path">Report Cards</span><span class="path">Grading Scale</span></dd><dt>Who</dt><dd><span class="chip manage">Teachers (their subjects)</span><span class="chip manage">Principal</span><span class="chip manage">School admin</span></dd></dl>
+
+  <h3>The exam workflow</h3>
+  <div class="flow"><span>Draft</span><i>→</i><span>Marks entry</span><i>→</i><span>Moderation</span><i>→</i><span class="end">Published</span></div>
+  <p>Teachers can enter marks only during <b>Marks entry</b>. In <b>Moderation</b> the academic office checks results; marks can be sent back if needed. <b>Published</b> results appear on report cards and the parent and student portals.</p>
+
+  <figure class="shot"><a href="img/exams.jpg" target="_blank" rel="noopener"><img src="img/exams.jpg" alt="Exams list" loading="lazy" width="1280" height="800"></a></figure>
+  <ol class="key">
+    <li><span class="num">1</span><span><b>New exam</b>: name, type (test, midterm, end of term, mock, national), term, dates, classes, out-of mark and weight.</span></li>
+    <li><span class="num">2</span><span><b>Enter marks</b>.</span></li>
+    <li><span class="num">3</span><span><b>Results analysis</b>.</span></li>
+  </ol>
+
+  <h3>Track mark entry</h3>
+  <figure class="shot"><a href="img/exam-show.jpg" target="_blank" rel="noopener"><img src="img/exam-show.jpg" alt="Exam detail with workflow and completion" loading="lazy" width="1280" height="800"></a></figure>
+  <ol class="key">
+    <li><span class="num">1</span><span>Where the exam is in its workflow.</span></li>
+    <li><span class="num">2</span><span>The next step, here <b>Close &amp; send to moderation</b> (or <b>Back to draft</b>).</span></li>
+    <li><span class="num">3</span><span>Completion for every class × subject. Click a percentage to open that mark sheet.</span></li>
+  </ol>
+
+  <h3>Enter marks (teachers)</h3>
+  <ol class="steps">
+    <li>Open the exam and click <b>Enter marks</b>.</li>
+    <li>Choose the class (and stream) and your subject. The learners are listed.</li>
+    <li>Type each score. Tick <b>Absent</b> for learners who missed the paper, and add a remark if you wish.</li>
+    <li>Click <b>Save marks</b>. You can return and continue until the exam leaves Marks entry.</li>
+  </ol>
+  <figure class="shot"><a href="img/exam-marks.jpg" target="_blank" rel="noopener"><img src="img/exam-marks.jpg" alt="Mark entry sheet" loading="lazy" width="1280" height="800"></a></figure>
+  <ol class="key"><li><span class="num">1</span><span>Choose the class (and stream), then your subject, to load the mark sheet.</span></li></ol>
+
+  <h3>Results analysis</h3>
+  <figure class="shot"><a href="img/exam-results.jpg" target="_blank" rel="noopener"><img src="img/exam-results.jpg" alt="Results broadsheet" loading="lazy" width="1280" height="800"></a></figure>
+  <ol class="key">
+    <li><span class="num">1</span><span>Four views: <b>Broadsheet</b>, <b>Subject analysis</b>, <b>Grades &amp; divisions</b> and <b>Top performers</b>.</span></li>
+    <li><span class="num">2</span><span>For each learner: total, average %, grade, points and division, with class position.</span></li>
+    <li><span class="num">3</span><span>Export to CSV or print.</span></li>
+  </ol>
+
+  <div class="grid2">
+    <div>
+      <h3>Report cards</h3>
+      <figure class="shot"><a href="img/report-cards.jpg" target="_blank" rel="noopener"><img src="img/report-cards.jpg" alt="Report cards" loading="lazy" width="1280" height="800"></a></figure>
+      <p>Choose an exam and a class, then print. Each learner gets one page with subjects, marks, grades and teacher remarks, average, division, position, class average, the term's attendance, and spaces for the class teacher's and head's comments and signatures. Cards for unpublished exams are marked <b>Provisional</b>.</p>
+    </div>
+    <div>
+      <h3>Grading scale</h3>
+      <figure class="shot"><a href="img/grading.jpg" target="_blank" rel="noopener"><img src="img/grading.jpg" alt="Grading scale" loading="lazy" width="1280" height="800"></a></figure>
+      <ol class="key">
+        <li><span class="num">1</span><span>Add or edit grade bands: score range, grade, points and remark.</span></li>
+        <li><span class="num">2</span><span>How grades, points and divisions are calculated.</span></li>
+      </ol>
+    </div>
+  </div>
+  <p class="back-top"><a href="#top">Back to top</a></p>
+</section>
+
+<!-- ============ 8. FEES ============ -->
+<section class="chapter" id="fees">
+  <p class="kicker">Chapter 8 · Finance</p>
+  <h2>Fees &amp; Billing</h2>
+  <p class="lede">Set fees per term, bill students, apply discounts, receive payments, print receipts and statements, and chase arrears. Every invoice and receipt posts to the accounting ledger automatically.</p>
+  <dl class="facts"><dt>Menu</dt><dd><span class="path">Fees &amp; Billing › Collect Payment</span><span class="path">Payments &amp; Receipts</span><span class="path">Invoices</span><span class="path">Fee Structures</span><span class="path">Discounts &amp; Scholarships</span><span class="path">Arrears &amp; Aging</span><span class="path">Fee Categories</span></dd><dt>Who</dt><dd><span class="chip manage">Bursar</span><span class="chip manage">School admin</span><span class="chip">Principal, auditor view</span></dd></dl>
+
+  <h3>The billing cycle each term</h3>
+  <div class="flow"><span>Fee categories</span><i>→</i><span>Fee structure for the term</span><i>→</i><span>Discounts</span><i>→</i><span>Generate invoices</span><i>→</i><span>Collect payments</span><i>→</i><span class="end">Follow up arrears</span></div>
+
+  <h3>1 · Fee categories</h3>
+  <figure class="shot"><a href="img/fee-categories.jpg" target="_blank" rel="noopener"><img src="img/fee-categories.jpg" alt="Fee categories" loading="lazy" width="1280" height="800"></a></figure>
+  <ol class="key"><li><span class="num">1</span><span><b>New category</b>: tuition, boarding, meals, examination, transport and so on. Each category posts to its own income account, so the income statement shows fees by type.</span></li></ol>
+
+  <h3>2 · Fee structures</h3>
+  <figure class="shot"><a href="img/fee-structures.jpg" target="_blank" rel="noopener"><img src="img/fee-structures.jpg" alt="Fee structures matrix" loading="lazy" width="1280" height="800"></a></figure>
+  <ol class="key">
+    <li><span class="num">1</span><span>The term you are setting fees for.</span></li>
+    <li><span class="num">2</span><span><b>Matrix</b> (classes × categories) or <b>List</b> view.</span></li>
+    <li><span class="num">3</span><span><b>Copy from term</b> copies last term's fees, optionally adjusted by a percentage.</span></li>
+    <li><span class="num">4</span><span><b>Add fee line</b>: category, classes, applies to (all, day or boarding), amount and due date.</span></li>
+  </ol>
+
+  <h3>3 · Discounts and scholarships</h3>
+  <figure class="shot"><a href="img/fee-discounts.jpg" target="_blank" rel="noopener"><img src="img/fee-discounts.jpg" alt="Discounts and scholarships" loading="lazy" width="1280" height="800"></a></figure>
+  <ol class="key">
+    <li><span class="num">1</span><span><b>Grant discount</b> to a student: sibling discount, bursary, staff child, waiver…</span></li>
+    <li><span class="num">2</span><span>A percentage or a fixed amount, for one category or all. Discounts are applied when invoices are generated.</span></li>
+  </ol>
+
+  <h3>4 · Generate invoices</h3>
+  <figure class="shot"><a href="img/fee-invoices.jpg" target="_blank" rel="noopener"><img src="img/fee-invoices.jpg" alt="Invoices list" loading="lazy" width="1280" height="800"></a></figure>
+  <ol class="key">
+    <li><span class="num">1</span><span><b>Generate for term</b> bills every active student from the fee structure, discounts included.</span></li>
+    <li><span class="num">2</span><span><b>Manual invoice</b> bills one student for extras such as uniform or a trip.</span></li>
+    <li><span class="num">3</span><span>Filter to <b>overdue</b> invoices.</span></li>
+    <li><span class="num">4</span><span>Collect a payment straight from an invoice row.</span></li>
+  </ol>
+  <ol class="steps">
+    <li>Click <b>Generate for term</b>. Choose the term, issue date, due date and classes.</li>
+    <li>Check the preview: active students, invoices to issue, students already invoiced (skipped), and the total to bill.</li>
+    <li>Confirm. Each invoice gets a number like <code>INV-00421</code> and is posted to <b>Student Fees Receivable</b>. Running it again never double-bills a student.</li>
+  </ol>
+  <div class="grid2">
+    <figure class="shot"><a href="img/fee-invoice.jpg" target="_blank" rel="noopener"><img src="img/fee-invoice.jpg" alt="Invoice detail" loading="lazy" width="1280" height="800"></a><figcaption><b>An invoice.</b> ① Print. ② Statement. ③ Receipts already paid against it.</figcaption></figure>
+    <figure class="shot"><a href="img/fee-invoice-new.jpg" target="_blank" rel="noopener"><img src="img/fee-invoice-new.jpg" alt="New manual invoice" loading="lazy" width="1280" height="800"></a><figcaption><b>Manual invoice.</b> ① Choose the student. ② Add item lines. ③ Issue.</figcaption></figure>
+  </div>
+
+  <h3>5 · Collect a payment</h3>
+  <figure class="shot"><a href="img/fee-collect.jpg" target="_blank" rel="noopener"><img src="img/fee-collect.jpg" alt="Collect payment, step one" loading="lazy" width="1280" height="800"></a></figure>
+  <ol class="key"><li><span class="num">1</span><span>Search the student by name or admission number. Their outstanding invoices load.</span></li></ol>
+  <figure class="shot"><a href="img/fee-collect-2.jpg" target="_blank" rel="noopener"><img src="img/fee-collect-2.jpg" alt="Collect payment with outstanding invoices" loading="lazy" width="1280" height="800"></a></figure>
+  <ol class="key">
+    <li><span class="num">1</span><span>The student's outstanding invoices and balances.</span></li>
+    <li><span class="num">2</span><span><b>Allocate manually</b> to choose which invoices the money pays.</span></li>
+    <li><span class="num">3</span><span>The amount received. <b>Pay full balance</b> fills it in for you.</span></li>
+    <li><span class="num">4</span><span>The method: cash, bank, mobile money, cheque or card.</span></li>
+    <li><span class="num">5</span><span>The reference from the bank slip or mobile-money SMS. Each reference can only be used once per method, which prevents double posting.</span></li>
+  </ol>
+  <ol class="steps">
+    <li>Enter the amount received. It is applied to the oldest invoices first. Tick <b>Allocate manually</b> to choose which invoices it pays.</li>
+    <li>Choose the <b>Method</b> and type the <b>Transaction reference</b> from the bank slip or SMS.</li>
+    <li>Check the <b>Payment date</b>, <b>Paid by</b> and the <b>Deposit account</b> (cash, CRDB, NMB, M-Pesa float…).</li>
+    <li>Click <b>Save &amp; issue receipt</b>. The official receipt opens, ready to print. The money is posted to the chosen account and the student's balance drops at once.</li>
+  </ol>
+
+  <h3>Receipts</h3>
+  <figure class="shot"><a href="img/fee-receipt.jpg" target="_blank" rel="noopener"><img src="img/fee-receipt.jpg" alt="Official receipt" loading="lazy" width="1280" height="800"></a></figure>
+  <ol class="key">
+    <li><span class="num">1</span><span><b>Print receipt</b> (it can be reprinted any time).</span></li>
+    <li><span class="num">2</span><span><b>Void</b> a receipt entered in error. A reason is required and the ledger entry is reversed. Receipts are never deleted.</span></li>
+    <li><span class="num">3</span><span>The student's full statement.</span></li>
+    <li><span class="num">4</span><span>The invoices this payment cleared.</span></li>
+  </ol>
+  <figure class="shot"><a href="img/fee-receipts.jpg" target="_blank" rel="noopener"><img src="img/fee-receipts.jpg" alt="Fee receipts list" loading="lazy" width="1280" height="800"></a></figure>
+  <ol class="key">
+    <li><span class="num">1</span><span>Receive a new payment.</span></li>
+    <li><span class="num">2</span><span>Collections by month.</span></li>
+    <li><span class="num">3</span><span>Collections by method: cash, bank, mobile money.</span></li>
+  </ol>
+
+  <h3>Statements and arrears</h3>
+  <figure class="shot"><a href="img/fee-statement.jpg" target="_blank" rel="noopener"><img src="img/fee-statement.jpg" alt="Fee statement" loading="lazy" width="1280" height="800"></a></figure>
+  <ol class="key">
+    <li><span class="num">1</span><span>Statement period, or full history.</span></li>
+    <li><span class="num">2</span><span><b>Print statement</b> for the parent: every invoice and receipt with a running balance.</span></li>
+    <li><span class="num">3</span><span>Take a payment from here.</span></li>
+  </ol>
+  <figure class="shot"><a href="img/fee-arrears.jpg" target="_blank" rel="noopener"><img src="img/fee-arrears.jpg" alt="Arrears and aging" loading="lazy" width="1280" height="800"></a></figure>
+  <ol class="key">
+    <li><span class="num">1</span><span><b>Aging buckets</b>: how long balances have been owed (current, 1–30, 31–60, 61–90, 90+ days).</span></li>
+    <li><span class="num">2</span><span>Outstanding balances by class.</span></li>
+    <li><span class="num">3</span><span><b>Send reminders</b> by SMS to the primary guardian of each student in arrears. The date of the last reminder is shown per student.</span></li>
+  </ol>
+  <p class="back-top"><a href="#top">Back to top</a></p>
+</section>
+
+
+<!-- ============ 9. ACCOUNTING ============ -->
+<section class="chapter" id="accounting">
+  <p class="kicker">Chapter 9 · Finance</p>
+  <h2>Accounting</h2>
+  <p class="lede">Double-entry books kept up to date by the rest of the system. Fee invoices and receipts, payroll, purchases and expenses all post here automatically. You add manual journals and payment vouchers, and run the financial statements.</p>
+  <dl class="facts"><dt>Menu</dt><dd><span class="path">Accounting › Chart of Accounts</span><span class="path">Journals</span><span class="path">Expenses &amp; Vouchers</span><span class="path">General Ledger</span><span class="path">Trial Balance</span><span class="path">Income Statement</span><span class="path">Balance Sheet</span><span class="path">Cash Flow</span><span class="path">Levies &amp; Compliance</span><span class="path">Budgets</span><span class="path">Fiscal Years</span></dd><dt>Who</dt><dd><span class="chip manage">Bursar</span><span class="chip manage">School admin</span><span class="chip">Principal, auditor view</span></dd></dl>
+  <div class="note"><b>New to accounting?</b>Read the <a href="accounts.html"><b>Accounts primer</b></a> first. It explains debits and credits, every field on the account form, sub-types, red balances, and exactly what each module posts. It includes worked examples and a self-check for training sessions.</div>
+  <div class="note"><b>Maker and checker</b>Manual journals and payment vouchers need two people: one prepares, a <b>different user</b> approves. You cannot approve your own entry. Posted entries are never edited or deleted. To correct one, you reverse it, so the audit trail stays complete.</div>
+
+  <h3>Chart of accounts</h3>
+  <figure class="shot"><a href="img/acc-chart.jpg" target="_blank" rel="noopener"><img src="img/acc-chart.jpg" alt="Chart of accounts" loading="lazy" width="1280" height="800"></a></figure>
+  <ol class="key">
+    <li><span class="num">1</span><span>Live balances for assets, liabilities, equity &amp; funds, income and expenses, from posted journals. Click one to filter.</span></li>
+    <li><span class="num">2</span><span><b>New account</b> with its code, class and sub-type.</span></li>
+    <li><span class="num">3</span><span><b>Add sub-account</b> under a group. Accounts in use can be deactivated but not deleted.</span></li>
+  </ol>
+
+  <h3>Manual journals</h3>
+  <div class="flow"><span>Draft</span><i>→</i><span>Submitted (awaiting approval)</span><i>→</i><span class="end">Posted</span><i>→</i><span class="stop">Reversed (only if a correction is needed)</span></div>
+  <figure class="shot"><a href="img/acc-journals.jpg" target="_blank" rel="noopener"><img src="img/acc-journals.jpg" alt="General journal list" loading="lazy" width="1280" height="800"></a></figure>
+  <ol class="key">
+    <li><span class="num">1</span><span>Journals waiting for a checker. It also tells you how many <b>you</b> can approve.</span></li>
+    <li><span class="num">2</span><span><b>New journal entry</b>.</span></li>
+  </ol>
+  <figure class="shot"><a href="img/acc-journal-new.jpg" target="_blank" rel="noopener"><img src="img/acc-journal-new.jpg" alt="New journal entry form" loading="lazy" width="1280" height="800"></a></figure>
+  <ol class="key">
+    <li><span class="num">1</span><span>Date, journal type, reference and a <b>narration</b> explaining the entry.</span></li>
+    <li><span class="num">2</span><span>One line per account, with a debit <i>or</i> a credit.</span></li>
+    <li><span class="num">3</span><span><b>Add line</b> as needed. The <b>=</b> button fills the amount that balances the entry.</span></li>
+    <li><span class="num">4</span><span><b>Save as draft</b> to finish later, or <b>Submit for approval</b>. Submitting needs total debits equal to total credits.</span></li>
+  </ol>
+  <figure class="shot"><a href="img/acc-journal-show.jpg" target="_blank" rel="noopener"><img src="img/acc-journal-show.jpg" alt="Journal awaiting approval" loading="lazy" width="1280" height="800"></a></figure>
+  <ol class="key">
+    <li><span class="num">1</span><span>The checker clicks <b>Approve &amp; post</b>. The ledger updates at once.</span></li>
+    <li><span class="num">2</span><span>Or <b>Reject</b> it back to the preparer with a reason.</span></li>
+    <li><span class="num">3</span><span>The audit trail: who prepared, submitted and approved, and when.</span></li>
+  </ol>
+
+  <h3>Expenses and payment vouchers</h3>
+  <div class="flow"><span>Pending</span><i>→</i><span>Approved</span><i>→</i><span class="end">Paid</span><i>·</i><span class="stop">Rejected / Void</span></div>
+  <figure class="shot"><a href="img/acc-expenses.jpg" target="_blank" rel="noopener"><img src="img/acc-expenses.jpg" alt="Expenses and payment vouchers" loading="lazy" width="1280" height="800"></a></figure>
+  <ol class="key">
+    <li><span class="num">1</span><span><b>New voucher</b>: payee, expense account, amount, payment method and supporting details.</span></li>
+    <li><span class="num">2</span><span><b>Approve &amp; pay</b> (by a different user) posts the expense and the payment.</span></li>
+    <li><span class="num">3</span><span>Vouchers waiting for approval, with their total.</span></li>
+  </ol>
+
+  <h3>Ledger and financial statements</h3>
+  <p>Every report has a period or an <b>as at</b> date, an optional comparison, and <b>CSV</b> and <b>Print</b> buttons. Click any account line to drill down to its ledger.</p>
+  <div class="grid2">
+    <div>
+      <figure class="shot"><a href="img/acc-ledger.jpg" target="_blank" rel="noopener"><img src="img/acc-ledger.jpg" alt="General ledger" loading="lazy" width="1280" height="800"></a><figcaption><b>General Ledger.</b> ① Choose an account. ② Run for the period. Each line links to its source journal.</figcaption></figure>
+    </div>
+    <div>
+      <figure class="shot"><a href="img/acc-tb.jpg" target="_blank" rel="noopener"><img src="img/acc-tb.jpg" alt="Trial balance" loading="lazy" width="1280" height="800"></a><figcaption><b>Trial Balance.</b> ① As-at date. ② Comparative column. ③ Export or print. Total debits must equal total credits.</figcaption></figure>
+    </div>
+    <div>
+      <figure class="shot"><a href="img/acc-is.jpg" target="_blank" rel="noopener"><img src="img/acc-is.jpg" alt="Income statement" loading="lazy" width="1280" height="800"></a><figcaption><b>Income Statement.</b> ① Compare with a previous period. ② Click any line to see its ledger.</figcaption></figure>
+    </div>
+    <div>
+      <figure class="shot"><a href="img/acc-bs.jpg" target="_blank" rel="noopener"><img src="img/acc-bs.jpg" alt="Balance sheet" loading="lazy" width="1280" height="800"></a><figcaption><b>Balance Sheet:</b> assets = liabilities + equity &amp; funds, as at any date.</figcaption></figure>
+    </div>
+  </div>
+  <figure class="shot"><a href="img/acc-cf.jpg" target="_blank" rel="noopener"><img src="img/acc-cf.jpg" alt="Cash flow statement" loading="lazy" width="1280" height="800"></a><figcaption><b>Cash Flow Statement</b> (direct method): receipts and payments through cash, bank and mobile-money accounts.</figcaption></figure>
+
+  <h3>Levies and compliance</h3>
+  <p>Government levies and licences that are not part of payroll: service levy, fire, OSHA, property tax, and any others you add.</p>
+  <figure class="shot"><a href="img/acc-compliance.jpg" target="_blank" rel="noopener"><img src="img/acc-compliance.jpg" alt="Levies and compliance" loading="lazy" width="1280" height="800"></a></figure>
+  <ol class="key">
+    <li><span class="num">1</span><span><b>Add obligation</b>: name, authority, how it is calculated (fixed or a rate on a base), how often and when it is due.</span></li>
+    <li><span class="num">2</span><span><b>Record payment</b> when paid. The payment history is kept for inspections.</span></li>
+  </ol>
+
+  <div class="grid2">
+    <div>
+      <h3>Budgets</h3>
+      <figure class="shot"><a href="img/acc-budgets.jpg" target="_blank" rel="noopener"><img src="img/acc-budgets.jpg" alt="Budgets" loading="lazy" width="1280" height="800"></a></figure>
+      <ol class="key"><li><span class="num">1</span><span><b>Edit budget</b>: annual amounts per income and expense account. The page compares budget with actual and shows the variance.</span></li></ol>
+    </div>
+    <div>
+      <h3>Fiscal years</h3>
+      <figure class="shot"><a href="img/acc-fy.jpg" target="_blank" rel="noopener"><img src="img/acc-fy.jpg" alt="Fiscal years" loading="lazy" width="1280" height="800"></a></figure>
+      <ol class="key">
+        <li><span class="num">1</span><span><b>Close year</b> after the audit. Nothing can be posted into a closed year.</span></li>
+        <li><span class="num">2</span><span><b>New fiscal year</b> to open the next one.</span></li>
+      </ol>
+    </div>
+  </div>
+  <p class="back-top"><a href="#top">Back to top</a></p>
+</section>
+
+<!-- ============ 10. HR ============ -->
+<section class="chapter" id="hr">
+  <p class="kicker">Chapter 10 · People &amp; operations</p>
+  <h2>Human Resources</h2>
+  <p class="lede">Staff records, contracts, departments, leave requests and balances. Employee records also feed payroll, timetables and staff attendance.</p>
+  <dl class="facts"><dt>Menu</dt><dd><span class="path">HR &amp; Payroll › Employees</span><span class="path">Departments</span><span class="path">Leave Management</span></dd><dt>Who</dt><dd><span class="chip manage">HR officer</span><span class="chip manage">School admin</span><span class="chip">Principal views</span></dd></dl>
+
+  <h3>Staff directory</h3>
+  <figure class="shot"><a href="img/hr-staff.jpg" target="_blank" rel="noopener"><img src="img/hr-staff.jpg" alt="Staff directory" loading="lazy" width="1280" height="800"></a></figure>
+  <ol class="key">
+    <li><span class="num">1</span><span><b>Add employee</b>.</span></li>
+    <li><span class="num">2</span><span>Import employees from Excel.</span></li>
+    <li><span class="num">3</span><span>Contracts expiring in the next 60 days. Click to see them.</span></li>
+  </ol>
+  <figure class="shot"><a href="img/hr-new.jpg" target="_blank" rel="noopener"><img src="img/hr-new.jpg" alt="Add employee form" loading="lazy" width="1280" height="800"></a></figure>
+  <ol class="key">
+    <li><span class="num">1</span><span>The staff number is generated if left blank.</span></li>
+    <li><span class="num">2</span><span>Date of birth or age.</span></li>
+  </ol>
+  <p>Further down the form: department, position, category (teaching or support), employment type, contract dates, basic salary, bank details, NSSF number, TIN and whether statutory deductions apply.</p>
+
+  <h3>The employee profile</h3>
+  <figure class="shot"><a href="img/hr-show.jpg" target="_blank" rel="noopener"><img src="img/hr-show.jpg" alt="Employee profile" loading="lazy" width="1280" height="800"></a></figure>
+  <ol class="key">
+    <li><span class="num">1</span><span>Tabs: employment &amp; salary, leave, payslips, attendance, teaching load and history.</span></li>
+    <li><span class="num">2</span><span><b>Reset login</b> gives the employee system access, or resets it.</span></li>
+    <li><span class="num">3</span><span><b>Apply leave</b> on the employee's behalf.</span></li>
+  </ol>
+
+  <div class="grid2">
+    <div>
+      <h3>Departments</h3>
+      <figure class="shot"><a href="img/hr-departments.jpg" target="_blank" rel="noopener"><img src="img/hr-departments.jpg" alt="Departments" loading="lazy" width="1280" height="800"></a></figure>
+      <ol class="key">
+        <li><span class="num">1</span><span><b>Add department</b> and its head.</span></li>
+        <li><span class="num">2</span><span>Staff distribution across departments.</span></li>
+      </ol>
+    </div>
+    <div>
+      <h3>Leave</h3>
+      <figure class="shot"><a href="img/hr-leave.jpg" target="_blank" rel="noopener"><img src="img/hr-leave.jpg" alt="Leave management" loading="lazy" width="1280" height="800"></a></figure>
+      <ol class="key">
+        <li><span class="num">1</span><span>Requests pending approval.</span></li>
+        <li><span class="num">2</span><span><b>Approve</b> or <b>Reject</b>. The employee is notified.</span></li>
+        <li><span class="num">3</span><span>Entitlement <b>Balances</b> per employee, and the <b>Leave types</b> (annual, sick, maternity…, paid or unpaid).</span></li>
+      </ol>
+    </div>
+  </div>
+  <p class="back-top"><a href="#top">Back to top</a></p>
+</section>
+
+<!-- ============ 11. PAYROLL ============ -->
+<section class="chapter" id="payroll">
+  <p class="kicker">Chapter 11 · People &amp; operations</p>
+  <h2>Payroll</h2>
+  <p class="lede">Monthly payroll with Tanzanian statutory deductions (PAYE, NSSF, WCF, SDL, HESLB) calculated for you, approval by a second person, posting to the ledger, payslips and a bank file. You can pay some staff now and hold others with a reason.</p>
+  <dl class="facts"><dt>Menu</dt><dd><span class="path">HR &amp; Payroll › Payroll Runs</span><span class="path">Salary Components</span><span class="path">Statutory Rules (PAYE, NSSF…)</span></dd><dt>Who</dt><dd><span class="chip manage">HR / payroll officer</span><span class="chip manage">Bursar</span><span class="chip manage">School admin</span><span class="chip">Auditor views</span></dd></dl>
+
+  <h3>The monthly run</h3>
+  <div class="flow"><span>Draft</span><i>→</i><span>Approved &amp; posted</span><i>→</i><span>Partially paid</span><i>→</i><span class="end">Paid</span></div>
+  <figure class="shot"><a href="img/pay-runs.jpg" target="_blank" rel="noopener"><img src="img/pay-runs.jpg" alt="Payroll runs" loading="lazy" width="1280" height="800"></a></figure>
+  <ol class="key">
+    <li><span class="num">1</span><span><b>New payroll run</b> for a month. Payslips are calculated for every active employee.</span></li>
+    <li><span class="num">2</span><span>Salary components: allowances and deductions.</span></li>
+    <li><span class="num">3</span><span>Payroll cost this year.</span></li>
+  </ol>
+  <figure class="shot"><a href="img/pay-run-top.jpg" target="_blank" rel="noopener"><img src="img/pay-run-top.jpg" alt="Payroll run summary" loading="lazy" width="1280" height="800"></a></figure>
+  <ol class="key">
+    <li><span class="num">1</span><span>Progress: prepared → approved &amp; posted → paid, with who did each step and when.</span></li>
+    <li><span class="num">2</span><span>The person who prepared the run cannot approve it. Another user with payroll rights must.</span></li>
+    <li><span class="num">3</span><span>Totals for gross pay, deductions, net pay and employer cost. Lower down: the statutory summary and the ledger entries that post on approval.</span></li>
+  </ol>
+  <figure class="shot"><a href="img/pay-run-draft.jpg" target="_blank" rel="noopener"><img src="img/pay-run-draft.jpg" alt="Payslips in a run" loading="lazy" width="1280" height="800"></a></figure>
+  <ol class="key">
+    <li><span class="num">1</span><span><b>Recalculate</b> after changing salaries, components or statutory rules (draft runs only).</span></li>
+    <li><span class="num">2</span><span><b>Bank file</b> for the bank's bulk-payment upload; <b>Summary</b> for the printable payroll summary.</span></li>
+    <li><span class="num">3</span><span>Open any employee's payslip.</span></li>
+  </ol>
+  <ol class="steps">
+    <li>Check the draft: payslips, the statutory summary and the ledger entries.</li>
+    <li>A different user clicks <b>Approve &amp; post</b>. Salaries, deductions and employer contributions are posted to the ledger as liabilities.</li>
+    <li>Click <b>Pay salaries</b>. Every employee is ticked. <b>Untick anyone you are not paying now</b> and pick or type the reason (for example "Bank details missing / incorrect", "Disciplinary hold" or "On unpaid leave"). Staff without bank details are flagged <b>No bank</b>.</li>
+    <li>Choose the account the salaries are <b>Paid from</b> and the payment date, then click <b>Pay selected</b>. The run becomes <b>Partially paid</b> if anyone was held back.</li>
+    <li>Later, open the run and click <b>Pay remaining</b> to pay the <b>Previously withheld</b> staff. <b>Bank file (unpaid)</b> downloads a bank file for just those staff. When everyone is paid the run is <b>Paid</b>.</li>
+  </ol>
+  <div class="grid2">
+    <figure class="shot"><a href="img/pay-run-paid.jpg" target="_blank" rel="noopener"><img src="img/pay-run-paid.jpg" alt="A paid payroll run" loading="lazy" width="1280" height="800"></a><figcaption><b>A paid run.</b> Each payslip shows when it was paid.</figcaption></figure>
+    <figure class="shot"><a href="img/payslip.jpg" target="_blank" rel="noopener"><img src="img/payslip.jpg" alt="Payslip" loading="lazy" width="1280" height="800"></a><figcaption><b>Payslip.</b> ① Print or save as PDF. Earnings, statutory and other deductions, employer contributions and net pay.</figcaption></figure>
+  </div>
+
+  <h3>Salary components</h3>
+  <figure class="shot"><a href="img/pay-components.jpg" target="_blank" rel="noopener"><img src="img/pay-components.jpg" alt="Salary components" loading="lazy" width="1280" height="800"></a></figure>
+  <ol class="key">
+    <li><span class="num">1</span><span><b>New component</b>: an allowance (housing, transport, responsibility…), a deduction (loan, SACCOS, advance…) or an employer contribution. A fixed amount or a percentage of basic salary, posted to the GL account you choose, and optionally applied to all staff.</span></li>
+    <li><span class="num">2</span><span><b>Assign to employees</b>, with an amount per person if it differs.</span></li>
+    <li><span class="num">3</span><span><b>Employee assignments</b> shows who receives what.</span></li>
+  </ol>
+
+  <h3>Statutory rules: PAYE, NSSF, WCF, SDL, HESLB</h3>
+  <p>The rules are shown openly so every staff member can see how their deductions are worked out. Payroll administrators can edit them when the government changes rates.</p>
+  <figure class="shot"><a href="img/pay-statutory.jpg" target="_blank" rel="noopener"><img src="img/pay-statutory.jpg" alt="PAYE table and calculator" loading="lazy" width="1280" height="800"></a></figure>
+  <ol class="key">
+    <li><span class="num">1</span><span>Tabs: the <b>PAYE table</b>, <b>Contributions &amp; deductions</b>, each employee's <b>Staff statutory profile</b>, and official <b>Sources</b>.</span></li>
+    <li><span class="num">2</span><span><b>Edit table</b> changes the PAYE bands. <b>New version</b> keeps the old table for past months and starts the new one from a date you choose.</span></li>
+    <li><span class="num">3</span><span><b>PAYE calculator</b>: enter any gross pay to see the tax band by band.</span></li>
+  </ol>
+  <div class="grid2">
+    <figure class="shot"><a href="img/pay-statutory-contrib.jpg" target="_blank" rel="noopener"><img src="img/pay-statutory-contrib.jpg" alt="Contributions and deductions" loading="lazy" width="1280" height="800"></a><figcaption><b>Contributions &amp; deductions.</b> NSSF (employee and employer), WCF, SDL with its employee threshold, HESLB, and any you add. Each has an <b>apply to all staff</b> switch.</figcaption></figure>
+    <figure class="shot"><a href="img/pay-statutory-staff.jpg" target="_blank" rel="noopener"><img src="img/pay-statutory-staff.jpg" alt="Staff statutory profile" loading="lazy" width="1280" height="800"></a><figcaption><b>Staff statutory profile.</b> Exclude individual staff, for example from NSSF during probation, with a reason.</figcaption></figure>
+  </div>
+  <div class="note warn"><b>Check before each run</b>Confirm the PAYE bands and contribution rates match the latest Tanzania Revenue Authority, NSSF and WCF guidance. Changes apply to runs calculated or recalculated after you save.</div>
+  <p class="back-top"><a href="#top">Back to top</a></p>
+</section>
+
+<!-- ============ 12. BOARDING ============ -->
+<section class="chapter" id="boarding">
+  <p class="kicker">Chapter 12 · People &amp; operations</p>
+  <h2>Boarding</h2>
+  <p class="lede">Dormitories, rooms and beds, bed allocation, roll calls, exeat passes and visitors.</p>
+  <dl class="facts"><dt>Menu</dt><dd><span class="path">Boarding › Dormitories</span><span class="path">Bed Allocation</span><span class="path">Roll Call</span><span class="path">Leave Passes</span><span class="path">Visitors</span></dd><dt>Who</dt><dd><span class="chip manage">Boarding staff</span><span class="chip manage">School admin</span><span class="chip">Principal views</span></dd></dl>
+
+  <figure class="shot"><a href="img/board-dorms.jpg" target="_blank" rel="noopener"><img src="img/board-dorms.jpg" alt="Dormitories" loading="lazy" width="1280" height="800"></a></figure>
+  <ol class="key">
+    <li><span class="num">1</span><span>Overall occupancy: beds used against capacity.</span></li>
+    <li><span class="num">2</span><span><b>Add dormitory</b> (house) with its capacity.</span></li>
+    <li><span class="num">3</span><span>Add rooms and the number of beds in each.</span></li>
+  </ol>
+  <figure class="shot"><a href="img/board-alloc.jpg" target="_blank" rel="noopener"><img src="img/board-alloc.jpg" alt="Bed allocations" loading="lazy" width="1280" height="800"></a></figure>
+  <ol class="key">
+    <li><span class="num">1</span><span><b>Allocate bed</b> to a boarder.</span></li>
+    <li><span class="num">2</span><span>Boarders still waiting for a bed. Click <b>Allocate</b> beside a name.</span></li>
+    <li><span class="num">3</span><span>Transfer a boarder to another room, or end the allocation.</span></li>
+  </ol>
+  <div class="grid2">
+    <div>
+      <h3>Roll call</h3>
+      <figure class="shot"><a href="img/board-roll.jpg" target="_blank" rel="noopener"><img src="img/board-roll.jpg" alt="Dormitory roll call" loading="lazy" width="1280" height="800"></a></figure>
+      <ol class="key">
+        <li><span class="num">1</span><span>Choose the dormitory, date and session: morning, evening or night.</span></li>
+        <li><span class="num">2</span><span><b>Mark all present</b>, then change exceptions to absent or on leave.</span></li>
+        <li><span class="num">3</span><span><b>Save roll call</b>.</span></li>
+      </ol>
+    </div>
+    <div>
+      <h3>Visitors</h3>
+      <figure class="shot"><a href="img/board-visitors.jpg" target="_blank" rel="noopener"><img src="img/board-visitors.jpg" alt="Visitor log" loading="lazy" width="1280" height="800"></a></figure>
+      <ol class="key">
+        <li><span class="num">1</span><span><b>Check in visitor</b>: who they are, their phone and the student they are visiting.</span></li>
+        <li><span class="num">2</span><span><b>Check out</b> when they leave.</span></li>
+      </ol>
+    </div>
+  </div>
+  <h3>Leave and exeat passes</h3>
+  <div class="flow"><span>Pending</span><i>→</i><span>Approved</span><i>→</i><span>Out</span><i>→</i><span class="end">Returned</span><i>·</i><span class="stop">Rejected</span></div>
+  <figure class="shot"><a href="img/board-leave.jpg" target="_blank" rel="noopener"><img src="img/board-leave.jpg" alt="Leave passes" loading="lazy" width="1280" height="800"></a></figure>
+  <ol class="key">
+    <li><span class="num">1</span><span><b>New leave pass</b>: dates, reason and the person collecting the student. After approval, mark the student as left when they go.</span></li>
+    <li><span class="num">2</span><span><b>Show overdue</b>: students who have not returned on time.</span></li>
+    <li><span class="num">3</span><span><b>Record return</b> when the student is back.</span></li>
+  </ol>
+  <p class="back-top"><a href="#top">Back to top</a></p>
+</section>
+
+<!-- ============ 13. TRANSPORT ============ -->
+<section class="chapter" id="transport">
+  <p class="kicker">Chapter 13 · People &amp; operations</p>
+  <h2>Transport</h2>
+  <p class="lede">School buses and vans, routes and stops, which students ride where, printable manifests, and running costs.</p>
+  <dl class="facts"><dt>Menu</dt><dd><span class="path">Transport › Vehicles</span><span class="path">Routes &amp; Stops</span><span class="path">Student Allocation</span><span class="path">Fuel &amp; Maintenance</span></dd><dt>Who</dt><dd><span class="chip manage">Transport staff</span><span class="chip manage">School admin</span><span class="chip">Principal views</span></dd></dl>
+  <figure class="shot"><a href="img/tr-fleet.jpg" target="_blank" rel="noopener"><img src="img/tr-fleet.jpg" alt="Transport fleet" loading="lazy" width="1280" height="800"></a></figure>
+  <ol class="key">
+    <li><span class="num">1</span><span><b>Add vehicle</b>: registration, make, capacity, driver, insurance and inspection expiry dates.</span></li>
+    <li><span class="num">2</span><span>Vehicles whose insurance or inspection expires soon.</span></li>
+    <li><span class="num">3</span><span>Filter by compliance status.</span></li>
+  </ol>
+  <div class="grid2">
+    <div>
+      <figure class="shot"><a href="img/tr-routes.jpg" target="_blank" rel="noopener"><img src="img/tr-routes.jpg" alt="Routes and stops" loading="lazy" width="1280" height="800"></a><figcaption><b>Routes &amp; stops.</b> ① Add a route with its vehicle, ordered stops, pickup and drop-off times and fares. ② <b>Manifest</b>: the printable list for the driver.</figcaption></figure>
+    </div>
+    <div>
+      <figure class="shot"><a href="img/tr-manifest.jpg" target="_blank" rel="noopener"><img src="img/tr-manifest.jpg" alt="Route manifest" loading="lazy" width="1280" height="800"></a><figcaption><b>Route manifest.</b> ① Print: students by stop with guardian phone numbers.</figcaption></figure>
+    </div>
+  </div>
+  <figure class="shot"><a href="img/tr-assign.jpg" target="_blank" rel="noopener"><img src="img/tr-assign.jpg" alt="Transport assignments" loading="lazy" width="1280" height="800"></a></figure>
+  <ol class="key">
+    <li><span class="num">1</span><span><b>Assign student</b> to a route and stop from a start date.</span></li>
+    <li><span class="num">2</span><span><b>End assignment</b> when they stop using the bus. The history is kept.</span></li>
+  </ol>
+  <figure class="shot"><a href="img/tr-logs.jpg" target="_blank" rel="noopener"><img src="img/tr-logs.jpg" alt="Vehicle logs and costs" loading="lazy" width="1280" height="800"></a></figure>
+  <ol class="key">
+    <li><span class="num">1</span><span><b>Record log</b>: fuel, maintenance, repair, inspection, trip or incident, with the date, cost, litres for fuel and the odometer reading.</span></li>
+    <li><span class="num">2</span><span>Monthly running cost by vehicle.</span></li>
+  </ol>
+  <p class="back-top"><a href="#top">Back to top</a></p>
+</section>
+
+<!-- ============ 14. INVENTORY ============ -->
+<section class="chapter" id="inventory">
+  <p class="kicker">Chapter 14 · People &amp; operations</p>
+  <h2>Inventory &amp; Procurement</h2>
+  <p class="lede">The stores: items and stock levels, every movement in and out, purchase orders and suppliers. Stock is valued at weighted average cost.</p>
+  <dl class="facts"><dt>Menu</dt><dd><span class="path">Inventory › Items &amp; Stock</span><span class="path">Stock Movements</span><span class="path">Purchase Orders</span><span class="path">Suppliers</span></dd><dt>Who</dt><dd><span class="chip manage">Storekeeper</span><span class="chip manage">School admin</span><span class="chip">Bursar views</span></dd></dl>
+  <figure class="shot"><a href="img/inv-items.jpg" target="_blank" rel="noopener"><img src="img/inv-items.jpg" alt="Stores and inventory" loading="lazy" width="1280" height="800"></a></figure>
+  <ol class="key">
+    <li><span class="num">1</span><span><b>Add item</b>: name, SKU, category, unit, location and re-order level.</span></li>
+    <li><span class="num">2</span><span><b>Show low stock</b>: items at or below their re-order level.</span></li>
+    <li><span class="num">3</span><span><b>Raise PO</b> for them in one step.</span></li>
+  </ol>
+  <figure class="shot"><a href="img/inv-moves.jpg" target="_blank" rel="noopener"><img src="img/inv-moves.jpg" alt="Stock movements" loading="lazy" width="1280" height="800"></a></figure>
+  <ol class="key">
+    <li><span class="num">1</span><span><b>Issue</b> stock to a department or class, <b>Return</b> it, <b>Adjust</b> after a stock count, or <b>Write-off</b> damaged or expired stock (with a reason).</span></li>
+    <li><span class="num">2</span><span>Where issued stock goes.</span></li>
+  </ol>
+  <h3>Purchase orders</h3>
+  <div class="flow"><span>Draft</span><i>→</i><span>Approved (by another user)</span><i>→</i><span class="end">Received</span><i>·</i><span class="stop">Cancelled</span></div>
+  <figure class="shot"><a href="img/inv-pos.jpg" target="_blank" rel="noopener"><img src="img/inv-pos.jpg" alt="Purchase orders" loading="lazy" width="1280" height="800"></a></figure>
+  <ol class="key">
+    <li><span class="num">1</span><span><b>New purchase order</b>: supplier, items, quantities and unit costs.</span></li>
+    <li><span class="num">2</span><span>Filter by status.</span></li>
+  </ol>
+  <figure class="shot"><a href="img/inv-po.jpg" target="_blank" rel="noopener"><img src="img/inv-po.jpg" alt="Purchase order detail" loading="lazy" width="1280" height="800"></a><figcaption><b>A purchase order.</b> After approval, use <b>Receive now</b> as goods arrive. Part deliveries are allowed. Receiving adds the stock and records the supplier balance in the ledger.</figcaption></figure>
+  <figure class="shot"><a href="img/inv-suppliers.jpg" target="_blank" rel="noopener"><img src="img/inv-suppliers.jpg" alt="Suppliers" loading="lazy" width="1280" height="800"></a></figure>
+  <ol class="key">
+    <li><span class="num">1</span><span><b>Add supplier</b>: contact person, phone, email and TIN.</span></li>
+    <li><span class="num">2</span><span>Import suppliers from Excel.</span></li>
+  </ol>
+  <p class="back-top"><a href="#top">Back to top</a></p>
+</section>
+
+<!-- ============ 15. LIBRARY ============ -->
+<section class="chapter" id="library">
+  <p class="kicker">Chapter 15 · People &amp; operations</p>
+  <h2>Library</h2>
+  <p class="lede">The catalogue of textbooks, literature and reference titles with their copies, and the loans desk.</p>
+  <dl class="facts"><dt>Menu</dt><dd><span class="path">Library › Catalogue</span><span class="path">Issue &amp; Return</span></dd><dt>Who</dt><dd><span class="chip manage">Librarian</span><span class="chip manage">School admin</span><span class="chip">Teachers view</span></dd></dl>
+  <figure class="shot"><a href="img/lib-books.jpg" target="_blank" rel="noopener"><img src="img/lib-books.jpg" alt="Library catalogue" loading="lazy" width="1280" height="800"></a></figure>
+  <ol class="key">
+    <li><span class="num">1</span><span><b>Add book</b>: title, author, ISBN, category, shelf and number of copies. Or import books from Excel.</span></li>
+    <li><span class="num">2</span><span>The <b>Loans desk</b>.</span></li>
+    <li><span class="num">3</span><span>Overdue loans.</span></li>
+  </ol>
+  <figure class="shot"><a href="img/lib-loans.jpg" target="_blank" rel="noopener"><img src="img/lib-loans.jpg" alt="Loans desk" loading="lazy" width="1280" height="800"></a></figure>
+  <ol class="key">
+    <li><span class="num">1</span><span><b>Issue book</b> to a student or staff member with a due date.</span></li>
+    <li><span class="num">2</span><span><b>Return</b>, <b>Renew</b> or <b>Mark lost</b>.</span></li>
+  </ol>
+  <p class="back-top"><a href="#top">Back to top</a></p>
+</section>
+
+<!-- ============ 16. HEALTH ============ -->
+<section class="chapter" id="health">
+  <p class="kicker">Chapter 16 · People &amp; operations</p>
+  <h2>Health &amp; Welfare</h2>
+  <p class="lede">The school clinic or sick bay: visits, treatment, referrals and telling the guardian.</p>
+  <dl class="facts"><dt>Menu</dt><dd><span class="path">Health &amp; Welfare</span></dd><dt>Who</dt><dd><span class="chip manage">Boarding staff / nurse</span><span class="chip manage">Principal</span><span class="chip manage">School admin</span></dd></dl>
+  <figure class="shot"><a href="img/health.jpg" target="_blank" rel="noopener"><img src="img/health.jpg" alt="School clinic visits" loading="lazy" width="1280" height="800"></a></figure>
+  <ol class="key">
+    <li><span class="num">1</span><span><b>Record visit</b>: the complaint, the treatment or first aid given, any referral (and where to), and whether the guardian was notified.</span></li>
+    <li><span class="num">2</span><span>The most common complaints, to spot outbreaks early.</span></li>
+  </ol>
+  <p>When you choose a learner, their blood group and allergies from the student profile are shown, so the nurse sees them before treating.</p>
+  <p class="back-top"><a href="#top">Back to top</a></p>
+</section>
+
+
+<!-- ============ 17. COMMUNICATION ============ -->
+<section class="chapter" id="communication">
+  <p class="kicker">Chapter 17 · Engagement</p>
+  <h2>Communication</h2>
+  <p class="lede">Notices on the portals and dashboards, bulk SMS and email to parents and staff, and reusable message templates.</p>
+  <dl class="facts"><dt>Menu</dt><dd><span class="path">Communication › Announcements</span><span class="path">SMS &amp; Email</span><span class="path">Templates</span></dd><dt>Who</dt><dd><span class="chip manage">Principal</span><span class="chip manage">School admin</span><span class="chip">Teachers, bursar view</span></dd></dl>
+
+  <h3>Announcements</h3>
+  <figure class="shot"><a href="img/comm-ann.jpg" target="_blank" rel="noopener"><img src="img/comm-ann.jpg" alt="Announcements" loading="lazy" width="1280" height="800"></a></figure>
+  <ol class="key">
+    <li><span class="num">1</span><span><b>New announcement</b>: title, message, audience (everyone, staff, parents, students or one class), priority (normal, important, urgent) and an optional publish and expiry time.</span></li>
+    <li><span class="num">2</span><span><b>Publish now</b> releases a scheduled notice early.</span></li>
+    <li><span class="num">3</span><span><b>Unpublish</b> takes it down.</span></li>
+  </ol>
+  <p>When an announcement goes live, the matching staff, parents and students get an in-app notification. Notices for everyone or for parents also appear on the school website.</p>
+
+  <h3>SMS and email</h3>
+  <figure class="shot"><a href="img/comm-msg.jpg" target="_blank" rel="noopener"><img src="img/comm-msg.jpg" alt="Compose SMS or email" loading="lazy" width="1280" height="800"></a></figure>
+  <ol class="key">
+    <li><span class="num">1</span><span>Channel: <b>SMS</b> or <b>Email</b>.</span></li>
+    <li><span class="num">2</span><span>Audience: all parents/guardians, the parents of one class, fee defaulters, all staff, or custom numbers and emails.</span></li>
+    <li><span class="num">3</span><span>Placeholders such as <code>{student_name}</code>, <code>{guardian_name}</code>, <code>{balance}</code>, <code>{class}</code> and <code>{school_name}</code> are filled in for each recipient.</span></li>
+    <li><span class="num">4</span><span><b>Preview &amp; send</b> shows the number of recipients, the SMS credits needed, invalid numbers that will be skipped and sample messages before anything is sent.</span></li>
+    <li><span class="num">5</span><span>SMS credits used this month against your plan.</span></li>
+  </ol>
+  <p>The <b>Delivery log</b> below the form shows every message with its status (queued, sent, delivered, failed) and any error. Use <b>Export log</b> for a copy.</p>
+
+  <h3>Templates</h3>
+  <figure class="shot"><a href="img/comm-tpl.jpg" target="_blank" rel="noopener"><img src="img/comm-tpl.jpg" alt="Message templates" loading="lazy" width="1280" height="800"></a></figure>
+  <ol class="key"><li><span class="num">1</span><span><b>New template</b>: reusable wording (fee reminder, opening date, meeting invitation) with placeholders. Pick it from the <b>Template</b> box when composing.</span></li></ol>
+  <p class="back-top"><a href="#top">Back to top</a></p>
+</section>
+
+<!-- ============ 18. WEBSITE ============ -->
+<section class="chapter" id="website">
+  <p class="kicker">Chapter 18 · Engagement</p>
+  <h2>School Website</h2>
+  <p class="lede">A public website for the school, built and updated here, with no web designer needed. Choose a template, write the content, publish, and let parents apply online. Student numbers, classes, subjects, fees, events and notices are filled in from the system automatically.</p>
+  <dl class="facts"><dt>Menu</dt><dd><span class="path">School Website › Website Builder</span><span class="path">Pages</span><span class="path">News &amp; Events</span><span class="path">Gallery</span><span class="path">Enquiries</span><span class="path">Online Applications</span></dd><dt>Who</dt><dd><span class="chip manage">Principal</span><span class="chip manage">School admin</span><span class="chip">Admissions officer views</span></dd><dt>Address</dt><dd><span class="path">/sites/&lt;your-school&gt;</span> or your own domain on the Enterprise plan</dd></dl>
+
+  <h3>Website builder</h3>
+  <figure class="shot"><a href="img/web-builder.jpg" target="_blank" rel="noopener"><img src="img/web-builder.jpg" alt="Website builder overview" loading="lazy" width="1280" height="800"></a></figure>
+  <ol class="key">
+    <li><span class="num">1</span><span>Tabs: Overview, Template &amp; theme, Home page, Sections, Online admission, Contact &amp; social, SEO &amp; domain.</span></li>
+    <li><span class="num">2</span><span>Open the live site (or a preview before publishing).</span></li>
+    <li><span class="num">3</span><span><b>Publish website</b> / <b>Unpublish</b>. Until published, visitors see a "coming soon" page and only your staff can preview it.</span></li>
+    <li><span class="num">4</span><span>What your subscription plan includes: templates, page and photo limits, document uploads, custom domain.</span></li>
+  </ol>
+  <figure class="shot"><a href="img/web-template.jpg" target="_blank" rel="noopener"><img src="img/web-template.jpg" alt="Choosing a template" loading="lazy" width="1280" height="800"></a></figure>
+  <ol class="key"><li><span class="num">1</span><span>Four templates: <b>Modern</b>, <b>Classic</b>, <b>Minimal</b> and <b>Playful</b>. Templates outside your plan show a lock and the plan that includes them. Set your brand colours below the templates, or use a quick palette.</span></li></ol>
+  <div class="grid2">
+    <figure class="shot"><a href="img/web-home.jpg" target="_blank" rel="noopener"><img src="img/web-home.jpg" alt="Home page content" loading="lazy" width="1280" height="800"></a><figcaption><b>Home page.</b> Hero headline and image, about text (with a formatting toolbar), mission, vision and values, the head of school's message, highlights, testimonials and FAQs.</figcaption></figure>
+    <figure class="shot"><a href="img/web-sections.jpg" target="_blank" rel="noopener"><img src="img/web-sections.jpg" alt="Website sections" loading="lazy" width="1280" height="800"></a><figcaption><b>Sections.</b> Switch parts of the site on or off: live statistics, news, events, gallery, testimonials, FAQs and the published fee structure.</figcaption></figure>
+  </div>
+
+  <h3>Online admission</h3>
+  <figure class="shot"><a href="img/web-admission.jpg" target="_blank" rel="noopener"><img src="img/web-admission.jpg" alt="Online admission settings" loading="lazy" width="1280" height="800"></a><figcaption><b>Online admission settings.</b> Turn applications on or off, choose the intake year, the classes open for applications, a closing date, whether documents must be uploaded, and the text parents see.</figcaption></figure>
+  <figure class="shot"><a href="img/site-apply.jpg" target="_blank" rel="noopener"><img src="img/site-apply.jpg" alt="Public online application form" loading="lazy" width="1280" height="800"></a></figure>
+  <ol class="key">
+    <li><span class="num">1</span><span>What parents see: three short steps (learner, parent/guardian, documents &amp; submit).</span></li>
+    <li><span class="num">2</span><span><b>Continue</b> checks each step before moving on.</span></li>
+  </ol>
+  <p>On submission the parent gets a <b>tracking code</b>. The application appears under <a href="#admissions">Admissions</a> with the <b>Online</b> badge, and admissions staff are notified. Parents can check progress any time with the tracking code and their phone number:</p>
+  <figure class="shot"><a href="img/site-track.jpg" target="_blank" rel="noopener"><img src="img/site-track.jpg" alt="Track an application page" loading="lazy" width="1280" height="800"></a><figcaption><b>Track an application</b>, on the public website.</figcaption></figure>
+
+  <h3>Pages, news and events, gallery</h3>
+  <figure class="shot"><a href="img/web-pages.jpg" target="_blank" rel="noopener"><img src="img/web-pages.jpg" alt="Website pages" loading="lazy" width="1280" height="800"></a></figure>
+  <ol class="key">
+    <li><span class="num">1</span><span><b>New page</b> for extra content: Boarding Life, School Uniform, Clubs &amp; Societies, a prospectus…</span></li>
+    <li><span class="num">2</span><span>The page's web address.</span></li>
+    <li><span class="num">3</span><span>Hide, edit or delete. Pages can appear in the website menu.</span></li>
+  </ol>
+  <div class="grid2">
+    <figure class="shot"><a href="img/web-posts.jpg" target="_blank" rel="noopener"><img src="img/web-posts.jpg" alt="News and events" loading="lazy" width="1280" height="800"></a><figcaption><b>News &amp; events.</b> ① <b>New story</b> for news. ② <b>New event</b> with dates and location. Notices are a third type. Save as draft or publish; feature a story on the home page.</figcaption></figure>
+    <figure class="shot"><a href="img/web-gallery.jpg" target="_blank" rel="noopener"><img src="img/web-gallery.jpg" alt="Upload photos to the gallery" loading="lazy" width="1280" height="800"></a><figcaption><b>Gallery.</b> Drag up to 20 photos at a time into an album. Hide, caption or reorder them afterwards.</figcaption></figure>
+  </div>
+  <figure class="shot"><a href="img/web-inquiries.jpg" target="_blank" rel="noopener"><img src="img/web-inquiries.jpg" alt="Website enquiries" loading="lazy" width="1280" height="800"></a><figcaption><b>Enquiries</b> from the website's contact form. Open one to reply by email or phone, then mark it replied or closed.</figcaption></figure>
+
+  <h3>The published website</h3>
+  <figure class="shot"><a href="img/site-home.jpg" target="_blank" rel="noopener"><img src="img/site-home.jpg" alt="The public school website" loading="lazy" width="1280" height="800"></a></figure>
+  <ol class="key">
+    <li><span class="num">1</span><span><b>Apply now</b> leads parents to the online admission form.</span></li>
+    <li><span class="num">2</span><span><b>Portal login</b> takes staff, parents and students to the system.</span></li>
+  </ol>
+  <div class="note"><b>Show the website on the main address</b>The platform administrator can make a school's published website load on the system's main web address instead of the sign-in page. See <a href="#platform-settings">Platform settings</a>.</div>
+  <p class="back-top"><a href="#top">Back to top</a></p>
+</section>
+
+<!-- ============ 19. REPORTS ============ -->
+<section class="chapter" id="reports">
+  <p class="kicker">Chapter 19 · Engagement</p>
+  <h2>Reports</h2>
+  <p class="lede">29 standard reports across admissions, attendance, exams, fees, accounting, HR and operations. Each one can be filtered, printed or exported to CSV.</p>
+  <dl class="facts"><dt>Menu</dt><dd><span class="path">Reports</span></dd><dt>Who</dt><dd><span class="chip manage">Principal</span><span class="chip manage">Bursar</span><span class="chip manage">School admin</span><span class="chip">Teachers, HR, storekeeper, auditor view</span></dd></dl>
+  <figure class="shot"><a href="img/reports.jpg" target="_blank" rel="noopener"><img src="img/reports.jpg" alt="Reports library" loading="lazy" width="1280" height="800"></a></figure>
+  <ol class="key">
+    <li><span class="num">1</span><span>Search the report library.</span></li>
+    <li><span class="num">2</span><span>Browse by area: students &amp; admissions, attendance, academics &amp; exams, fees &amp; finance, accounting statements, HR &amp; payroll, operations.</span></li>
+    <li><span class="num">3</span><span>Star the reports you use most. They appear under <b>Favourites</b>.</span></li>
+  </ol>
+  <figure class="shot"><a href="img/report-run.jpg" target="_blank" rel="noopener"><img src="img/report-run.jpg" alt="A report with filters" loading="lazy" width="1280" height="800"></a><figcaption><b>A report.</b> Set the filters and period, then print or export. The printout shows the period, who generated it and when.</figcaption></figure>
+  <div class="table-wrap"><table>
+    <thead><tr><th>Area</th><th>Reports</th></tr></thead>
+    <tbody>
+      <tr><td>Students &amp; admissions</td><td>Student register / class list · Enrolment by class &amp; gender · Admissions pipeline · New admissions in period · Guardian &amp; emergency contacts</td></tr>
+      <tr><td>Attendance</td><td>Daily summary by class · Student attendance % · Chronic absentees · Staff attendance summary</td></tr>
+      <tr><td>Academics &amp; exams</td><td>Class performance by subject · Grade distribution · Top performers (merit list)</td></tr>
+      <tr><td>Fees &amp; finance</td><td>Fee collection summary · Daily collections (cashier) · Outstanding balances by class · Arrears aging · Invoices by term &amp; category · Discounts granted · Expenses by category &amp; month · Financial summary</td></tr>
+      <tr><td>HR &amp; payroll</td><td>Payroll summary by month · Headcount by department · Staff leave summary</td></tr>
+      <tr><td>Operations</td><td>Boarding occupancy · Transport route manifest · Route utilisation &amp; costs · Stock valuation &amp; low stock · Stock movement summary · Library loans &amp; overdue</td></tr>
+    </tbody>
+  </table></div>
+  <p style="margin-top:12px">The accounting statements (trial balance, income statement, balance sheet, cash flow) are in <a href="#accounting">Accounting</a>.</p>
+  <p class="back-top"><a href="#top">Back to top</a></p>
+</section>
+
+<!-- ============ 20. ADMINISTRATION ============ -->
+<section class="chapter" id="admin">
+  <p class="kicker">Chapter 20 · Administration</p>
+  <h2>Administration</h2>
+  <p class="lede">School settings, user accounts, roles and permissions, the audit trail and your subscription.</p>
+  <dl class="facts"><dt>Menu</dt><dd><span class="path">Administration › School Settings</span><span class="path">Users</span><span class="path">Roles &amp; Permissions</span><span class="path">Audit Trail</span><span class="path">Subscription</span></dd><dt>Who</dt><dd><span class="chip manage">School admin</span><span class="chip">Auditor views</span></dd></dl>
+
+  <h3>School settings</h3>
+  <figure class="shot"><a href="img/adm-settings.jpg" target="_blank" rel="noopener"><img src="img/adm-settings.jpg" alt="School settings" loading="lazy" width="1280" height="800"></a></figure>
+  <ol class="key">
+    <li><span class="num">1</span><span>Tabs: <b>School profile</b>, <b>General</b> (pass mark, attendance alert threshold, late time, fee reminder days, SMS sender ID), <b>Payment instructions</b> (bank account and mobile-money paybill printed on invoices) and <b>Document numbering</b> (prefixes for invoices, receipts, applications…).</span></li>
+    <li><span class="num">2</span><span>Upload the school logo. It appears on receipts, report cards, letters and the website.</span></li>
+  </ol>
+
+  <h3>Users</h3>
+  <figure class="shot"><a href="img/adm-users.jpg" target="_blank" rel="noopener"><img src="img/adm-users.jpg" alt="Users" loading="lazy" width="1280" height="800"></a></figure>
+  <ol class="key">
+    <li><span class="num">1</span><span><b>Add user</b>: full name, email (their login), phone and role. Tick the portal option for parent or student accounts.</span></li>
+    <li><span class="num">2</span><span><b>Reset password</b> or <b>Disable</b> an account. Disabled users cannot sign in, but their history stays.</span></li>
+    <li><span class="num">3</span><span>Filter by role or status.</span></li>
+  </ol>
+
+  <h3>Roles and permissions</h3>
+  <figure class="shot"><a href="img/adm-roles.jpg" target="_blank" rel="noopener"><img src="img/adm-roles.jpg" alt="Roles and permissions" loading="lazy" width="1280" height="800"></a></figure>
+  <ol class="key">
+    <li><span class="num">1</span><span><b>New role</b>, or edit one of the built-in roles.</span></li>
+    <li><span class="num">2</span><span>For each module choose <b>View</b> (read only) or <b>Manage</b> (create, edit, approve). Changes apply on the user's next page load.</span></li>
+  </ol>
+  <p>The default access of each built-in role is listed in <a href="#access">Who can use what</a>.</p>
+
+  <div class="grid2">
+    <div>
+      <h3>Audit trail</h3>
+      <figure class="shot"><a href="img/adm-audit.jpg" target="_blank" rel="noopener"><img src="img/adm-audit.jpg" alt="Audit trail" loading="lazy" width="1280" height="800"></a></figure>
+      <ol class="key">
+        <li><span class="num">1</span><span>Filter by user, action, module and date.</span></li>
+        <li><span class="num">2</span><span><b>Details</b> shows the values before and after a change.</span></li>
+        <li><span class="num">3</span><span>Export for auditors.</span></li>
+      </ol>
+      <p>Sign-ins, approvals, role changes, exports, imports and data changes are all recorded and cannot be edited.</p>
+    </div>
+    <div>
+      <h3>Subscription</h3>
+      <figure class="shot"><a href="img/adm-sub.jpg" target="_blank" rel="noopener"><img src="img/adm-sub.jpg" alt="Subscription" loading="lazy" width="1280" height="800"></a></figure>
+      <ol class="key">
+        <li><span class="num">1</span><span><b>Request upgrade</b> to a bigger plan. The platform team receives your request.</span></li>
+        <li><span class="num">2</span><span>The modules included in your plan.</span></li>
+      </ol>
+      <p>The page also shows your plan, status, days left, and usage against limits: active students, staff users, schools and SMS credits.</p>
+    </div>
+  </div>
+  <p class="back-top"><a href="#top">Back to top</a></p>
+</section>
+
+<!-- ============ 21. PORTAL ============ -->
+<section class="chapter" id="portal">
+  <p class="kicker">Chapter 21 · Portals</p>
+  <h2>Parent &amp; Student Portal</h2>
+  <p class="lede">Parents and students sign in with the same sign-in page and see only their own information. Parent logins are created from <a href="#students">Guardians › Parent portal access</a>.</p>
+  <dl class="facts"><dt>Menu</dt><dd><span class="path">My Portal</span></dd><dt>Who</dt><dd><span class="chip">Parents / guardians</span><span class="chip">Students</span></dd></dl>
+  <figure class="shot"><a href="img/portal-parent.jpg" target="_blank" rel="noopener"><img src="img/portal-parent.jpg" alt="Parent portal" loading="lazy" width="1280" height="800"></a></figure>
+  <ol class="key">
+    <li><span class="num">1</span><span>Each of your children. Click one to open their details.</span></li>
+    <li><span class="num">2</span><span>Announcements from the school.</span></li>
+    <li><span class="num">3</span><span>Fee balances and recent payments.</span></li>
+  </ol>
+  <div class="grid2">
+    <figure class="shot"><a href="img/portal-child.jpg" target="_blank" rel="noopener"><img src="img/portal-child.jpg" alt="A child's page in the parent portal" loading="lazy" width="1280" height="800"></a><figcaption><b>A child's page.</b> Fees and statement, attendance, published results, timetable and homework.</figcaption></figure>
+    <figure class="shot"><a href="img/portal-student.jpg" target="_blank" rel="noopener"><img src="img/portal-student.jpg" alt="Student portal" loading="lazy" width="1280" height="800"></a><figcaption><b>Student portal.</b> ① Tabs for fees, attendance, results, timetable and homework. ② Homework due. ③ Upcoming events.</figcaption></figure>
+  </div>
+  <div class="note"><b>For parents</b>Results appear only after the school publishes them. To pay fees, use the bank or mobile-money details printed on your child's invoice, quoting the admission number. The payment shows on the portal once the school records it.</div>
+  <p class="back-top"><a href="#top">Back to top</a></p>
+</section>
+
+<!-- ============ 22. PLATFORM ============ -->
+<section class="chapter" id="platform">
+  <p class="kicker">Chapter 22 · Platform</p>
+  <h2>Platform Console</h2>
+  <p class="lede">For the company running the platform, not for schools. Manage every subscribed school (tenant), plans and pricing, subscription payments, support tickets and platform-wide settings.</p>
+  <dl class="facts"><dt>Menu</dt><dd><span class="path">Platform › Overview</span><span class="path">Tenants</span><span class="path">Plans</span><span class="path">Subscriptions</span><span class="path">Support Tickets</span><span class="path">Platform Settings</span></dd><dt>Who</dt><dd><span class="chip manage">Platform administrators only</span></dd></dl>
+  <p>A platform administrator sees only the Platform module. To work inside a school, open it from <b>Tenants</b> and click <b>Enter school</b>. The header then offers a school switcher listing every school, and a button to return to the platform.</p>
+
+  <figure class="shot"><a href="img/saas-overview.jpg" target="_blank" rel="noopener"><img src="img/saas-overview.jpg" alt="Platform overview" loading="lazy" width="1280" height="800"></a></figure>
+  <ol class="key">
+    <li><span class="num">1</span><span>Tenant growth over the last 12 months, with recurring revenue above.</span></li>
+    <li><span class="num">2</span><span>Subscriptions expiring soon.</span></li>
+    <li><span class="num">3</span><span>Open support tickets.</span></li>
+  </ol>
+
+  <h3>Tenants</h3>
+  <figure class="shot"><a href="img/saas-tenants.jpg" target="_blank" rel="noopener"><img src="img/saas-tenants.jpg" alt="Tenants" loading="lazy" width="1280" height="800"></a></figure>
+  <ol class="key">
+    <li><span class="num">1</span><span><b>New tenant</b>: school name, level, residence, region, administrator name and email, plan and trial days. The school is provisioned ready to use.</span></li>
+    <li><span class="num">2</span><span>Filter by status (trial, active, grace, suspended, cancelled) or plan.</span></li>
+  </ol>
+  <figure class="shot"><a href="img/saas-tenant.jpg" target="_blank" rel="noopener"><img src="img/saas-tenant.jpg" alt="Tenant detail" loading="lazy" width="1280" height="800"></a></figure>
+  <ol class="key">
+    <li><span class="num">1</span><span><b>Change plan</b>, <b>Extend trial</b>, <b>Grace period</b>, <b>Suspend</b> or <b>Cancel</b>. A suspended school cannot sign in and its website goes offline.</span></li>
+    <li><span class="num">2</span><span><b>Enter school</b> to help them inside their own system.</span></li>
+    <li><span class="num">3</span><span>Usage against plan limits.</span></li>
+  </ol>
+
+  <h3>Plans</h3>
+  <figure class="shot"><a href="img/saas-plans.jpg" target="_blank" rel="noopener"><img src="img/saas-plans.jpg" alt="Plans" loading="lazy" width="1280" height="800"></a></figure>
+  <ol class="key">
+    <li><span class="num">1</span><span><b>New plan</b>.</span></li>
+    <li><span class="num">2</span><span><b>Edit</b>: price and billing interval, limits (students, users, schools, SMS credits), included modules, and School website features.</span></li>
+  </ol>
+  <figure class="shot"><a href="img/saas-plan-edit.jpg" target="_blank" rel="noopener"><img src="img/saas-plan-edit.jpg" alt="Editing a plan" loading="lazy" width="1280" height="800"></a><figcaption><b>Editing a plan.</b> ① The <b>School website</b> section sets which templates the plan offers, how many pages and photos, and whether online admission, document uploads, a custom domain and removing platform branding are included. A plan you create yourself starts with the features of the built-in plan its price matches.</figcaption></figure>
+
+  <div class="grid2">
+    <div>
+      <h3>Subscriptions</h3>
+      <figure class="shot"><a href="img/saas-subs.jpg" target="_blank" rel="noopener"><img src="img/saas-subs.jpg" alt="Subscriptions" loading="lazy" width="1280" height="800"></a></figure>
+      <ol class="key">
+        <li><span class="num">1</span><span>Record a subscription invoice or payment.</span></li>
+        <li><span class="num">2</span><span>Mark an outstanding invoice as paid.</span></li>
+      </ol>
+    </div>
+    <div>
+      <h3>Support tickets</h3>
+      <figure class="shot"><a href="img/saas-tickets.jpg" target="_blank" rel="noopener"><img src="img/saas-tickets.jpg" alt="Support tickets" loading="lazy" width="1280" height="800"></a></figure>
+      <ol class="key"><li><span class="num">1</span><span><b>Update</b>: reply, change the status or priority. Plan upgrade requests from schools arrive here too.</span></li></ol>
+    </div>
+  </div>
+
+  <h3 id="platform-settings">Platform settings</h3>
+  <figure class="shot"><a href="img/saas-settings.jpg" target="_blank" rel="noopener"><img src="img/saas-settings.jpg" alt="Platform settings" loading="lazy" width="1280" height="800"></a></figure>
+  <ol class="key">
+    <li><span class="num">1</span><span><b>Show a school website</b>: the main web address loads the chosen school's published website, with a <b>Portal login</b> link.</span></li>
+    <li><span class="num">2</span><span><b>Go straight to login</b>: the main web address opens the sign-in page (the original behaviour).</span></li>
+    <li><span class="num">3</span><span>The school whose website to show.</span></li>
+    <li><span class="num">4</span><span><b>Save settings</b>.</span></li>
+  </ol>
+  <div class="note warn"><b>Falls back to login</b>If the chosen school's website is not published or its subscription is inactive, the main address keeps opening the sign-in page. The settings page warns you when this applies.</div>
+  <p class="back-top"><a href="#top">Back to top</a></p>
+</section>
+
+<!-- ============ APPENDIX ============ -->
+<section class="chapter" id="access">
+  <p class="kicker">Appendix</p>
+  <h2>Who can use what</h2>
+  <p class="lede">The default access of each built-in role. <b>M</b> means manage (create, edit, approve), <b>V</b> means view only, and a dash means the module is hidden. Administrators can change any role in <a href="#admin">Roles &amp; Permissions</a>.</p>
+  <div class="table-wrap"><table>
+    <thead><tr><th>Module</th><th>School admin</th><th>Principal</th><th>Bursar</th><th>Teacher</th><th>Admissions</th><th>HR / payroll</th><th>Storekeeper</th><th>Librarian</th><th>Boarding</th><th>Transport</th><th>Auditor</th></tr></thead>
+    <tbody>
+      <tr><td>Dashboard</td><td class="c m">M</td><td class="c m">M</td><td class="c v">V</td><td class="c v">V</td><td class="c v">V</td><td class="c v">V</td><td class="c v">V</td><td class="c v">V</td><td class="c v">V</td><td class="c v">V</td><td class="c v">V</td></tr>
+      <tr><td>Admissions</td><td class="c m">M</td><td class="c m">M</td><td class="c">–</td><td class="c">–</td><td class="c m">M</td><td class="c">–</td><td class="c">–</td><td class="c">–</td><td class="c">–</td><td class="c">–</td><td class="c">–</td></tr>
+      <tr><td>Students</td><td class="c m">M</td><td class="c m">M</td><td class="c v">V</td><td class="c v">V</td><td class="c m">M</td><td class="c">–</td><td class="c">–</td><td class="c v">V</td><td class="c v">V</td><td class="c v">V</td><td class="c">–</td></tr>
+      <tr><td>Academics</td><td class="c m">M</td><td class="c m">M</td><td class="c">–</td><td class="c m">M</td><td class="c v">V</td><td class="c">–</td><td class="c">–</td><td class="c">–</td><td class="c">–</td><td class="c">–</td><td class="c">–</td></tr>
+      <tr><td>Attendance &amp; discipline</td><td class="c m">M</td><td class="c m">M</td><td class="c">–</td><td class="c m">M</td><td class="c">–</td><td class="c">–</td><td class="c">–</td><td class="c">–</td><td class="c">–</td><td class="c">–</td><td class="c">–</td></tr>
+      <tr><td>Examinations</td><td class="c m">M</td><td class="c m">M</td><td class="c">–</td><td class="c m">M</td><td class="c">–</td><td class="c">–</td><td class="c">–</td><td class="c">–</td><td class="c">–</td><td class="c">–</td><td class="c">–</td></tr>
+      <tr><td>Fees &amp; billing</td><td class="c m">M</td><td class="c v">V</td><td class="c m">M</td><td class="c">–</td><td class="c">–</td><td class="c">–</td><td class="c">–</td><td class="c">–</td><td class="c">–</td><td class="c">–</td><td class="c v">V</td></tr>
+      <tr><td>Accounting</td><td class="c m">M</td><td class="c v">V</td><td class="c m">M</td><td class="c">–</td><td class="c">–</td><td class="c">–</td><td class="c">–</td><td class="c">–</td><td class="c">–</td><td class="c">–</td><td class="c v">V</td></tr>
+      <tr><td>Human resources</td><td class="c m">M</td><td class="c v">V</td><td class="c">–</td><td class="c">–</td><td class="c">–</td><td class="c m">M</td><td class="c">–</td><td class="c">–</td><td class="c">–</td><td class="c">–</td><td class="c">–</td></tr>
+      <tr><td>Payroll</td><td class="c m">M</td><td class="c">–</td><td class="c m">M</td><td class="c">–</td><td class="c">–</td><td class="c m">M</td><td class="c">–</td><td class="c">–</td><td class="c">–</td><td class="c">–</td><td class="c v">V</td></tr>
+      <tr><td>Boarding</td><td class="c m">M</td><td class="c v">V</td><td class="c">–</td><td class="c">–</td><td class="c">–</td><td class="c">–</td><td class="c">–</td><td class="c">–</td><td class="c m">M</td><td class="c">–</td><td class="c">–</td></tr>
+      <tr><td>Transport</td><td class="c m">M</td><td class="c v">V</td><td class="c">–</td><td class="c">–</td><td class="c">–</td><td class="c">–</td><td class="c">–</td><td class="c">–</td><td class="c">–</td><td class="c m">M</td><td class="c">–</td></tr>
+      <tr><td>Inventory</td><td class="c m">M</td><td class="c">–</td><td class="c v">V</td><td class="c">–</td><td class="c">–</td><td class="c">–</td><td class="c m">M</td><td class="c">–</td><td class="c">–</td><td class="c">–</td><td class="c">–</td></tr>
+      <tr><td>Library</td><td class="c m">M</td><td class="c v">V</td><td class="c">–</td><td class="c v">V</td><td class="c">–</td><td class="c">–</td><td class="c">–</td><td class="c m">M</td><td class="c">–</td><td class="c">–</td><td class="c">–</td></tr>
+      <tr><td>Health &amp; welfare</td><td class="c m">M</td><td class="c m">M</td><td class="c">–</td><td class="c">–</td><td class="c">–</td><td class="c">–</td><td class="c">–</td><td class="c">–</td><td class="c m">M</td><td class="c">–</td><td class="c">–</td></tr>
+      <tr><td>Communication</td><td class="c m">M</td><td class="c m">M</td><td class="c v">V</td><td class="c v">V</td><td class="c">–</td><td class="c">–</td><td class="c">–</td><td class="c">–</td><td class="c">–</td><td class="c">–</td><td class="c">–</td></tr>
+      <tr><td>School website</td><td class="c m">M</td><td class="c m">M</td><td class="c">–</td><td class="c">–</td><td class="c v">V</td><td class="c">–</td><td class="c">–</td><td class="c">–</td><td class="c">–</td><td class="c">–</td><td class="c">–</td></tr>
+      <tr><td>Reports</td><td class="c m">M</td><td class="c m">M</td><td class="c m">M</td><td class="c v">V</td><td class="c">–</td><td class="c v">V</td><td class="c v">V</td><td class="c">–</td><td class="c">–</td><td class="c">–</td><td class="c v">V</td></tr>
+      <tr><td>Administration</td><td class="c m">M</td><td class="c">–</td><td class="c">–</td><td class="c">–</td><td class="c">–</td><td class="c">–</td><td class="c">–</td><td class="c">–</td><td class="c">–</td><td class="c">–</td><td class="c v">V</td></tr>
+    </tbody>
+  </table></div>
+  <p style="margin-top:12px">Parents and students have portal access only. Platform administrators see only the Platform console until they enter a school.</p>
+  <p class="back-top"><a href="#top">Back to top</a></p>
+</section>
+
+<footer class="colophon">
+  <p>Mzenzi School Management · User guide, October 2026 edition. Screens were captured from the demo school with sample data; your school's names, numbers and menu items will differ according to your role and plan.</p>
+</footer>
+</main>
+</div>
+
+<script>
+(() => {
+  const links = [...document.querySelectorAll('#toc a')];
+  const filter = document.getElementById('toc-filter');
+  filter?.addEventListener('input', () => {
+    const q = filter.value.trim().toLowerCase();
+    links.forEach((a) => { a.hidden = q !== '' && !(a.textContent + ' ' + (a.dataset.k || '')).toLowerCase().includes(q); });
+  });
+
+  // Mobile chapter picker mirrors the contents rail.
+  const jump = document.getElementById('jump');
+  if (jump) {
+    jump.append(new Option('Choose a chapter…', ''));
+    links.forEach((a) => jump.append(new Option(a.textContent.replace(/^\s*\S+\s*/, (m) => m.trim() + '  '), a.getAttribute('href'))));
+    jump.addEventListener('change', () => { if (jump.value) location.hash = jump.value; });
+  }
+
+  // Highlight the chapter currently in view.
+  const byId = new Map(links.map((a) => [a.getAttribute('href').slice(1), a]));
+  const io = new IntersectionObserver((entries) => {
+    entries.forEach((e) => {
+      if (!e.isIntersecting) return;
+      links.forEach((a) => a.classList.remove('active'));
+      const a = byId.get(e.target.id);
+      if (a) { a.classList.add('active'); a.scrollIntoView({ block: 'nearest' }); }
+    });
+  }, { rootMargin: '-20% 0px -70% 0px' });
+  document.querySelectorAll('section.chapter').forEach((s) => io.observe(s));
+})();
+</script>

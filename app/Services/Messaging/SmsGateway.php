@@ -7,8 +7,8 @@ use App\Models\MessageLog;
 /**
  * Outbound message provider contract (SMS / email).
  *
- * Real providers (e.g. Beem, NextSMS, Africa's Talking, SMTP) implement this
- * interface; every implementation must record the attempt in message_logs.
+ * Implementations: LogSmsGateway (development, records only) and BeemSmsGateway (Beem Africa SMS).
+ * Every attempt is recorded in message_logs.
  */
 interface SmsGateway
 {
@@ -21,4 +21,7 @@ interface SmsGateway
      * @param  array{recipient_name?: string|null, subject?: string|null, credits?: int, sent_by?: int|null}  $meta
      */
     public function send(string $channel, string $recipient, string $message, array $meta = []): MessageLog;
+
+    /** Send an existing queued log row and update it in place (status, provider reference, error). */
+    public function deliver(MessageLog $log): MessageLog;
 }

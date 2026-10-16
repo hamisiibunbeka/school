@@ -148,7 +148,9 @@ export function DatePicker({ value, onChange, onValueChange, mode = 'date', min,
 
     return (
         <div className="relative w-full">
-            <input ref={inputRef} name={name} {...rest} defaultValue={value ?? ''} type="text" />
+            {/* Hidden value carrier; flatpickr renders the visible dd/mm/yyyy input (altInput).
+                Must be "hidden" here: React re-applies `type` on every render, which would un-hide a text input. */}
+            <input ref={inputRef} name={name} {...rest} defaultValue={value ?? ''} type="hidden" />
             {showClear ? (
                 <button type="button" onClick={clear} className="absolute end-2.5 top-1/2 -translate-y-1/2 text-white-dark hover:text-danger" aria-label="Clear date" tabIndex={-1}>
                     <X className="h-4 w-4" />

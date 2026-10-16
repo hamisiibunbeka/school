@@ -35,4 +35,20 @@ return [
         ],
     ],
 
+    // Outbound SMS. "log" records messages without sending (development); "beem" sends through Beem Africa.
+    'sms' => [
+        'driver' => env('SMS_DRIVER', 'log'),
+    ],
+
+    // Beem Africa SMS (https://docs.beem.africa/guides/sms/index). One platform account; each school
+    // may use its own approved sender ID (School Settings → General → SMS sender ID).
+    'beem' => [
+        'api_key' => env('BEEM_API_KEY'),
+        'secret_key' => env('BEEM_SECRET_KEY'),
+        'sender_id' => env('BEEM_SENDER_ID', 'INFO'),
+        'base_url' => env('BEEM_BASE_URL', 'https://apisms.beem.africa'),
+        'dlr_url' => env('BEEM_DLR_URL', 'https://dlrapi.beem.africa'),
+        'timeout' => (int) env('BEEM_TIMEOUT', 20),
+    ],
+
 ];

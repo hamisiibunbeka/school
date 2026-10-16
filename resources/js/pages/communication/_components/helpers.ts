@@ -27,8 +27,10 @@ export function toLocalInput(iso: string | null | undefined): string {
 }
 
 /** SMS credits for a message (160 characters per credit). */
+/** Billable SMS parts, matching the server (App\Services\Messaging\GsmText): 160 characters for one SMS, 153 per part when longer. */
 export function smsCredits(text: string): number {
-    return Math.max(1, Math.ceil(text.length / 160));
+    const length = [...text].reduce((n, ch) => n + ('^{}\\[~]|€'.includes(ch) ? 2 : 1), 0);
+    return length <= 160 ? 1 : Math.ceil(length / 153);
 }
 
 export const VARIABLE_HINTS: Record<string, string> = {

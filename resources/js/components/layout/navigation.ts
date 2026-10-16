@@ -177,6 +177,7 @@ export const navigation: NavSection[] = [
                     { title: 'Roll Call', href: '/boarding/roll-call' },
                     { title: 'Leave Passes', href: '/boarding/leave-passes' },
                     { title: 'Visitors', href: '/boarding/visitors' },
+                    { title: 'Pocket Money', href: '/boarding/pocket-money' },
                 ],
             },
             {

@@ -10,7 +10,7 @@ class MessageLog extends SchoolModel
 
     protected function casts(): array
     {
-        return ['credits' => 'integer'];
+        return ['credits' => 'integer', 'delivery_checked_at' => 'datetime', 'delivered_at' => 'datetime'];
     }
 
     public function sender(): BelongsTo

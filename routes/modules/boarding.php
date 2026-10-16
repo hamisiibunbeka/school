@@ -3,6 +3,7 @@
 use App\Http\Controllers\Boarding\AllocationController;
 use App\Http\Controllers\Boarding\DormitoryController;
 use App\Http\Controllers\Boarding\LeavePassController;
+use App\Http\Controllers\Boarding\PocketMoneyController;
 use App\Http\Controllers\Boarding\RollCallController;
 use App\Http\Controllers\Boarding\VisitorController;
 use Illuminate\Support\Facades\Route;
@@ -33,6 +34,17 @@ Route::middleware('can:boarding.manage')->prefix('boarding')->name('boarding.')-
     Route::post('visitors', [VisitorController::class, 'store'])->name('visitors.store');
     Route::post('visitors/{visitor}/check-out', [VisitorController::class, 'checkOut'])->name('visitors.check-out');
     Route::delete('visitors/{visitor}', [VisitorController::class, 'destroy'])->name('visitors.destroy');
+
+    Route::prefix('pocket-money')->name('pocket-money.')->controller(PocketMoneyController::class)->group(function () {
+        Route::post('deposit', 'deposit')->name('deposit');
+        Route::post('cash-counts', 'storeCashCount')->name('cash-counts.store');
+        Route::post('transactions/{transaction}/reverse', 'reverse')->name('reverse');
+        Route::post('{account}/withdraw', 'withdraw')->name('withdraw');
+        Route::put('{account}', 'update')->name('update');
+        Route::post('{account}/pin', 'pin')->name('pin');
+        Route::post('{account}/close', 'close')->name('close');
+        Route::post('{account}/reopen', 'reopen')->name('reopen');
+    });
 });
 
 Route::middleware('can:boarding.view')->prefix('boarding')->name('boarding.')->group(function () {
@@ -42,4 +54,12 @@ Route::middleware('can:boarding.view')->prefix('boarding')->name('boarding.')->g
     Route::get('roll-call', [RollCallController::class, 'index'])->name('roll-call.index');
     Route::get('leave-passes', [LeavePassController::class, 'index'])->name('leave-passes.index');
     Route::get('visitors', [VisitorController::class, 'index'])->name('visitors.index');
+
+    Route::prefix('pocket-money')->name('pocket-money.')->controller(PocketMoneyController::class)->group(function () {
+        Route::get('/', 'index')->name('index');
+        Route::get('transactions', 'transactions')->name('transactions');
+        Route::get('transactions/{transaction}/receipt', 'receipt')->name('receipt');
+        Route::get('cash-counts', 'cashCounts')->name('cash-counts');
+        Route::get('{account}', 'show')->whereNumber('account')->name('show');
+    });
 });

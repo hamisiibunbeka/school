@@ -1,6 +1,6 @@
 import { Head, Link, usePage } from '@inertiajs/react';
-import { ArrowUpRight, Menu, X } from 'lucide-react';
-import { useEffect, useState, type CSSProperties, type ReactNode } from 'react';
+import { ArrowUpRight, ChevronDown, Menu, X } from 'lucide-react';
+import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react';
 import { cn } from '@/lib/utils';
 import type { NavItem, SiteChrome } from '../_components/types';
 import { Crest, PreviewBanner, SITE_CSS, siteVars } from '../_components/ui';
@@ -196,4 +196,56 @@ export function quickLinks(site: SiteChrome): NavItem[] {
 export function BrandingCredit({ site, className }: { site: SiteChrome; className?: string }) {
     if (!site.show_branding) return null;
     return <p className={cn('text-xs', className)}>Website by {site.platform}</p>;
+}
+
+/**
+ * Desktop menu split: the first `max` built-in pages stay in the bar (plus the portal link);
+ * remaining built-ins and custom pages go into a "More" dropdown so long menus never overflow.
+ */
+export function splitNav(nav: NavItem[], max = 5): { main: NavItem[]; more: NavItem[] } {
+    const portal = nav.filter((n) => n.portal);
+    const items = nav.filter((n) => !n.portal);
+    if (items.length <= max + 1) return { main: nav, more: [] };
+    const builtIn = items.filter((n) => !n.href.includes('/p/'));
+    const custom = items.filter((n) => n.href.includes('/p/'));
+    return { main: [...builtIn.slice(0, max), ...portal], more: [...builtIn.slice(max), ...custom] };
+}
+
+/** "More ▾" dropdown for the desktop menu. `triggerClass` matches the template's menu links. */
+export function NavMore({ items, triggerClass, active }: { items: NavItem[]; triggerClass: string; active?: boolean }) {
+    const [open, setOpen] = useState(false);
+    const ref = useRef<HTMLLIElement>(null);
+    const { url } = usePage();
+    useEffect(() => setOpen(false), [url]);
+    useEffect(() => {
+        if (!open) return;
+        const close = (e: MouseEvent | KeyboardEvent) => {
+            if (e instanceof KeyboardEvent ? e.key === 'Escape' : !ref.current?.contains(e.target as Node)) setOpen(false);
+        };
+        document.addEventListener('mousedown', close);
+        document.addEventListener('keydown', close);
+        return () => {
+            document.removeEventListener('mousedown', close);
+            document.removeEventListener('keydown', close);
+        };
+    }, [open]);
+    if (!items.length) return null;
+    return (
+        <li ref={ref} className="relative">
+            <button type="button" aria-haspopup="true" aria-expanded={open} onClick={() => setOpen((o) => !o)} className={cn(triggerClass, 'inline-flex items-center gap-1', active && 'font-extrabold')}>
+                More <ChevronDown className={cn('h-3.5 w-3.5 transition', open && 'rotate-180')} aria-hidden="true" />
+            </button>
+            {open && (
+                <ul className="absolute right-0 z-50 mt-2 min-w-52 overflow-hidden rounded-xl border border-slate-200 bg-white py-1.5 text-left shadow-xl">
+                    {items.map((item) => (
+                        <li key={item.href}>
+                            <Link href={item.href} className="block px-4 py-2 text-sm font-semibold whitespace-nowrap text-slate-700 hover:bg-slate-50 hover:text-[var(--site-primary)]">
+                                {item.label}
+                            </Link>
+                        </li>
+                    ))}
+                </ul>
+            )}
+        </li>
+    );
 }

@@ -3,6 +3,8 @@
 namespace App\Http\Controllers\Fees;
 
 use App\Http\Controllers\Controller;
+use App\Jobs\SendQueuedMessages;
+use App\Services\Messaging\GsmText;
 use App\Support\Lookups;
 use Illuminate\Database\Query\Builder;
 use Illuminate\Http\RedirectResponse;
@@ -151,7 +153,7 @@ class ArrearsController extends Controller
                 'subject' => $subject,
                 'message' => $message,
                 'status' => 'queued',
-                'credits' => (int) max(1, ceil(mb_strlen($message) / 160)),
+                'credits' => GsmText::segments($message),
                 'sent_by' => $request->user()->id,
                 'created_at' => $now,
                 'updated_at' => $now,
@@ -160,6 +162,9 @@ class ArrearsController extends Controller
 
         foreach (array_chunk($insert, 200) as $chunk) {
             DB::table('message_logs')->insert($chunk);
+        }
+        if ($insert) {
+            SendQueuedMessages::dispatch($schoolId); // sends through the SMS provider in the background
         }
 
         $this->audit('reminded', null, 'Queued '.count($insert).' fee reminder SMS(es)', 'fees', null, ['count' => count($insert), 'skipped' => $skipped]);

@@ -6,14 +6,18 @@ use App\Http\Controllers\Controller;
 use App\Models\PlatformSetting;
 use App\Models\School;
 use App\Models\SchoolWebsite;
+use App\Services\Messaging\Beem\BeemClient;
+use App\Services\Messaging\Beem\BeemException;
+use App\Services\Messaging\Beem\BeemSmsGateway;
 use App\Services\Website\HomepageSite;
 use App\Services\Website\WebsiteEntitlements;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
 
-/** Platform-wide settings: which school website is served on the main domain ("/"). */
+/** Platform-wide settings: the school website served on the main domain ("/") and the SMS provider status. */
 class SettingsController extends Controller
 {
     public function index(): Response
@@ -41,6 +45,12 @@ class SettingsController extends Controller
             'homepage' => HomepageSite::setting(),
             'schools' => $schools,
             'appUrl' => url('/'),
+            'sms' => [
+                'driver' => config('services.sms.driver'),
+                'configured' => BeemClient::configured(),
+                'default_sender' => config('services.beem.sender_id'),
+                'key_hint' => BeemClient::configured() ? '…'.substr((string) config('services.beem.api_key'), -4) : null,
+            ],
         ]);
     }
 
@@ -66,5 +76,39 @@ class SettingsController extends Controller
         }
 
         return back();
+    }
+
+    /** Live Beem status: credit balance and sender IDs with their approval status. */
+    public function smsStatus(): JsonResponse
+    {
+        try {
+            $client = BeemClient::fromConfig();
+
+            return response()->json(['ok' => true, 'balance' => $client->balance(), 'senders' => $client->senderNames()]);
+        } catch (BeemException $e) {
+            return response()->json(['ok' => false, 'message' => $e->getMessage()], 422);
+        }
+    }
+
+    /** Send a one-off test SMS straight through Beem (not counted against any school). */
+    public function smsTest(Request $request): JsonResponse
+    {
+        $data = $request->validate([
+            'phone' => ['required', 'string', 'max:20'],
+            'sender' => ['nullable', 'string', 'max:11', 'regex:/^[A-Za-z0-9 ]*$/'],
+        ]);
+        $dest = BeemSmsGateway::destination($data['phone']);
+        if (! $dest) {
+            return response()->json(['ok' => false, 'message' => 'Enter a valid phone number, e.g. 0712 345 678 or +255712345678.'], 422);
+        }
+
+        try {
+            $result = BeemClient::fromConfig()->send($data['sender'] ?: (string) config('services.beem.sender_id'), 'Test message from '.config('app.name').'. Your SMS connection works.', [1 => $dest]);
+            $this->audit('sms_test', null, "Sent a test SMS to {$dest} (Beem request {$result['request_id']})", 'saas');
+
+            return response()->json(['ok' => true, 'request_id' => $result['request_id'], 'message' => "Submitted to Beem (request {$result['request_id']})."]);
+        } catch (BeemException $e) {
+            return response()->json(['ok' => false, 'message' => $e->getMessage()], 422);
+        }
     }
 }

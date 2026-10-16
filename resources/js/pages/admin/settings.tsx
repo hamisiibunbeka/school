@@ -216,7 +216,7 @@ function GeneralForm({ settings, manage }: { settings: Settings; manage: boolean
                         onChange={(e) => form.setData('fee_reminder_days', e.target.value)}
                         error={form.errors.fee_reminder_days}
                     />
-                    <Input label="SMS sender ID" maxLength={11} value={form.data.sms_sender_id} onChange={(e) => form.setData('sms_sender_id', e.target.value)} error={form.errors.sms_sender_id} help="Max 11 letters/digits, e.g. MZENZI-SS" />
+                    <Input label="SMS sender ID" maxLength={11} value={form.data.sms_sender_id} onChange={(e) => form.setData('sms_sender_id', e.target.value)} error={form.errors.sms_sender_id} help="Up to 11 letters or digits, e.g. MZENZISS. It must be registered and approved with the SMS provider (Beem) first; leave blank to use the platform default." />
                 </FormGrid>
             </FormSection>
             {manage && (
