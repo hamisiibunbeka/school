@@ -1,33 +1,13 @@
-import { router, useForm, usePage } from "@inertiajs/react";
-import {
-    ArrowDownLeft,
-    ArrowUpRight,
-    KeyRound,
-    ListOrdered,
-    RotateCcw,
-    Scale,
-    Wallet,
-} from "lucide-react";
-import {
-    useEffect,
-    useMemo,
-    useState,
-    type FormEvent,
-    type ReactNode,
-} from "react";
-import {
-    Checkbox,
-    FormGrid,
-    Input,
-    Select,
-    Textarea,
-} from "@/components/ui/form";
-import Modal from "@/components/ui/modal";
-import Tabs from "@/components/ui/tabs";
-import { confirm } from "@/lib/swal";
-import { cn, money, titleCase } from "@/lib/utils";
-import type { Option } from "@/types";
-import SearchSelect from "../../_components/search-select";
+import { router, useForm, usePage } from '@inertiajs/react';
+import { ArrowDownLeft, ArrowUpRight, KeyRound, ListOrdered, RotateCcw, Scale, Wallet } from 'lucide-react';
+import { useEffect, useMemo, useState, type FormEvent, type ReactNode } from 'react';
+import { Checkbox, FormGrid, Input, Select, Textarea } from '@/components/ui/form';
+import Modal from '@/components/ui/modal';
+import Tabs from '@/components/ui/tabs';
+import { confirm } from '@/lib/swal';
+import { cn, money, titleCase } from '@/lib/utils';
+import type { Option } from '@/types';
+import SearchSelect from '../../_components/search-select';
 
 export type StudentOption = Option & {
     balance: string | null;
@@ -48,14 +28,14 @@ export type WalletRow = {
     withdrawn_today: string | null;
     has_pin: boolean;
     pin_locked: boolean;
-    status: "active" | "closed";
+    status: 'active' | 'closed';
     last_activity: string | null;
 };
 
 export type Txn = {
     id: number;
     reference: string;
-    type: "deposit" | "withdrawal" | "reversal";
+    type: 'deposit' | 'withdrawal' | 'reversal';
     amount: string;
     balance_after: string;
     transacted_at: string;
@@ -72,29 +52,25 @@ export type Txn = {
 };
 
 export function useCurrency(): string {
-    return usePage().props.school?.currency ?? "TZS";
+    return usePage().props.school?.currency ?? 'TZS';
 }
 
-export function PocketNav({
-    active,
-}: {
-    active: "wallets" | "transactions" | "cash-counts";
-}) {
+export function PocketNav({ active }: { active: 'wallets' | 'transactions' | 'cash-counts' }) {
     const links = {
-        wallets: "/boarding/pocket-money",
-        transactions: "/boarding/pocket-money/transactions",
-        "cash-counts": "/boarding/pocket-money/cash-counts",
+        wallets: '/boarding/pocket-money',
+        transactions: '/boarding/pocket-money/transactions',
+        'cash-counts': '/boarding/pocket-money/cash-counts',
     };
     return (
         <Tabs
             active={active}
             onChange={(k) => router.visit(links[k as keyof typeof links])}
             tabs={[
-                { key: "wallets", label: "Student wallets", icon: Wallet },
-                { key: "transactions", label: "Day book", icon: ListOrdered },
+                { key: 'wallets', label: 'Student wallets', icon: Wallet },
+                { key: 'transactions', label: 'Day book', icon: ListOrdered },
                 {
-                    key: "cash-counts",
-                    label: "Cash counts & handover",
+                    key: 'cash-counts',
+                    label: 'Cash counts & handover',
                     icon: Scale,
                 },
             ]}
@@ -103,111 +79,71 @@ export function PocketNav({
 }
 
 /** Signed amount: green for money in, red for money out. */
-export function Amount({
-    value,
-    className,
-}: {
-    value: string | number;
-    className?: string;
-}) {
+export function Amount({ value, className }: { value: string | number; className?: string }) {
     const cur = useCurrency();
     const n = Number(value);
     return (
-        <span
-            className={cn(
-                "font-bold whitespace-nowrap",
-                n > 0
-                    ? "text-success"
-                    : n < 0
-                      ? "text-danger"
-                      : "text-white-dark",
-                className,
-            )}
-        >
-            {n > 0 ? "+" : n < 0 ? "−" : ""}
+        <span className={cn('font-bold whitespace-nowrap', n > 0 ? 'text-success' : n < 0 ? 'text-danger' : 'text-white-dark', className)}>
+            {n > 0 ? '+' : n < 0 ? '−' : ''}
             {money(Math.abs(n), cur)}
         </span>
     );
 }
 
-export function TypeBadge({
-    txn,
-}: {
-    txn: Pick<Txn, "type" | "reversed" | "category">;
-}) {
+export function TypeBadge({ txn }: { txn: Pick<Txn, 'type' | 'reversed' | 'category'> }) {
     const map = {
         deposit: {
             icon: ArrowDownLeft,
-            cls: "badge-soft-success",
-            label: "Deposit",
+            cls: 'badge-soft-success',
+            label: 'Deposit',
         },
         withdrawal: {
             icon: ArrowUpRight,
-            cls: "badge-soft-danger",
-            label: txn.category === "refund" ? "Refund" : "Withdrawal",
+            cls: 'badge-soft-danger',
+            label: txn.category === 'refund' ? 'Refund' : 'Withdrawal',
         },
         reversal: {
             icon: RotateCcw,
-            cls: "badge-soft-dark",
-            label: "Reversal",
+            cls: 'badge-soft-dark',
+            label: 'Reversal',
         },
     }[txn.type];
     const Icon = map.icon;
     return (
         <span className="inline-flex items-center gap-1">
-            <span
-                className={cn("badge inline-flex items-center gap-1", map.cls)}
-            >
+            <span className={cn('badge inline-flex items-center gap-1', map.cls)}>
                 <Icon className="h-3 w-3" /> {map.label}
             </span>
-            {txn.reversed && (
-                <span className="badge badge-outline-dark line-through">
-                    reversed
-                </span>
-            )}
+            {txn.reversed && <span className="badge badge-outline-dark line-through">reversed</span>}
         </span>
     );
 }
 
-export function PinBadge({
-    wallet,
-}: {
-    wallet: Pick<WalletRow, "has_pin" | "pin_locked">;
-}) {
+export function PinBadge({ wallet }: { wallet: Pick<WalletRow, 'has_pin' | 'pin_locked'> }) {
     if (!wallet.has_pin) return null;
     return (
         <span
-            className={cn(
-                "badge inline-flex items-center gap-1",
-                wallet.pin_locked ? "badge-soft-danger" : "badge-soft-info",
-            )}
-            title={
-                wallet.pin_locked ? "PIN locked — reset it" : "PIN protected"
-            }
+            className={cn('badge inline-flex items-center gap-1', wallet.pin_locked ? 'badge-soft-danger' : 'badge-soft-info')}
+            title={wallet.pin_locked ? 'PIN locked — reset it' : 'PIN protected'}
         >
-            <KeyRound className="h-3 w-3" />{" "}
-            {wallet.pin_locked ? "PIN locked" : "PIN"}
+            <KeyRound className="h-3 w-3" /> {wallet.pin_locked ? 'PIN locked' : 'PIN'}
         </span>
     );
 }
 
 /** After a deposit/withdrawal offer to print the slip straight away. */
 function offerReceipt(page: { flash?: unknown }) {
-    const id = (page.flash as { pocket_money_receipt?: number } | undefined)
-        ?.pocket_money_receipt;
+    const id = (page.flash as { pocket_money_receipt?: number } | undefined)?.pocket_money_receipt;
     if (!id) return;
     // Wait for the modal's leave transition so the dialog is clickable.
     setTimeout(
         () =>
             void confirm({
-                title: "Print a slip?",
-                text: "Give the student a signed slip so both sides keep a record of this transaction.",
-                confirmText: "Print slip",
+                title: 'Print a slip?',
+                text: 'Give the student a signed slip so both sides keep a record of this transaction.',
+                confirmText: 'Print slip',
             }).then(({ confirmed }) => {
-                if (confirmed)
-                    router.visit(
-                        `/boarding/pocket-money/transactions/${id}/receipt`,
-                    );
+                if (confirmed) router.visit(`/boarding/pocket-money/transactions/${id}/receipt`);
             }),
         350,
     );
@@ -227,45 +163,26 @@ function Review({
     onBack: () => void;
     processing: boolean;
     confirmLabel: string;
-    tone: "success" | "danger";
+    tone: 'success' | 'danger';
 }) {
     return (
         <div className="space-y-4">
             <table className="w-full text-sm">
                 <tbody>
                     {rows.map(([k, v]) => (
-                        <tr
-                            key={k}
-                            className="border-b border-white-light dark:border-[#1b2e4b]"
-                        >
-                            <td className="py-2 font-semibold text-white-dark">
-                                {k}
-                            </td>
-                            <td className="py-2 text-end font-bold text-black dark:text-white-light">
-                                {v}
-                            </td>
+                        <tr key={k} className="border-b border-white-light dark:border-[#1b2e4b]">
+                            <td className="py-2 font-semibold text-white-dark">{k}</td>
+                            <td className="py-2 text-end font-bold text-black dark:text-white-light">{v}</td>
                         </tr>
                     ))}
                 </tbody>
             </table>
-            <p className="rounded-md bg-warning-light p-3 text-sm text-warning dark:bg-warning-dark-light">
-                {note}
-            </p>
+            <p className="rounded-md bg-warning-light p-3 text-sm text-warning dark:bg-warning-dark-light">{note}</p>
             <div className="flex justify-center gap-3">
-                <button
-                    type="button"
-                    className="btn btn-outline-dark"
-                    onClick={onBack}
-                >
+                <button type="button" className="btn btn-outline-dark" onClick={onBack}>
                     Back
                 </button>
-                <button
-                    className={cn(
-                        "btn",
-                        tone === "success" ? "btn-success" : "btn-danger",
-                    )}
-                    disabled={processing}
-                >
+                <button className={cn('btn', tone === 'success' ? 'btn-success' : 'btn-danger')} disabled={processing}>
                     {confirmLabel}
                 </button>
             </div>
@@ -288,12 +205,12 @@ export function DepositModal({
 }) {
     const cur = useCurrency();
     const form = useForm({
-        student_id: "",
-        amount: "",
-        method: "cash",
-        counterparty: "",
-        counterparty_phone: "",
-        description: "",
+        student_id: '',
+        amount: '',
+        method: 'cash',
+        counterparty: '',
+        counterparty_phone: '',
+        description: '',
         notify: false,
     });
     const [review, setReview] = useState(false);
@@ -303,21 +220,19 @@ export function DepositModal({
             setReview(false);
             form.reset();
             form.clearErrors();
-            if (studentId) form.setData("student_id", String(studentId));
+            if (studentId) form.setData('student_id', String(studentId));
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [open, studentId]);
 
-    const student = students.find(
-        (s) => String(s.value) === String(form.data.student_id),
-    );
+    const student = students.find((s) => String(s.value) === String(form.data.student_id));
     const balance = Number(student?.balance ?? 0);
     const after = balance + Number(form.data.amount || 0);
 
     const submit = (e: FormEvent) => {
         e.preventDefault();
         if (!review) return setReview(true);
-        form.post("/boarding/pocket-money/deposit", {
+        form.post('/boarding/pocket-money/deposit', {
             preserveScroll: true,
             onSuccess: (page) => {
                 onClose();
@@ -329,26 +244,16 @@ export function DepositModal({
 
     if (review) {
         return (
-            <Modal
-                open={open}
-                onClose={onClose}
-                title="Confirm deposit"
-                size="lg"
-            >
+            <Modal open={open} onClose={onClose} title="Confirm deposit" size="lg">
                 <form onSubmit={submit}>
                     <Review
                         rows={[
-                            ["Student", student?.label],
-                            [
-                                "Amount received",
-                                <span className="text-success">
-                                    {money(form.data.amount, cur)}
-                                </span>,
-                            ],
-                            ["Handed over by", form.data.counterparty],
-                            ["Via", titleCase(form.data.method)],
-                            ["Balance now", money(balance, cur)],
-                            ["Balance after", money(after, cur)],
+                            ['Student', student?.label],
+                            ['Amount received', <span className="text-success">{money(form.data.amount, cur)}</span>],
+                            ['Handed over by', form.data.counterparty],
+                            ['Via', titleCase(form.data.method)],
+                            ['Balance now', money(balance, cur)],
+                            ['Balance after', money(after, cur)],
                         ]}
                         note="Count the cash together with the student and confirm the amount matches before saving."
                         onBack={() => setReview(false)}
@@ -362,40 +267,24 @@ export function DepositModal({
     }
 
     return (
-        <Modal
-            open={open}
-            onClose={onClose}
-            title="Receive pocket money"
-            size="lg"
-        >
+        <Modal open={open} onClose={onClose} title="Receive pocket money" size="lg">
             <form onSubmit={submit} className="space-y-4">
                 <SearchSelect
                     label="Student"
                     required
                     options={students}
                     value={form.data.student_id}
-                    onChange={(v) => form.setData("student_id", v)}
+                    onChange={(v) => form.setData('student_id', v)}
                     error={form.errors.student_id}
                     disabled={!!studentId}
                     renderOption={(o) => (
                         <div className="flex w-full items-center justify-between gap-2">
                             <span>{o.label}</span>
-                            {o.balance !== null && (
-                                <span className="text-xs text-white-dark">
-                                    {o.closed
-                                        ? "closed"
-                                        : money(o.balance, cur)}
-                                </span>
-                            )}
+                            {o.balance !== null && <span className="text-xs text-white-dark">{o.closed ? 'closed' : money(o.balance, cur)}</span>}
                         </div>
                     )}
                 />
-                {student?.closed && (
-                    <p className="text-sm text-danger">
-                        This student's wallet is closed. Reopen it from the
-                        statement page first.
-                    </p>
-                )}
+                {student?.closed && <p className="text-sm text-danger">This student's wallet is closed. Reopen it from the statement page first.</p>}
                 <FormGrid>
                     <Input
                         label={`Amount (${cur})`}
@@ -404,32 +293,22 @@ export function DepositModal({
                         step="any"
                         required
                         value={form.data.amount}
-                        onChange={(e) => form.setData("amount", e.target.value)}
+                        onChange={(e) => form.setData('amount', e.target.value)}
                         error={form.errors.amount}
                     />
-                    <Select
-                        label="Received via"
-                        options={methods}
-                        value={form.data.method}
-                        onChange={(e) => form.setData("method", e.target.value)}
-                        error={form.errors.method}
-                    />
+                    <Select label="Received via" options={methods} value={form.data.method} onChange={(e) => form.setData('method', e.target.value)} error={form.errors.method} />
                     <Input
                         label="Handed over by"
                         required
                         placeholder="e.g. the student, or parent's name"
                         value={form.data.counterparty}
-                        onChange={(e) =>
-                            form.setData("counterparty", e.target.value)
-                        }
+                        onChange={(e) => form.setData('counterparty', e.target.value)}
                         error={form.errors.counterparty}
                     />
                     <Input
                         label="Their phone"
                         value={form.data.counterparty_phone}
-                        onChange={(e) =>
-                            form.setData("counterparty_phone", e.target.value)
-                        }
+                        onChange={(e) => form.setData('counterparty_phone', e.target.value)}
                         error={form.errors.counterparty_phone}
                     />
                 </FormGrid>
@@ -437,35 +316,20 @@ export function DepositModal({
                     label="Note"
                     placeholder="e.g. M-Pesa ref, denominations"
                     value={form.data.description}
-                    onChange={(e) =>
-                        form.setData("description", e.target.value)
-                    }
+                    onChange={(e) => form.setData('description', e.target.value)}
                     error={form.errors.description}
                 />
                 {student && (
                     <div className="rounded-md bg-primary-light p-3 text-sm dark:bg-primary-dark-light">
-                        Current balance <b>{money(balance, cur)}</b> → after
-                        deposit{" "}
-                        <b className="text-success">{money(after, cur)}</b>
+                        Current balance <b>{money(balance, cur)}</b> → after deposit <b className="text-success">{money(after, cur)}</b>
                     </div>
                 )}
-                <Checkbox
-                    label="Send the guardian an SMS confirmation"
-                    checked={form.data.notify}
-                    onChange={(e) => form.setData("notify", e.target.checked)}
-                />
+                <Checkbox label="Send the guardian an SMS confirmation" checked={form.data.notify} onChange={(e) => form.setData('notify', e.target.checked)} />
                 <div className="flex justify-center gap-3">
-                    <button
-                        type="button"
-                        className="btn btn-outline-dark"
-                        onClick={onClose}
-                    >
+                    <button type="button" className="btn btn-outline-dark" onClick={onClose}>
                         Cancel
                     </button>
-                    <button
-                        className="btn btn-success"
-                        disabled={form.processing || student?.closed}
-                    >
+                    <button className="btn btn-success" disabled={form.processing || student?.closed}>
                         Continue
                     </button>
                 </div>
@@ -474,23 +338,15 @@ export function DepositModal({
     );
 }
 
-export function WithdrawModal({
-    wallet,
-    onClose,
-    categories,
-}: {
-    wallet: WalletRow | null;
-    onClose: () => void;
-    categories: Option[];
-}) {
+export function WithdrawModal({ wallet, onClose, categories }: { wallet: WalletRow | null; onClose: () => void; categories: Option[] }) {
     const cur = useCurrency();
     const form = useForm({
-        amount: "",
-        category: "canteen",
-        description: "",
-        counterparty: "",
-        pin: "",
-        limit_override_reason: "",
+        amount: '',
+        category: 'canteen',
+        description: '',
+        counterparty: '',
+        pin: '',
+        limit_override_reason: '',
         notify: false,
     });
     const [review, setReview] = useState(false);
@@ -507,16 +363,10 @@ export function WithdrawModal({
     const balance = Number(wallet?.balance ?? 0);
     const amount = Number(form.data.amount || 0);
     const givenToday = Number(wallet?.withdrawn_today ?? 0);
-    const limit =
-        wallet?.daily_limit !== null && wallet?.daily_limit !== undefined
-            ? Number(wallet.daily_limit)
-            : null;
+    const limit = wallet?.daily_limit !== null && wallet?.daily_limit !== undefined ? Number(wallet.daily_limit) : null;
     const overLimit = limit !== null && givenToday + amount > limit;
     const insufficient = amount > balance;
-    const quick = useMemo(
-        () => [500, 1000, 2000, 5000].filter((q) => q <= balance),
-        [balance],
-    );
+    const quick = useMemo(() => [500, 1000, 2000, 5000].filter((q) => q <= balance), [balance]);
 
     if (!wallet) return null;
 
@@ -539,22 +389,11 @@ export function WithdrawModal({
                 <form onSubmit={submit}>
                     <Review
                         rows={[
-                            [
-                                "Student",
-                                `${wallet.student} (${wallet.admission_no})`,
-                            ],
-                            [
-                                "Amount to give",
-                                <span className="text-danger">
-                                    {money(amount, cur)}
-                                </span>,
-                            ],
-                            [
-                                "Purpose",
-                                `${titleCase(form.data.category)}${form.data.description ? ` — ${form.data.description}` : ""}`,
-                            ],
-                            ["Balance now", money(balance, cur)],
-                            ["Balance after", money(balance - amount, cur)],
+                            ['Student', `${wallet.student} (${wallet.admission_no})`],
+                            ['Amount to give', <span className="text-danger">{money(amount, cur)}</span>],
+                            ['Purpose', `${titleCase(form.data.category)}${form.data.description ? ` — ${form.data.description}` : ''}`],
+                            ['Balance now', money(balance, cur)],
+                            ['Balance after', money(balance - amount, cur)],
                         ]}
                         note="Read the amount back to the student. Hand over the cash only after saving."
                         onBack={() => setReview(false)}
@@ -568,51 +407,27 @@ export function WithdrawModal({
     }
 
     return (
-        <Modal
-            open
-            onClose={onClose}
-            title={`Give money to ${wallet.student}`}
-            size="lg"
-        >
+        <Modal open onClose={onClose} title={`Give money to ${wallet.student}`} size="lg">
             <form onSubmit={submit} className="space-y-4">
                 <div className="grid grid-cols-3 gap-3 text-center text-sm">
                     <div className="rounded-md bg-success-light p-3 dark:bg-success-dark-light">
-                        <div className="text-xs font-bold text-white-dark uppercase">
-                            Available
-                        </div>
-                        <div className="text-lg font-extrabold text-success">
-                            {money(balance, cur)}
-                        </div>
+                        <div className="text-xs font-bold text-white-dark uppercase">Available</div>
+                        <div className="text-lg font-extrabold text-success">{money(balance, cur)}</div>
                     </div>
                     <div className="rounded-md bg-info-light p-3 dark:bg-info-dark-light">
-                        <div className="text-xs font-bold text-white-dark uppercase">
-                            Given today
-                        </div>
-                        <div className="text-lg font-extrabold text-info">
-                            {money(givenToday, cur)}
-                        </div>
+                        <div className="text-xs font-bold text-white-dark uppercase">Given today</div>
+                        <div className="text-lg font-extrabold text-info">{money(givenToday, cur)}</div>
                     </div>
                     <div className="rounded-md bg-warning-light p-3 dark:bg-warning-dark-light">
-                        <div className="text-xs font-bold text-white-dark uppercase">
-                            Daily limit
-                        </div>
-                        <div className="text-lg font-extrabold text-warning">
-                            {limit === null ? "None" : money(limit, cur)}
-                        </div>
+                        <div className="text-xs font-bold text-white-dark uppercase">Daily limit</div>
+                        <div className="text-lg font-extrabold text-warning">{limit === null ? 'None' : money(limit, cur)}</div>
                     </div>
                 </div>
                 {quick.length > 0 && (
                     <div className="flex flex-wrap gap-2">
                         {quick.map((q) => (
-                            <button
-                                key={q}
-                                type="button"
-                                className="btn btn-sm btn-outline-primary"
-                                onClick={() =>
-                                    form.setData("amount", String(q))
-                                }
-                            >
-                                {money(q, "")}
+                            <button key={q} type="button" className="btn btn-sm btn-outline-primary" onClick={() => form.setData('amount', String(q))}>
+                                {money(q, '')}
                             </button>
                         ))}
                     </div>
@@ -625,40 +440,29 @@ export function WithdrawModal({
                         step="any"
                         required
                         value={form.data.amount}
-                        onChange={(e) => form.setData("amount", e.target.value)}
-                        error={
-                            form.errors.amount ??
-                            (insufficient
-                                ? "More than the available balance."
-                                : undefined)
-                        }
+                        onChange={(e) => form.setData('amount', e.target.value)}
+                        error={form.errors.amount ?? (insufficient ? 'More than the available balance.' : undefined)}
                     />
                     <Select
                         label="Purpose"
-                        options={categories.filter((c) => c.value !== "refund")}
+                        options={categories.filter((c) => c.value !== 'refund')}
                         value={form.data.category}
-                        onChange={(e) =>
-                            form.setData("category", e.target.value)
-                        }
+                        onChange={(e) => form.setData('category', e.target.value)}
                         error={form.errors.category}
                     />
                 </FormGrid>
                 <Input
                     label="Details"
-                    required={form.data.category === "other"}
+                    required={form.data.category === 'other'}
                     placeholder="e.g. soap and toothpaste"
                     value={form.data.description}
-                    onChange={(e) =>
-                        form.setData("description", e.target.value)
-                    }
+                    onChange={(e) => form.setData('description', e.target.value)}
                     error={form.errors.description}
                 />
                 <Input
                     label="Collected by (if not the student)"
                     value={form.data.counterparty}
-                    onChange={(e) =>
-                        form.setData("counterparty", e.target.value)
-                    }
+                    onChange={(e) => form.setData('counterparty', e.target.value)}
                     error={form.errors.counterparty}
                 />
                 {(overLimit || form.errors.limit_override_reason) && (
@@ -668,12 +472,7 @@ export function WithdrawModal({
                         rows={2}
                         placeholder="e.g. medical emergency — approved by the headmaster"
                         value={form.data.limit_override_reason}
-                        onChange={(e) =>
-                            form.setData(
-                                "limit_override_reason",
-                                e.target.value,
-                            )
-                        }
+                        onChange={(e) => form.setData('limit_override_reason', e.target.value)}
                         error={form.errors.limit_override_reason}
                     />
                 )}
@@ -687,40 +486,19 @@ export function WithdrawModal({
                             required
                             maxLength={6}
                             value={form.data.pin}
-                            onChange={(e) =>
-                                form.setData(
-                                    "pin",
-                                    e.target.value.replace(/\D/g, ""),
-                                )
-                            }
+                            onChange={(e) => form.setData('pin', e.target.value.replace(/\D/g, ''))}
                             error={form.errors.pin}
                             help="Proves the student requested this money."
                         />
                     </div>
                 )}
-                <Checkbox
-                    label="Send the guardian an SMS"
-                    checked={form.data.notify}
-                    onChange={(e) => form.setData("notify", e.target.checked)}
-                />
+                <Checkbox label="Send the guardian an SMS" checked={form.data.notify} onChange={(e) => form.setData('notify', e.target.checked)} />
                 <div className="flex justify-center gap-3">
-                    <button
-                        type="button"
-                        className="btn btn-outline-dark"
-                        onClick={onClose}
-                    >
+                    <button type="button" className="btn btn-outline-dark" onClick={onClose}>
                         Cancel
                     </button>
-                    <button
-                        className="btn btn-danger"
-                        disabled={
-                            form.processing ||
-                            insufficient ||
-                            amount <= 0 ||
-                            wallet.pin_locked
-                        }
-                    >
-                        {wallet.pin_locked ? "PIN locked" : "Continue"}
+                    <button className="btn btn-danger" disabled={form.processing || insufficient || amount <= 0 || wallet.pin_locked}>
+                        {wallet.pin_locked ? 'PIN locked' : 'Continue'}
                     </button>
                 </div>
             </form>
@@ -728,22 +506,14 @@ export function WithdrawModal({
     );
 }
 
-export async function reverseTxn(
-    txn: Pick<Txn, "id" | "reference" | "amount">,
-    currency: string,
-) {
+export async function reverseTxn(txn: Pick<Txn, 'id' | 'reference' | 'amount'>, currency: string) {
     const { confirmed, value } = await confirm({
         title: `Reverse ${txn.reference}?`,
         text: `A correcting entry of ${money(-Number(txn.amount), currency)} will be posted. The original stays on record. State why.`,
-        input: "textarea",
-        inputPlaceholder: "Reason (e.g. wrong student, amount mistyped)",
-        confirmText: "Reverse",
+        input: 'textarea',
+        inputPlaceholder: 'Reason (e.g. wrong student, amount mistyped)',
+        confirmText: 'Reverse',
         danger: true,
     });
-    if (confirmed && value?.trim())
-        router.post(
-            `/boarding/pocket-money/transactions/${txn.id}/reverse`,
-            { reason: value.trim() },
-            { preserveScroll: true },
-        );
+    if (confirmed && value?.trim()) router.post(`/boarding/pocket-money/transactions/${txn.id}/reverse`, { reason: value.trim() }, { preserveScroll: true });
 }
