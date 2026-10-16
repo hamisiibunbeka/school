@@ -12,3 +12,6 @@ Artisan::command('inspire', function () {
 // Production needs the scheduler cron: * * * * * php artisan schedule:run
 Schedule::command('sms:send-queued')->everyMinute()->withoutOverlapping();
 Schedule::command('sms:sync-delivery')->everyTenMinutes()->withoutOverlapping();
+
+// Broadcast centre: start scheduled broadcasts when due (and pick up queued ones if no queue worker ran them).
+Schedule::command('broadcasts:dispatch')->everyMinute()->withoutOverlapping();

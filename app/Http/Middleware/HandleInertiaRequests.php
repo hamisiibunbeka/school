@@ -3,6 +3,7 @@
 namespace App\Http\Middleware;
 
 use App\Models\School;
+use App\Services\Messaging\SmsCredits;
 use App\Support\Tenancy;
 use Illuminate\Http\Request;
 use Inertia\Middleware;
@@ -85,6 +86,17 @@ class HandleInertiaRequests extends Middleware
                 return School::query()->where('tenant_id', $user->tenant_id)->orderBy('name')->get(['id', 'name'])->all();
             },
             'notificationsCount' => fn () => $user?->unreadNotifications()->count() ?? 0,
+            // Header SMS balance badge (account-wide wallet: plan allowance + purchased bundles).
+            'smsBalance' => function () use ($user) {
+                $tenant = app(Tenancy::class)->tenant();
+                if (! $tenant || ! $user?->hasPermission('communication.view')) {
+                    return null;
+                }
+
+                $balance = app(SmsCredits::class)->balance($tenant);
+
+                return ['total' => $balance['total'], 'low' => $balance['total'] < max(100, (int) ($balance['plan_limit'] * 0.1))];
+            },
         ];
     }
 }

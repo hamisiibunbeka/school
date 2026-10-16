@@ -3,6 +3,7 @@
 use App\Http\Controllers\Saas\DashboardController;
 use App\Http\Controllers\Saas\PlanController;
 use App\Http\Controllers\Saas\SettingsController;
+use App\Http\Controllers\Saas\SmsController;
 use App\Http\Controllers\Saas\SubscriptionController;
 use App\Http\Controllers\Saas\TenantController;
 use App\Http\Controllers\Saas\TicketController;
@@ -30,6 +31,15 @@ Route::middleware(EnsureSuperAdmin::class)->prefix('saas')->name('saas.')->group
     Route::post('subscriptions', [SubscriptionController::class, 'store'])->name('subscriptions.store');
     Route::post('subscriptions/{subscription}/paid', [SubscriptionController::class, 'markPaid'])->name('subscriptions.paid');
     Route::post('subscriptions/{subscription}/cancel', [SubscriptionController::class, 'cancel'])->name('subscriptions.cancel');
+
+    Route::get('sms', [SmsController::class, 'index'])->name('sms.index');
+    Route::post('sms/packages', [SmsController::class, 'storePackage'])->name('sms.packages.store');
+    Route::put('sms/packages/{package}', [SmsController::class, 'updatePackage'])->name('sms.packages.update');
+    Route::delete('sms/packages/{package}', [SmsController::class, 'destroyPackage'])->name('sms.packages.destroy');
+    Route::post('sms/orders/{order}/confirm', [SmsController::class, 'confirm'])->name('sms.orders.confirm');
+    Route::post('sms/orders/{order}/cancel', [SmsController::class, 'cancel'])->name('sms.orders.cancel');
+    Route::post('sms/adjust', [SmsController::class, 'adjust'])->name('sms.adjust');
+    Route::put('sms/payment', [SmsController::class, 'updatePayment'])->name('sms.payment');
 
     Route::get('settings', [SettingsController::class, 'index'])->name('settings.index');
     Route::put('settings', [SettingsController::class, 'update'])->name('settings.update');

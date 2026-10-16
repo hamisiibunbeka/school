@@ -30,6 +30,12 @@ abstract class TestCase extends BaseTestCase
         return ['school' => $result['school'], 'admin' => $result['admin']];
     }
 
+    /** Give the school's account purchased SMS credits (new accounts start with none). */
+    protected function giveSmsCredits(School $school, int $credits = 1000): void
+    {
+        $school->tenant->forceFill(['sms_balance' => $credits])->save();
+    }
+
     /** Create a student inside the given school (tenancy context handled). */
     protected function makeStudent(School $school, array $attributes = []): Student
     {

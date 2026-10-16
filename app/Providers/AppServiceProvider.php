@@ -7,6 +7,9 @@ use App\Services\AuditLogger;
 use App\Services\Messaging\Beem\BeemClient;
 use App\Services\Messaging\Beem\BeemSmsGateway;
 use App\Services\Messaging\LogSmsGateway;
+use App\Services\Messaging\MailGateway;
+use App\Services\Messaging\MessageGateway;
+use App\Services\Messaging\SmsCredits;
 use App\Services\Messaging\SmsGateway;
 use App\Support\Tenancy;
 use Carbon\CarbonImmutable;
@@ -26,10 +29,13 @@ class AppServiceProvider extends ServiceProvider
     {
         $this->app->scoped(Tenancy::class);
 
-        // Outbound SMS provider: SMS_DRIVER=beem sends through Beem Africa, anything else only logs.
-        $this->app->bind(SmsGateway::class, fn () => config('services.sms.driver') === 'beem'
-            ? new BeemSmsGateway(BeemClient::fromConfig())
-            : new LogSmsGateway);
+        // Outbound messages: SMS through the provider (SMS_DRIVER=beem sends through Beem Africa,
+        // anything else only logs) metered against the account's SMS credits; email through Laravel Mail.
+        $this->app->bind(SmsGateway::class, fn ($app) => new MessageGateway(
+            config('services.sms.driver') === 'beem' ? new BeemSmsGateway(BeemClient::fromConfig()) : new LogSmsGateway,
+            $app->make(MailGateway::class),
+            $app->make(SmsCredits::class),
+        ));
     }
 
     public function boot(): void

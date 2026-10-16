@@ -13,6 +13,11 @@ class MessageLog extends SchoolModel
         return ['credits' => 'integer', 'delivery_checked_at' => 'datetime', 'delivered_at' => 'datetime'];
     }
 
+    public function broadcast(): BelongsTo
+    {
+        return $this->belongsTo(Broadcast::class);
+    }
+
     public function sender(): BelongsTo
     {
         return $this->belongsTo(User::class, 'sent_by');

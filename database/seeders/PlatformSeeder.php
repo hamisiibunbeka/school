@@ -3,6 +3,7 @@
 namespace Database\Seeders;
 
 use App\Models\Plan;
+use App\Models\SmsPackage;
 use App\Models\User;
 use Illuminate\Database\Seeder;
 
@@ -30,6 +31,16 @@ class PlatformSeeder extends Seeder
                 'modules' => array_keys(config('permissions.modules')),
                 'is_active' => true,
             ]);
+        }
+
+        // SMS bundles schools can buy (SaaS Console → SMS Bundles).
+        foreach ([
+            ['Starter', 1000, 30000, false, 1],
+            ['Standard', 5000, 125000, true, 2],
+            ['Premium', 20000, 440000, false, 3],
+            ['Bulk', 100000, 2000000, false, 4],
+        ] as [$name, $credits, $price, $popular, $order]) {
+            SmsPackage::updateOrCreate(['name' => $name], ['credits' => $credits, 'price' => $price, 'is_popular' => $popular, 'is_active' => true, 'sort_order' => $order]);
         }
 
         $admin = User::firstOrNew(['email' => 'superadmin@mzenzi.test']);

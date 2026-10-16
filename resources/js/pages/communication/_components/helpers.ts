@@ -34,6 +34,7 @@ export function smsCredits(text: string): number {
 }
 
 export const VARIABLE_HINTS: Record<string, string> = {
+    '{name}': "Recipient's name",
     '{student_name}': 'Ward name(s)',
     '{guardian_name}': 'Recipient name',
     '{balance}': 'Outstanding fee balance',

@@ -28,6 +28,8 @@ export type SharedProps = {
     /** Header switcher list (platform admins also get tenant + tenant_status for grouping). */
     schools: { id: number; name: string; tenant?: string; tenant_status?: string }[];
     notificationsCount: number;
+    /** Account SMS wallet for the header badge; null when not in a school or without communication access. */
+    smsBalance: { total: number; low: boolean } | null;
     errors: Record<string, string>;
 };
 

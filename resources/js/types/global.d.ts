@@ -13,6 +13,7 @@ declare module '@inertiajs/core' {
             toast?: { type: 'success' | 'error' | 'info' | 'warning'; message: string };
             site_status?: string;
             pocket_money_receipt?: number;
+            sms_order?: number;
         };
     }
 }

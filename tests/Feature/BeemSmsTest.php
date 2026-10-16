@@ -38,7 +38,7 @@ class BeemSmsTest extends TestCase
 
     public function test_gsm_normalisation_and_segment_counting(): void
     {
-        $this->assertSame('Karibu - "Term II" starts... it\'s 07:30', GsmText::normalize("Karibu — “Term II” starts… it’s 07:30 😀"));
+        $this->assertSame('Karibu - "Term II" starts... it\'s 07:30', GsmText::normalize('Karibu — “Term II” starts… it’s 07:30 😀'));
         $this->assertSame(1, GsmText::segments(str_repeat('a', 160)));
         $this->assertSame(2, GsmText::segments(str_repeat('a', 161)));
         $this->assertSame(3, GsmText::segments(str_repeat('a', 307)));
@@ -47,7 +47,7 @@ class BeemSmsTest extends TestCase
 
     public function test_the_beem_driver_is_bound_from_config(): void
     {
-        $this->assertInstanceOf(BeemSmsGateway::class, app(SmsGateway::class));
+        $this->assertInstanceOf(BeemSmsGateway::class, app(SmsGateway::class)->smsDriver());
         config(['services.sms.driver' => 'log']);
         $this->assertNotInstanceOf(BeemSmsGateway::class, app(SmsGateway::class));
     }
@@ -56,6 +56,7 @@ class BeemSmsTest extends TestCase
     {
         Http::fake(['apisms.beem.africa/v1/send' => Http::response(['successful' => true, 'request_id' => 4321, 'code' => 100, 'message' => 'Message Submitted Successfully', 'valid' => 1, 'invalid' => 0, 'duplicates' => 0])]);
         ['school' => $school] = $this->makeSchool();
+        $this->giveSmsCredits($school);
         $school->update(['settings' => ['sms_sender_id' => 'MZENZISS']]);
 
         $log = $this->sendAs($school, '+255712345678', 'Dear parent — fees are due “today”.');
@@ -78,6 +79,7 @@ class BeemSmsTest extends TestCase
     {
         Http::fake(['*/v1/send' => Http::response(['successful' => true, 'request_id' => 1, 'code' => 100, 'valid' => 1])]);
         ['school' => $school] = $this->makeSchool();
+        $this->giveSmsCredits($school);
 
         $this->sendAs($school, '0712345678', 'Hello');
 
@@ -87,6 +89,7 @@ class BeemSmsTest extends TestCase
     public function test_beem_errors_are_recorded_in_plain_language(): void
     {
         ['school' => $school] = $this->makeSchool();
+        $this->giveSmsCredits($school);
 
         Http::fake(['*/v1/send' => Http::sequence()
             ->push(['code' => 111, 'message' => 'Invalid Sender ID'], 400)
@@ -103,6 +106,7 @@ class BeemSmsTest extends TestCase
     {
         Http::fake();
         ['school' => $school] = $this->makeSchool();
+        $this->giveSmsCredits($school);
 
         $log = $this->sendAs($school, '12', 'Hello');
 
@@ -114,6 +118,7 @@ class BeemSmsTest extends TestCase
     {
         Http::fake();
         ['school' => $school] = $this->makeSchool();
+        $this->giveSmsCredits($school);
 
         $log = app(Tenancy::class)->runAs($school, fn () => app(SmsGateway::class)->send('email', 'parent@example.com', 'Hello'));
 
@@ -125,6 +130,7 @@ class BeemSmsTest extends TestCase
     {
         Http::fake(['*/v1/send' => Http::response(['successful' => true, 'request_id' => 77, 'code' => 100, 'valid' => 1])]);
         ['school' => $school] = $this->makeSchool();
+        $this->giveSmsCredits($school);
         $log = app(Tenancy::class)->runAs($school, fn () => MessageLog::create(['channel' => 'sms', 'recipient' => '+255754000111', 'message' => 'Fee reminder', 'status' => 'queued', 'credits' => 1]));
 
         $this->assertSame(1, app(MessageDispatcher::class)->sendQueued());
@@ -137,6 +143,7 @@ class BeemSmsTest extends TestCase
     public function test_delivery_reports_update_message_status(): void
     {
         ['school' => $school] = $this->makeSchool();
+        $this->giveSmsCredits($school);
         [$a, $b, $c] = app(Tenancy::class)->runAs($school, fn () => collect(['+255700000001', '+255700000002', '+255700000003'])
             ->map(fn ($n, $i) => MessageLog::create(['channel' => 'sms', 'recipient' => $n, 'message' => 'Hi', 'status' => 'sent', 'provider' => 'beem', 'provider_reference' => (string) (100 + $i), 'credits' => 1]))->all());
         MessageLog::withoutGlobalScopes()->whereKey([$a->id, $b->id, $c->id])->update(['created_at' => now()->subMinutes(20)]);

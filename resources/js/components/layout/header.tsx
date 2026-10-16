@@ -1,6 +1,6 @@
 import { Menu, MenuButton, MenuItem, MenuItems } from '@headlessui/react';
 import { Link, router, usePage } from '@inertiajs/react';
-import { ArrowLeftRight, MonitorDown, Bell, Building, CalendarDays, Laptop, LogOut, Menu as MenuIcon, Moon, Search, ShieldCheck, Sun, UserRound, Wallet, X } from 'lucide-react';
+import { ArrowLeftRight, MonitorDown, Bell, Building, CalendarDays, Laptop, LogOut, Menu as MenuIcon, MessageSquareText, Moon, Search, ShieldCheck, Sun, UserRound, Wallet, X } from 'lucide-react';
 import { useState, type FormEvent } from 'react';
 import SchoolSwitcher from '@/components/layout/school-switcher';
 import { AppLogo } from '@/components/layout/sidebar';
@@ -11,7 +11,7 @@ import { useTheme } from '@/hooks/use-theme';
 import { cn } from '@/lib/utils';
 
 export default function Header() {
-    const { auth, school, schools, notificationsCount } = usePage().props;
+    const { auth, school, schools, notificationsCount, smsBalance } = usePage().props;
     const { theme, cycleTheme, toggleSidebar } = useTheme();
     const can = useCan();
     const [search, setSearch] = useState('');
@@ -112,6 +112,17 @@ export default function Header() {
                             <button type="button" onClick={() => void install()} className="btn btn-sm btn-primary hidden rounded-full! sm:inline-flex" title="Install this app on your device">
                                 <MonitorDown className="h-4 w-4" /> Install app
                             </button>
+                        )}
+
+                        {smsBalance && (
+                            <Link
+                                href="/communication/sms-credits"
+                                title={smsBalance.low ? 'SMS balance is low — buy an SMS bundle' : 'SMS balance (plan allowance + purchased bundles)'}
+                                className={`badge inline-flex items-center gap-1.5 rounded-full! px-3 py-1.5 text-xs font-bold whitespace-nowrap ${smsBalance.low ? 'badge-soft-danger' : 'badge-soft-success'}`}
+                            >
+                                <MessageSquareText className="h-3.5 w-3.5" />
+                                <span className="hidden sm:inline">SMS:</span> {smsBalance.total.toLocaleString('en-US')}
+                            </Link>
                         )}
 
                         <button type="button" onClick={cycleTheme} className="header-icon-btn" title={`Theme: ${theme}`}>

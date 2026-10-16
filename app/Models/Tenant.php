@@ -12,7 +12,7 @@ class Tenant extends Model
 
     protected function casts(): array
     {
-        return ['trial_ends_at' => 'date', 'subscription_ends_at' => 'date'];
+        return ['trial_ends_at' => 'date', 'subscription_ends_at' => 'date', 'sms_balance' => 'integer', 'sms_plan_balance' => 'integer'];
     }
 
     public function plan(): BelongsTo
@@ -38,6 +38,11 @@ class Tenant extends Model
     public function roles(): HasMany
     {
         return $this->hasMany(Role::class);
+    }
+
+    public function smsOrders(): HasMany
+    {
+        return $this->hasMany(SmsOrder::class);
     }
 
     /** Suspended and cancelled tenants lose access; data is retained. */

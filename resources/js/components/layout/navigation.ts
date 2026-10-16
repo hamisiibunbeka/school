@@ -226,9 +226,12 @@ export const navigation: NavSection[] = [
                 icon: Megaphone,
                 permission: 'communication.view',
                 children: [
+                    { title: 'Broadcast Centre', href: '/communication/broadcasts' },
                     { title: 'Announcements', href: '/communication/announcements' },
-                    { title: 'SMS & Email', href: '/communication/messages' },
+                    { title: 'Contact Groups', href: '/communication/groups' },
                     { title: 'Templates', href: '/communication/templates' },
+                    { title: 'Delivery Log', href: '/communication/messages' },
+                    { title: 'SMS Credits', href: '/communication/sms-credits' },
                 ],
             },
             {
@@ -279,6 +282,7 @@ export const navigation: NavSection[] = [
                     { title: 'Tenants', href: '/saas/tenants' },
                     { title: 'Plans', href: '/saas/plans' },
                     { title: 'Subscriptions', href: '/saas/subscriptions' },
+                    { title: 'SMS Bundles', href: '/saas/sms' },
                     { title: 'Support Tickets', href: '/saas/tickets' },
                     { title: 'Platform Settings', href: '/saas/settings' },
                 ],

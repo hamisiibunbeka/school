@@ -67,6 +67,9 @@ const map: Record<string, Tone> = {
     resolved: 'success',
     in_progress: 'info',
     ended: 'dark',
+    // broadcasts / SMS orders
+    scheduled: 'info',
+    sending: 'warning',
 };
 
 export default function StatusBadge({ status, tone, className, label }: { status: string | null | undefined; tone?: Tone; className?: string; label?: string }) {
