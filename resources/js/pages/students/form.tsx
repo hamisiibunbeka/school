@@ -6,6 +6,7 @@ import { Checkbox, FormGrid, FormSection, Input, Select, Textarea } from '@/comp
 import PageHeader from '@/components/ui/page-header';
 import type { Option } from '@/types';
 import DobAgeField from '@/components/ui/dob-age-field';
+import SponsorshipFields, { emptySponsorship, type SponsorOption } from './_components/sponsorship-fields';
 
 type GuardianInput = { id?: number | null; first_name: string; last_name: string; phone: string; email: string; occupation: string; relationship: string; is_primary: boolean };
 
@@ -32,15 +33,28 @@ type StudentData = {
     photo_url: string | null;
     full_name: string;
     guardians: (GuardianInput & { id: number; pivot: { relationship: string; is_primary: boolean } })[];
+    sponsorship: {
+        id: number;
+        attachment_name: string | null;
+        sponsor_id: number;
+        coverage: string;
+        percentage: string | null;
+        covers: string | null;
+        reference: string | null;
+        start_date: string | null;
+        end_date: string | null;
+    } | null;
 };
 
-type Props = { student: StudentData | null; classes: (Option & { streams: Option[] })[] };
+type Props = { student: StudentData | null; classes: (Option & { streams: Option[] })[]; sponsors: SponsorOption[]; sponsorTypes: Option[] };
 
 const emptyGuardian = (primary = false): GuardianInput => ({ id: null, first_name: '', last_name: '', phone: '', email: '', occupation: '', relationship: primary ? 'Father' : 'Mother', is_primary: primary });
 const relationships = ['Father', 'Mother', 'Guardian', 'Uncle', 'Aunt', 'Grandparent', 'Sibling', 'Sponsor'];
 
-export default function StudentForm({ student, classes }: Props) {
+export default function StudentForm({ student, classes, sponsors, sponsorTypes }: Props) {
     const editing = !!student;
+    const current = student?.sponsorship ?? null;
+    const currentSponsor = current ? sponsors.find((x) => x.value === current.sponsor_id) : undefined;
     const form = useForm({
         _method: editing ? 'put' : 'post',
         admission_no: student?.admission_no ?? '',
@@ -74,6 +88,29 @@ export default function StudentForm({ student, classes }: Props) {
                   is_primary: !!g.pivot.is_primary,
               }))
             : [emptyGuardian(true)],
+        sponsorship: {
+            enabled: !!current,
+            ...emptySponsorship(),
+            ...(current
+                ? {
+                      sponsor_id: String(current.sponsor_id),
+                      sponsor: {
+                          name: currentSponsor?.label ?? '',
+                          type: currentSponsor?.type ?? 'organization',
+                          contact_person: currentSponsor?.contact_person ?? '',
+                          phone: currentSponsor?.phone ?? '',
+                          email: currentSponsor?.email ?? '',
+                          address: currentSponsor?.address ?? '',
+                      },
+                      coverage: current.coverage,
+                      percentage: current.percentage ? String(Number(current.percentage)) : '',
+                      covers: current.covers ?? '',
+                      reference: current.reference ?? '',
+                      start_date: current.start_date ?? '',
+                      end_date: current.end_date ?? '',
+                  }
+                : {}),
+        },
     });
 
     const streams = classes.find((c) => String(c.value) === form.data.school_class_id)?.streams ?? [];
@@ -220,6 +257,34 @@ export default function StudentForm({ student, classes }: Props) {
                                 <button type="button" className="btn btn-outline-primary btn-sm" onClick={() => form.setData('guardians', [...form.data.guardians, emptyGuardian(false)])}>
                                     <Plus className="h-4 w-4" /> Add another guardian
                                 </button>
+                            )}
+                        </div>
+                    </FormSection>
+
+                    <FormSection title="Sponsorship" description="Who pays for or supports this student's education, if not (only) the parents — NGO, church, company, government bursary or a well-wisher.">
+                        <div className="space-y-4">
+                            <Checkbox
+                                label="This student is sponsored"
+                                checked={form.data.sponsorship.enabled}
+                                onChange={(e) => form.setData('sponsorship', { ...form.data.sponsorship, enabled: e.target.checked })}
+                            />
+                            {editing && current && !form.data.sponsorship.enabled && (
+                                <p className="text-sm text-warning">Saving will end the current sponsorship (it stays in the student's sponsorship history).</p>
+                            )}
+                            {form.data.sponsorship.enabled && (
+                                <SponsorshipFields
+                                    value={form.data.sponsorship}
+                                    onChange={(next) => form.setData('sponsorship', { ...next, enabled: true })}
+                                    errors={err}
+                                    errorPrefix="sponsorship."
+                                    sponsors={sponsors}
+                                    sponsorTypes={sponsorTypes}
+                                    currentAttachment={
+                                        current?.attachment_name && form.data.sponsorship.sponsor_id === String(current.sponsor_id)
+                                            ? { name: current.attachment_name, url: `/sponsorships/${current.id}/attachment` }
+                                            : null
+                                    }
+                                />
                             )}
                         </div>
                     </FormSection>

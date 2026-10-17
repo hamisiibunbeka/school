@@ -4,11 +4,13 @@ use App\Http\Middleware\EnsureSchoolSelected;
 use App\Http\Middleware\HandleAppearance;
 use App\Http\Middleware\HandleInertiaRequests;
 use App\Http\Middleware\SetSchoolContext;
+use App\Providers\AppServiceProvider;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
 use Illuminate\Http\Middleware\AddLinkHeadersForPreloadedAssets;
 use Illuminate\Http\Request;
+use Illuminate\Routing\Middleware\SubstituteBindings;
 use Inertia\Inertia;
 use Symfony\Component\HttpFoundation\Response;
 
@@ -35,7 +37,7 @@ return Application::configure(basePath: dirname(__DIR__))
         // The school context must exist before route-model binding resolves {student} etc.,
         // so that bound models are always filtered by the tenant scope.
         $middleware->prependToPriorityList(
-            before: \Illuminate\Routing\Middleware\SubstituteBindings::class,
+            before: SubstituteBindings::class,
             prepend: SetSchoolContext::class,
         );
 
@@ -59,6 +61,14 @@ return Application::configure(basePath: dirname(__DIR__))
                 return Inertia::render('error', ['status' => 403])
                     ->toResponse($request)
                     ->setStatusCode(403);
+            }
+
+            // Whole request above post_max_size: PHP discards everything, so go back with a clear message.
+            if ($response->getStatusCode() === 413 && ! $request->expectsJson()) {
+                $limit = AppServiceProvider::uploadLimitMb();
+                Inertia::flash('toast', ['type' => 'error', 'message' => "The upload is too large — the server accepts up to {$limit} MB. Try a smaller file."]);
+
+                return back();
             }
 
             if ($response->getStatusCode() === 419) {

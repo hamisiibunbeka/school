@@ -2,11 +2,14 @@ import { Link, router, useForm, usePage } from '@inertiajs/react';
 import {
     BookOpen,
     CalendarCheck,
+    Eye,
     FileText,
+    HandHeart,
     History,
     IdCard,
     LoaderCircle,
     Mail,
+    Paperclip,
     Pencil,
     Phone,
     RefreshCw,
@@ -30,6 +33,23 @@ import { useCan } from '@/hooks/use-can';
 import { confirm } from '@/lib/swal';
 import { date, dateTime, money, titleCase } from '@/lib/utils';
 import type { Option } from '@/types';
+import SponsorshipFields, { emptySponsorship, MAX_ATTACHMENT_MB, type SponsorOption, type SponsorshipInput } from './_components/sponsorship-fields';
+
+type Sponsorship = {
+    id: number;
+    sponsor_id: number;
+    coverage: string;
+    percentage: string | null;
+    covers: string | null;
+    reference: string | null;
+    start_date: string | null;
+    end_date: string | null;
+    status: string;
+    notes: string | null;
+    attachment_name: string | null;
+    attachment_size: number | null;
+    sponsor: { id: number; name: string; type: string; contact_person: string | null; phone: string | null; email: string | null; address: string | null } | null;
+};
 
 type Guardian = { id: number; full_name: string; phone: string; email: string | null; occupation: string | null; user_id: number | null; pivot: { relationship: string; is_primary: boolean } };
 type Props = {
@@ -54,6 +74,7 @@ type Props = {
         allergies: string | null;
         blood_group: string | null;
         guardians: Guardian[];
+        sponsorships: Sponsorship[];
         documents: { id: number; title: string; mime_type: string | null; size: number | null; created_at: string; uploader: { name: string } | null }[];
         enrolments: { id: number; status: string; start_date: string | null; end_date: string | null; remarks: string | null; academic_year: { name: string } | null; school_class: { name: string } | null; stream: { name: string } | null }[];
     };
@@ -68,9 +89,13 @@ type Props = {
     results: { exam: string; exam_id: number; average: number; subjects: { subject: string; score: string | null; grade: string | null; is_absent: number }[] }[];
     discipline: { id: number; incident_date: string; type: string; title: string; action_taken: string | null; status: string }[];
     statuses: Option[];
+    sponsors: SponsorOption[];
+    sponsorTypes: Option[];
 };
 
-export default function StudentShow({ student, attendance, finance, results, discipline, statuses }: Props) {
+const coverageLabel = (sp: Pick<Sponsorship, 'coverage' | 'percentage'>) => (sp.coverage === 'partial' ? `${Number(sp.percentage)}% (partial)` : 'Full sponsorship');
+
+export default function StudentShow({ student, attendance, finance, results, discipline, statuses, sponsors, sponsorTypes }: Props) {
     const can = useCan();
     const { school } = usePage().props;
     const cur = school?.currency ?? 'TZS';
@@ -78,6 +103,8 @@ export default function StudentShow({ student, attendance, finance, results, dis
     const [statusOpen, setStatusOpen] = useState(false);
     const [guardianOpen, setGuardianOpen] = useState(false);
     const [docOpen, setDocOpen] = useState(false);
+    const [sponsorModal, setSponsorModal] = useState<Sponsorship | 'new' | null>(null);
+    const activeSponsorships = student.sponsorships.filter((sp) => sp.status === 'active');
 
     const totalDays = attendance.present + attendance.absent + attendance.late + attendance.excused;
     const attendanceRate = totalDays ? Math.round(((attendance.present + attendance.late) / totalDays) * 100) : null;
@@ -85,6 +112,7 @@ export default function StudentShow({ student, attendance, finance, results, dis
     const tabs = [
         { key: 'overview', label: 'Overview', icon: BookOpen },
         { key: 'guardians', label: 'Guardians', icon: Users, count: student.guardians.length },
+        { key: 'sponsorship', label: 'Sponsorship', icon: HandHeart, count: activeSponsorships.length },
         { key: 'academics', label: 'Results', icon: FileText, count: results.length },
         { key: 'fees', label: 'Fees', icon: Wallet },
         { key: 'attendance', label: 'Attendance', icon: CalendarCheck },
@@ -141,6 +169,11 @@ export default function StudentShow({ student, attendance, finance, results, dis
                             <span>{titleCase(student.gender)}</span>
                             {student.age !== null && <span>{student.age} yrs</span>}
                             <span className="badge badge-soft-secondary">{titleCase(student.residence_type)}</span>
+                            {activeSponsorships.map((sp) => (
+                                <button key={sp.id} type="button" onClick={() => setTab('sponsorship')} className="badge badge-soft-success inline-flex items-center gap-1" title={coverageLabel(sp)}>
+                                    <HandHeart className="h-3 w-3" /> Sponsored by {sp.sponsor?.name}
+                                </button>
+                            ))}
                         </div>
                     </div>
                     <div className="grid grid-cols-3 gap-3 text-center">
@@ -273,6 +306,111 @@ export default function StudentShow({ student, attendance, finance, results, dis
                         </div>
                     ) : (
                         <EmptyState title="No guardians linked" />
+                    )}
+                </div>
+            )}
+
+            {tab === 'sponsorship' && (
+                <div className="panel">
+                    <div className="mb-5 flex flex-wrap items-center justify-between gap-2">
+                        <div>
+                            <h5 className="text-lg font-bold">Sponsorship</h5>
+                            <p className="text-xs text-white-dark">Who pays for or supports this student's education, current and past.</p>
+                        </div>
+                        {can('students.manage') && (
+                            <button className="btn btn-primary btn-sm" onClick={() => setSponsorModal('new')}>
+                                <HandHeart className="h-4 w-4" /> Add sponsor
+                            </button>
+                        )}
+                    </div>
+                    {student.sponsorships.length ? (
+                        <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+                            {student.sponsorships.map((sp) => (
+                                <div key={sp.id} className={`rounded-lg border p-4 ${sp.status === 'active' ? 'border-success/40' : 'border-white-light opacity-75 dark:border-[#1b2e4b]'}`}>
+                                    <div className="flex items-start gap-3">
+                                        <Avatar name={sp.sponsor?.name} />
+                                        <div className="min-w-0 flex-1">
+                                            <div className="flex flex-wrap items-center gap-2">
+                                                <span className="truncate font-bold">{sp.sponsor?.name}</span>
+                                                <StatusBadge status={sp.status} label={sp.status === 'active' ? 'Active' : 'Ended'} />
+                                            </div>
+                                            <div className="text-xs text-white-dark">{titleCase(sp.sponsor?.type ?? '')}</div>
+                                        </div>
+                                        {can('students.manage') && (
+                                            <div className="flex gap-2">
+                                                <button className="text-primary hover:opacity-70" title="Edit" onClick={() => setSponsorModal(sp)}>
+                                                    <Pencil className="h-4 w-4" />
+                                                </button>
+                                                {sp.status === 'active' && (
+                                                    <button
+                                                        className="text-warning hover:opacity-70"
+                                                        title="End sponsorship"
+                                                        onClick={async () => {
+                                                            const { confirmed } = await confirm({ title: `End sponsorship by ${sp.sponsor?.name}?`, text: 'It ends today and stays in the history.', confirmText: 'End sponsorship' });
+                                                            if (confirmed) router.post(`/sponsorships/${sp.id}/end`, { end_date: new Date().toISOString().slice(0, 10) }, { preserveScroll: true });
+                                                        }}
+                                                    >
+                                                        <RefreshCw className="h-4 w-4" />
+                                                    </button>
+                                                )}
+                                                <button
+                                                    className="text-danger hover:opacity-70"
+                                                    title="Delete (entered by mistake)"
+                                                    onClick={async () => {
+                                                        const { confirmed } = await confirm({ title: 'Delete this sponsorship record?', text: 'Use this only for entries made by mistake. To stop a real sponsorship, end it instead.', danger: true, confirmText: 'Delete' });
+                                                        if (confirmed) router.delete(`/sponsorships/${sp.id}`, { preserveScroll: true });
+                                                    }}
+                                                >
+                                                    <Trash2 className="h-4 w-4" />
+                                                </button>
+                                            </div>
+                                        )}
+                                    </div>
+                                    <dl className="mt-4 grid grid-cols-2 gap-x-4 gap-y-3 text-sm">
+                                        {[
+                                            ['Coverage', coverageLabel(sp)],
+                                            ['Pays for', sp.covers],
+                                            ['Period', `${sp.start_date ? date(sp.start_date) : '—'} → ${sp.end_date ? date(sp.end_date) : 'open-ended'}`],
+                                            ['Agreement ref.', sp.reference],
+                                            ['Contact person', sp.sponsor?.contact_person],
+                                            ['Address', sp.sponsor?.address],
+                                        ].map(([k, v]) => (
+                                            <div key={k as string}>
+                                                <dt className="text-xs font-bold text-white-dark uppercase">{k}</dt>
+                                                <dd className="font-semibold">{v || '—'}</dd>
+                                            </div>
+                                        ))}
+                                    </dl>
+                                    {sp.attachment_name && (
+                                        <a
+                                            href={`/sponsorships/${sp.id}/attachment`}
+                                            target="_blank"
+                                            rel="noreferrer"
+                                            className="mt-3 inline-flex max-w-full items-center gap-2 rounded-md border border-white-light px-3 py-1.5 text-sm font-semibold text-primary hover:bg-primary-light dark:border-[#1b2e4b] dark:hover:bg-primary-dark-light"
+                                        >
+                                            <Paperclip className="h-4 w-4 shrink-0" />
+                                            <span className="truncate">{sp.attachment_name}</span>
+                                        </a>
+                                    )}
+                                    {(sp.sponsor?.phone || sp.sponsor?.email) && (
+                                        <div className="mt-3 flex flex-wrap gap-x-5 gap-y-1 text-sm">
+                                            {sp.sponsor?.phone && (
+                                                <span className="flex items-center gap-2">
+                                                    <Phone className="h-4 w-4 text-white-dark" /> {sp.sponsor.phone}
+                                                </span>
+                                            )}
+                                            {sp.sponsor?.email && (
+                                                <span className="flex items-center gap-2">
+                                                    <Mail className="h-4 w-4 text-white-dark" /> {sp.sponsor.email}
+                                                </span>
+                                            )}
+                                        </div>
+                                    )}
+                                </div>
+                            ))}
+                        </div>
+                    ) : (
+                        <EmptyState title="Not sponsored" description="Fees and support come from the parents/guardians. Add a sponsor if an organisation or well-wisher supports this student." />
                     )}
                 </div>
             )}
@@ -489,16 +627,24 @@ export default function StudentShow({ student, attendance, finance, results, dis
                                 <tbody>
                                     {student.documents.map((d) => (
                                         <tr key={d.id}>
-                                            <td className="font-semibold">{d.title}</td>
+                                            <td className="font-semibold">
+                                                <a href={`/students/${student.id}/documents/${d.id}`} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1.5 text-primary hover:underline">
+                                                    <Paperclip className="h-4 w-4 shrink-0" /> {d.title}
+                                                </a>
+                                            </td>
                                             <td>{d.mime_type ?? '—'}</td>
                                             <td>{d.size ? `${Math.round(d.size / 1024)} KB` : '—'}</td>
                                             <td>
                                                 {dateTime(d.created_at)} {d.uploader && <span className="text-white-dark">by {d.uploader.name}</span>}
                                             </td>
-                                            <td className="text-end!">
+                                            <td className="text-end! whitespace-nowrap">
+                                                <a href={`/students/${student.id}/documents/${d.id}`} target="_blank" rel="noreferrer" className="me-3 inline-block text-info hover:opacity-70" title="View / download">
+                                                    <Eye className="h-4 w-4" />
+                                                </a>
                                                 {can('students.manage') && (
                                                     <button
                                                         className="text-danger"
+                                                        title="Delete"
                                                         onClick={async () => {
                                                             const { confirmed } = await confirm({ title: 'Delete document?', danger: true, confirmText: 'Delete' });
                                                             if (confirmed) router.delete(`/students/${student.id}/documents/${d.id}`, { preserveScroll: true });
@@ -576,6 +722,7 @@ export default function StudentShow({ student, attendance, finance, results, dis
             )}
 
             <StatusModal open={statusOpen} onClose={() => setStatusOpen(false)} studentId={student.id} current={student.status} statuses={statuses} />
+            <SponsorshipModal key={sponsorModal === null ? 'closed' : sponsorModal === 'new' ? 'new' : sponsorModal.id} sponsorship={sponsorModal} onClose={() => setSponsorModal(null)} studentId={student.id} sponsors={sponsors} sponsorTypes={sponsorTypes} />
             <GuardianModal open={guardianOpen} onClose={() => setGuardianOpen(false)} studentId={student.id} />
             <DocumentModal open={docOpen} onClose={() => setDocOpen(false)} studentId={student.id} />
         </>
@@ -600,6 +747,81 @@ function StatusModal({ open, onClose, studentId, current, statuses }: { open: bo
                     </button>
                     <button className="btn btn-primary" disabled={form.processing}>
                         {form.processing && <LoaderCircle className="h-4 w-4 animate-spin" />} Update status
+                    </button>
+                </div>
+            </form>
+        </Modal>
+    );
+}
+
+function SponsorshipModal({
+    sponsorship,
+    onClose,
+    studentId,
+    sponsors,
+    sponsorTypes,
+}: {
+    sponsorship: Sponsorship | 'new' | null;
+    onClose: () => void;
+    studentId: number;
+    sponsors: SponsorOption[];
+    sponsorTypes: Option[];
+}) {
+    const existing = sponsorship && sponsorship !== 'new' ? sponsorship : null;
+    const initial: SponsorshipInput = existing
+        ? {
+              ...emptySponsorship(),
+              sponsor_id: String(existing.sponsor_id),
+              sponsor: {
+                  name: existing.sponsor?.name ?? '',
+                  type: existing.sponsor?.type ?? 'organization',
+                  contact_person: existing.sponsor?.contact_person ?? '',
+                  phone: existing.sponsor?.phone ?? '',
+                  email: existing.sponsor?.email ?? '',
+                  address: existing.sponsor?.address ?? '',
+              },
+              coverage: existing.coverage,
+              percentage: existing.percentage ? String(Number(existing.percentage)) : '',
+              covers: existing.covers ?? '',
+              reference: existing.reference ?? '',
+              start_date: existing.start_date?.slice(0, 10) ?? '',
+              end_date: existing.end_date?.slice(0, 10) ?? '',
+              notes: existing.notes ?? '',
+          }
+        : emptySponsorship();
+    const form = useForm(initial);
+
+    const submit = (e: FormEvent) => {
+        e.preventDefault();
+        // Multipart so the optional attachment uploads; PUT is spoofed because browsers can't send files with PUT.
+        const opts = { preserveScroll: true, forceFormData: true, onSuccess: onClose };
+        if (existing) {
+            form.transform((d) => ({ ...d, _method: 'put' }));
+            form.post(`/sponsorships/${existing.id}`, opts);
+        } else {
+            form.transform((d) => d);
+            form.post(`/students/${studentId}/sponsorships`, opts);
+        }
+    };
+
+    return (
+        <Modal open={sponsorship !== null} onClose={onClose} title={existing ? `Edit sponsorship — ${existing.sponsor?.name ?? ''}` : 'Add sponsor'} size="xl">
+            <form onSubmit={submit} className="space-y-4">
+                <SponsorshipFields
+                    value={form.data}
+                    onChange={(next) => form.setData(next)}
+                    errors={form.errors as Record<string, string>}
+                    sponsors={sponsors}
+                    sponsorTypes={sponsorTypes}
+                    lockSponsor={!!existing}
+                    currentAttachment={existing?.attachment_name ? { name: existing.attachment_name, url: `/sponsorships/${existing.id}/attachment` } : null}
+                />
+                <div className="flex justify-end gap-2">
+                    <button type="button" className="btn btn-outline-dark" onClick={onClose}>
+                        Cancel
+                    </button>
+                    <button className="btn btn-primary" disabled={form.processing}>
+                        {form.processing && <LoaderCircle className="h-4 w-4 animate-spin" />} Save sponsorship
                     </button>
                 </div>
             </form>
@@ -658,20 +880,25 @@ function GuardianModal({ open, onClose, studentId }: { open: boolean; onClose: (
 
 function DocumentModal({ open, onClose, studentId }: { open: boolean; onClose: () => void; studentId: number }) {
     const form = useForm<{ title: string; file: File | null }>({ title: '', file: null });
+    const tooBig = !!form.data.file && form.data.file.size > MAX_ATTACHMENT_MB * 1048576;
     const submit = (e: FormEvent) => {
         e.preventDefault();
+        if (tooBig) return;
         form.post(`/students/${studentId}/documents`, { forceFormData: true, preserveScroll: true, onSuccess: () => (form.reset(), onClose()) });
     };
     return (
         <Modal open={open} onClose={onClose} title="Upload document">
             <form onSubmit={submit} className="space-y-4">
                 <Input label="Document title" required value={form.data.title} onChange={(e) => form.setData('title', e.target.value)} error={form.errors.title} placeholder="e.g. Birth certificate" />
-                <Input label="File" type="file" required accept=".pdf,.jpg,.jpeg,.png,.doc,.docx" onChange={(e) => form.setData('file', e.target.files?.[0] ?? null)} error={form.errors.file} help="PDF, image or Word document up to 5 MB" />
+                <Input label="File" type="file" required accept=".pdf,.jpg,.jpeg,.png,.doc,.docx" onChange={(e) => form.setData('file', e.target.files?.[0] ?? null)}
+                    error={form.errors.file ?? (tooBig ? `This file is ${((form.data.file?.size ?? 0) / 1048576).toFixed(1)} MB — the limit is ${MAX_ATTACHMENT_MB} MB.` : undefined)}
+                    help={`PDF, image or Word document up to ${MAX_ATTACHMENT_MB} MB`}
+                />
                 <div className="flex justify-center gap-3">
                     <button type="button" className="btn btn-outline-dark" onClick={onClose}>
                         Cancel
                     </button>
-                    <button className="btn btn-primary" disabled={form.processing}>
+                    <button className="btn btn-primary" disabled={form.processing || tooBig}>
                         {form.processing && <LoaderCircle className="h-4 w-4 animate-spin" />} Upload
                     </button>
                 </div>

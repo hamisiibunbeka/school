@@ -7,6 +7,7 @@ import Letterhead from '@/components/ui/letterhead';
 import PageHeader from '@/components/ui/page-header';
 import { cn, date, num, weekdayDate } from '@/lib/utils';
 import type { Option } from '@/types';
+import { ProvisionalNotice } from './_components/workflow';
 
 type ExamOption = Option & { status: string; classes: (Option & { streams: Option[] })[] };
 type SubjectLine = { subject: string; teacher: string | null; score: number | null; percentage: number | null; grade: string | null; points: number | null; is_absent: boolean; remark: string | null; remarks: string | null };
@@ -38,9 +39,10 @@ type Props = {
     cards: Card[];
     context: { class_size: number; class_average: number | null; next_term: string | null; term_range: [string, string] | null } | null;
     scale: { grade: string; min: number; max: number; points: number; remark: string | null }[];
+    canApprove: boolean;
 };
 
-export default function ReportCards({ exams, exam, filters: initial, students, cards, context, scale }: Props) {
+export default function ReportCards({ exams, exam, filters: initial, students, cards, context, scale, canApprove }: Props) {
     const { filters, setFilter } = useFilters(initial);
     const selectedExam = exams.find((e) => String(e.value) === String(filters.exam));
     const classes = selectedExam?.classes ?? [];
@@ -95,11 +97,7 @@ export default function ReportCards({ exams, exam, filters: initial, students, c
                     )}
                     {students.length > 0 && <FilterSelect value={filters.student} onChange={(v) => setFilter('student', v)} options={students} placeholder="All learners" className="sm:min-w-[220px]" />}
                 </FilterBar>
-                {exam && exam.status !== 'published' && (
-                    <div className="rounded-md bg-warning-light px-4 py-2 text-sm font-semibold text-warning dark:bg-warning-dark-light">
-                        These results are not yet published — cards are marked PROVISIONAL.
-                    </div>
-                )}
+                {exam && <ProvisionalNotice exam={exam} canApprove={canApprove} />}
             </div>
 
             {!exam || !initial.class ? (

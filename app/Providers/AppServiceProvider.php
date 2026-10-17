@@ -44,6 +44,40 @@ class AppServiceProvider extends ServiceProvider
         $this->configureAuthorization();
         $this->configureSchemaMacros();
         $this->configureAuthEvents();
+        $this->configureUploadMessages();
+    }
+
+    /**
+     * PHP drops files above upload_max_filesize before Laravel sees them, and the
+     * default message ("The file failed to upload.") hides why. Say it plainly.
+     */
+    protected function configureUploadMessages(): void
+    {
+        $limit = self::uploadLimitMb();
+
+        $this->app['translator']->addLines([
+            'validation.uploaded' => "The :attribute could not be uploaded. It is probably larger than the server allows ({$limit} MB) — try a smaller file or a compressed/scanned-at-lower-quality PDF.",
+        ], 'en');
+    }
+
+    /** Effective per-file upload limit in MB (the smaller of upload_max_filesize and post_max_size). */
+    public static function uploadLimitMb(): float
+    {
+        $bytes = function (string $v): float {
+            $v = trim($v);
+            $n = (float) $v;
+
+            return match (strtolower(substr($v, -1))) {
+                'g' => $n * 1024 ** 3,
+                'm' => $n * 1024 ** 2,
+                'k' => $n * 1024,
+                default => $n,
+            };
+        };
+
+        $limit = min($bytes((string) ini_get('upload_max_filesize')), $bytes((string) ini_get('post_max_size')));
+
+        return round($limit / 1024 ** 2, 1);
     }
 
     protected function configureDefaults(): void

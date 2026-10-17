@@ -68,3 +68,33 @@ export function WorkflowActions({ examId, status, small }: { examId: number; sta
         </>
     );
 }
+
+const PENDING: Record<string, string> = {
+    draft: 'Mark entry has not been opened yet.',
+    marks_entry: 'Teachers are still entering marks. Next: submit for moderation, then approve & publish.',
+    moderation: 'Marks are in moderation. Next: approve & publish to make the results final.',
+};
+
+/**
+ * Shown on result sheets and report cards while an exam is not published:
+ * explains why output is PROVISIONAL and, for approvers, offers the next
+ * workflow step right here.
+ */
+export function ProvisionalNotice({ exam, canApprove }: { exam: { id: number; status: string }; canApprove: boolean }) {
+    if (exam.status === 'published') return null;
+
+    return (
+        <div className="no-print flex flex-wrap items-center justify-between gap-3 rounded-md border border-warning/40 bg-warning-light px-4 py-3 text-sm dark:bg-warning-dark-light">
+            <div className="min-w-0">
+                <div className="font-bold text-warning">PROVISIONAL — results not yet published</div>
+                <div className="text-black dark:text-white-light">{PENDING[exam.status] ?? 'These results are not final.'}</div>
+                {!canApprove && <div className="mt-0.5 text-xs text-white-dark">Only the principal / academic administrators can publish results.</div>}
+            </div>
+            {canApprove && (
+                <div className="flex flex-wrap gap-2">
+                    <WorkflowActions examId={exam.id} status={exam.status} small />
+                </div>
+            )}
+        </div>
+    );
+}

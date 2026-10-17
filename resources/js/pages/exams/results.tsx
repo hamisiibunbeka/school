@@ -10,6 +10,7 @@ import Letterhead from '@/components/ui/letterhead';
 import PageHeader from '@/components/ui/page-header';
 import StatCard from '@/components/ui/stat-card';
 import StatusBadge from '@/components/ui/status-badge';
+import { ProvisionalNotice } from './_components/workflow';
 import Tabs from '@/components/ui/tabs';
 import { cn, exportCsv, num } from '@/lib/utils';
 import type { Option } from '@/types';
@@ -49,11 +50,12 @@ type Props = {
     classes: (Option & { streams: Option[] })[];
     analysis: Analysis | null;
     scale: { grade: string; min: number; max: number; points: number; remark: string | null }[];
+    canApprove: boolean;
 };
 
 const divTone: Record<string, string> = { I: 'badge-soft-success', II: 'badge-soft-primary', III: 'badge-soft-info', IV: 'badge-soft-warning', '0': 'badge-soft-danger', INC: 'badge-soft-dark' };
 
-export default function Results({ exam, filters: initial, classes, analysis, scale }: Props) {
+export default function Results({ exam, filters: initial, classes, analysis, scale, canApprove }: Props) {
     const { filters, setFilter } = useFilters(initial);
     const [tab, setTab] = useState('broadsheet');
     const streams = classes.find((c) => String(c.value) === String(filters.class))?.streams ?? [];
@@ -118,11 +120,7 @@ export default function Results({ exam, filters: initial, classes, analysis, sca
                     />
                     {streams.length > 0 && <FilterSelect value={filters.stream} onChange={(v) => setFilter('stream', v)} options={streams} placeholder="All streams" />}
                 </FilterBar>
-                {provisional && (
-                    <div className="rounded-md bg-warning-light px-4 py-2 text-sm font-semibold text-warning dark:bg-warning-dark-light">
-                        Provisional — these results are not yet approved and published. Do not share with parents.
-                    </div>
-                )}
+                <ProvisionalNotice exam={exam} canApprove={canApprove} />
                 <p className="mt-3 text-xs text-white-dark">
                     Average = mean % of subjects sat. Division = sum of points of the best 7 subjects (I: 7–17, II: 18–21, III: 22–25, IV: 26–33, 0: 34–35; fewer than 7 subjects = INC). Position is within the whole
                     class. Pass mark {analysis?.summary.pass_mark ?? 30}%.

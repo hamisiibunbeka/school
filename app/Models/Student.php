@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Facades\Storage;
 
@@ -64,6 +65,17 @@ class Student extends SchoolModel
     public function stream(): BelongsTo
     {
         return $this->belongsTo(Stream::class);
+    }
+
+    public function sponsorships(): HasMany
+    {
+        return $this->hasMany(StudentSponsorship::class)->orderByRaw("status = 'active' DESC")->orderByDesc('start_date')->orderByDesc('id');
+    }
+
+    /** Current sponsorship (the latest active one). */
+    public function activeSponsorship(): HasOne
+    {
+        return $this->hasOne(StudentSponsorship::class)->where('status', 'active')->latestOfMany();
     }
 
     public function guardians(): BelongsToMany

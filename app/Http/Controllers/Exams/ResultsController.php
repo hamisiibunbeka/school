@@ -7,6 +7,7 @@ use App\Models\Exam;
 use App\Models\ExamMark;
 use App\Models\Term;
 use App\Services\Exams\ResultsService;
+use App\Services\Exams\TeacherAccess;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
@@ -15,7 +16,7 @@ use Inertia\Response;
 /** Class results analysis and printable report cards (SRS 4.6, acceptance 15.2). */
 class ResultsController extends Controller
 {
-    public function __construct(private ResultsService $results) {}
+    public function __construct(private ResultsService $results, private TeacherAccess $access) {}
 
     public function show(Request $request, Exam $exam): Response
     {
@@ -32,6 +33,7 @@ class ResultsController extends Controller
             'filters' => ['class' => $classId ? (string) $classId : '', 'stream' => $streamId ? (string) $streamId : ''],
             'classes' => $this->classOptions($exam),
             'analysis' => $classId ? $this->results->classResults($exam, $classId, $streamId) : null,
+            'canApprove' => $this->access->canApprove($request->user()),
             'scale' => $this->results->scale()->map(fn ($g) => ['grade' => $g->grade, 'min' => (float) $g->min_score, 'max' => (float) $g->max_score, 'points' => (float) $g->points, 'remark' => $g->remark])->values(),
         ]);
     }
@@ -126,6 +128,7 @@ class ResultsController extends Controller
             'students' => $studentOptions,
             'cards' => $cards,
             'context' => $context,
+            'canApprove' => $this->access->canApprove($request->user()),
             'scale' => $this->results->scale()->map(fn ($g) => ['grade' => $g->grade, 'min' => (float) $g->min_score, 'max' => (float) $g->max_score, 'points' => (float) $g->points, 'remark' => $g->remark])->values(),
         ]);
     }

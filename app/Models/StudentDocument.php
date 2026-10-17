@@ -6,6 +6,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class StudentDocument extends SchoolModel
 {
+    protected $hidden = ['file_path'];
+
     public function student(): BelongsTo
     {
         return $this->belongsTo(Student::class);

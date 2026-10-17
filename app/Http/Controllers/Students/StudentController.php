@@ -6,14 +6,17 @@ use App\Http\Controllers\Controller;
 use App\Models\AcademicYear;
 use App\Models\Enrolment;
 use App\Models\Guardian;
+use App\Models\Sponsor;
 use App\Models\Student;
 use App\Models\StudentDocument;
 use App\Services\DocumentNumber;
+use App\Services\Students\SponsorshipService;
 use App\Support\Lookups;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -84,6 +87,8 @@ class StudentController extends Controller
         return Inertia::render('students/form', [
             'student' => null,
             'classes' => Lookups::classes(),
+            'sponsors' => SponsorshipService::options(),
+            'sponsorTypes' => Lookups::enum(Sponsor::TYPES),
             'suggestedAdmissionNo' => null,
         ]);
     }
@@ -93,7 +98,7 @@ class StudentController extends Controller
         $data = $this->validated($request);
 
         $student = DB::transaction(function () use ($data, $request) {
-            $student = new Student(collect($data)->except(['guardians', 'photo'])->all());
+            $student = new Student(collect($data)->except(['guardians', 'photo', 'sponsorship'])->all());
             $student->admission_no = ($data['admission_no'] ?? null) ?: DocumentNumber::next('admission');
             $student->admission_date ??= now()->toDateString();
             if ($request->hasFile('photo')) {
@@ -102,6 +107,10 @@ class StudentController extends Controller
             $student->save();
 
             $this->syncGuardians($student, $data['guardians'] ?? []);
+
+            if (! empty($data['sponsorship']['enabled'])) {
+                app(SponsorshipService::class)->create($student, $data['sponsorship']);
+            }
 
             if ($year = AcademicYear::current()) {
                 Enrolment::create([
@@ -125,7 +134,7 @@ class StudentController extends Controller
 
     public function show(Student $student): Response
     {
-        $student->load(['schoolClass:id,name', 'stream:id,name', 'guardians', 'documents.uploader:id,name', 'enrolments.academicYear:id,name', 'enrolments.schoolClass:id,name', 'enrolments.stream:id,name']);
+        $student->load(['schoolClass:id,name', 'stream:id,name', 'guardians', 'sponsorships.sponsor', 'documents.uploader:id,name', 'enrolments.academicYear:id,name', 'enrolments.schoolClass:id,name', 'enrolments.stream:id,name']);
 
         $schoolId = $this->tenancy()->schoolId();
 
@@ -179,20 +188,36 @@ class StudentController extends Controller
             'results' => $results,
             'discipline' => $discipline,
             'statuses' => Lookups::enum(Student::STATUSES),
+            'sponsors' => SponsorshipService::options(),
+            'sponsorTypes' => Lookups::enum(Sponsor::TYPES),
         ]);
     }
 
     public function edit(Student $student): Response
     {
-        $student->load('guardians');
+        $student->load(['guardians', 'activeSponsorship.sponsor']);
+        $sp = $student->activeSponsorship;
 
         return Inertia::render('students/form', [
             'student' => [
                 ...$student->toArray(),
                 'date_of_birth' => $student->date_of_birth?->toDateString(),
                 'admission_date' => $student->admission_date?->toDateString(),
+                'sponsorship' => $sp ? [
+                    'id' => $sp->id,
+                    'attachment_name' => $sp->attachment_name,
+                    'sponsor_id' => $sp->sponsor_id,
+                    'coverage' => $sp->coverage,
+                    'percentage' => $sp->percentage,
+                    'covers' => $sp->covers,
+                    'reference' => $sp->reference,
+                    'start_date' => $sp->start_date?->toDateString(),
+                    'end_date' => $sp->end_date?->toDateString(),
+                ] : null,
             ],
             'classes' => Lookups::classes(),
+            'sponsors' => SponsorshipService::options(),
+            'sponsorTypes' => Lookups::enum(Sponsor::TYPES),
         ]);
     }
 
@@ -202,7 +227,7 @@ class StudentController extends Controller
         $old = $student->only(['school_class_id', 'stream_id', 'status', 'residence_type']);
 
         DB::transaction(function () use ($student, $data, $request) {
-            $student->fill(collect($data)->except(['guardians', 'photo', 'admission_no'])->all());
+            $student->fill(collect($data)->except(['guardians', 'photo', 'admission_no', 'sponsorship'])->all());
             if (! empty($data['admission_no'])) {
                 $student->admission_no = $data['admission_no'];
             }
@@ -213,6 +238,10 @@ class StudentController extends Controller
 
             if (array_key_exists('guardians', $data)) {
                 $this->syncGuardians($student, $data['guardians'] ?? []);
+            }
+
+            if (array_key_exists('sponsorship', $data)) {
+                app(SponsorshipService::class)->sync($student, $data['sponsorship'] ?? []);
             }
         });
 
@@ -288,6 +317,18 @@ class StudentController extends Controller
         $this->toast('Document uploaded.');
 
         return back();
+    }
+
+    /** Open a student document: PDFs and images inline, other types as a download. */
+    public function viewDocument(Student $student, StudentDocument $document): StreamedResponse
+    {
+        abort_unless($document->student_id === $student->id && Storage::exists($document->file_path), 404);
+
+        $ext = pathinfo($document->file_path, PATHINFO_EXTENSION);
+        $name = Str::slug($document->title) ?: 'document';
+        $inline = str_starts_with((string) $document->mime_type, 'image/') || $document->mime_type === 'application/pdf';
+
+        return Storage::response($document->file_path, $ext ? "{$name}.{$ext}" : $name, [], $inline ? 'inline' : 'attachment');
     }
 
     public function deleteDocument(Student $student, StudentDocument $document): RedirectResponse
@@ -371,7 +412,7 @@ class StudentController extends Controller
     {
         $schoolId = $this->tenancy()->schoolId();
 
-        return $request->validate([
+        $validator = validator($request->all(), [
             'admission_no' => ['nullable', 'string', 'max:30', Rule::unique('students')->where('school_id', $schoolId)->ignore($student?->id)],
             'first_name' => ['required', 'string', 'max:100'],
             'middle_name' => ['nullable', 'string', 'max:100'],
@@ -400,13 +441,27 @@ class StudentController extends Controller
             'guardians.*.occupation' => ['nullable', 'string', 'max:100'],
             'guardians.*.relationship' => ['required', 'string', 'max:50'],
             'guardians.*.is_primary' => ['boolean'],
-        ], [], [
+            'sponsorship' => ['sometimes', 'array'],
+            'sponsorship.enabled' => ['boolean'],
+            ...SponsorshipService::rules('sponsorship', optional: true),
+        ], SponsorshipService::messages('sponsorship'), [
             'school_class_id' => 'class',
             'stream_id' => 'stream',
             'guardians.*.first_name' => 'guardian first name',
             'guardians.*.last_name' => 'guardian last name',
             'guardians.*.phone' => 'guardian phone',
+            'sponsorship.sponsor.name' => 'sponsor name',
+            'sponsorship.percentage' => 'percentage covered',
         ]);
+
+        $validator->after(function ($v) use ($request) {
+            $sponsorship = (array) $request->input('sponsorship', []);
+            if (filter_var($sponsorship['enabled'] ?? false, FILTER_VALIDATE_BOOLEAN) && SponsorshipService::missingSponsor($sponsorship)) {
+                $v->errors()->add('sponsorship.sponsor.name', 'Choose an existing sponsor or enter the new sponsor\'s name.');
+            }
+        });
+
+        return $validator->validate();
     }
 
     /**
