@@ -23,7 +23,7 @@ class StudentController extends Controller
 {
     public function index(Request $request): Response
     {
-        $filters = $request->only(['search', 'class', 'stream', 'status', 'gender', 'residence']);
+        $filters = $request->only(['search', 'class', 'stream', 'status', 'gender', 'residence', 'admitted_from', 'admitted_to']);
 
         $students = $this->filteredQuery($filters)
             ->with(['schoolClass:id,name', 'stream:id,name'])
@@ -47,7 +47,7 @@ class StudentController extends Controller
 
         return Inertia::render('students/index', [
             'students' => $students,
-            'filters' => array_merge(['search' => '', 'class' => '', 'stream' => '', 'status' => '', 'gender' => '', 'residence' => ''], $filters),
+            'filters' => array_merge(['search' => '', 'class' => '', 'stream' => '', 'status' => '', 'gender' => '', 'residence' => '', 'admitted_from' => '', 'admitted_to' => ''], $filters),
             'classes' => Lookups::classes(),
             'statuses' => Lookups::enum(Student::STATUSES),
             'stats' => [
@@ -61,7 +61,7 @@ class StudentController extends Controller
 
     public function export(Request $request): StreamedResponse
     {
-        $filters = $request->only(['search', 'class', 'stream', 'status', 'gender', 'residence']);
+        $filters = $request->only(['search', 'class', 'stream', 'status', 'gender', 'residence', 'admitted_from', 'admitted_to']);
         $this->audit('exported', null, 'Exported student list', 'students', null, $filters);
 
         return response()->streamDownload(function () use ($filters) {
@@ -361,7 +361,9 @@ class StudentController extends Controller
             ->when($filters['stream'] ?? null, fn ($q, $v) => $q->where('stream_id', $v))
             ->when($filters['status'] ?? null, fn ($q, $v) => $q->where('status', $v), fn ($q) => $q->where('status', '!=', 'archived'))
             ->when($filters['gender'] ?? null, fn ($q, $v) => $q->where('gender', $v))
-            ->when($filters['residence'] ?? null, fn ($q, $v) => $q->where('residence_type', $v));
+            ->when($filters['residence'] ?? null, fn ($q, $v) => $q->where('residence_type', $v))
+            ->when($filters['admitted_from'] ?? null, fn ($q, $v) => $q->whereDate('admission_date', '>=', $v))
+            ->when($filters['admitted_to'] ?? null, fn ($q, $v) => $q->whereDate('admission_date', '<=', $v));
     }
 
     /** @return array<string, mixed> */

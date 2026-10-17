@@ -3,6 +3,7 @@ import { BedDouble, Download, GraduationCap, Plus, UserRound, Users } from 'luci
 import { RowActions } from '@/components/ui/actions';
 import Avatar from '@/components/ui/avatar';
 import DataTable, { type Column } from '@/components/ui/data-table';
+import { DateRangePicker } from '@/components/ui/date-picker';
 import { FilterBar, FilterSelect, SearchInput, useFilters } from '@/components/ui/filters';
 import PageHeader from '@/components/ui/page-header';
 import StatCard from '@/components/ui/stat-card';
@@ -27,7 +28,7 @@ type Row = {
 
 type Props = {
     students: Paginated<Row>;
-    filters: { search: string; class: string; stream: string; status: string; gender: string; residence: string };
+    filters: { search: string; class: string; stream: string; status: string; gender: string; residence: string; admitted_from: string; admitted_to: string };
     classes: (Option & { streams: Option[] })[];
     statuses: Option[];
     stats: { active: number; male: number; female: number; boarding: number };
@@ -136,6 +137,15 @@ export default function StudentsIndex({ students, filters: initial, classes, sta
                         onChange={(v) => setFilter('residence', v)}
                         options={['day', 'boarding'].map((g) => ({ value: g, label: titleCase(g) }))}
                         placeholder="Day & boarding"
+                    />
+                    <DateRangePicker
+                        from={filters.admitted_from}
+                        to={filters.admitted_to}
+                        placeholder="Any admission date"
+                        onChange={(f, t) => {
+                            setFilter('admitted_from', f);
+                            setFilter('admitted_to', t);
+                        }}
                     />
                 </FilterBar>
                 <DataTable columns={columns} paginated={students} empty="No students match your filters" emptyDescription="Try clearing filters or add a new student." />
