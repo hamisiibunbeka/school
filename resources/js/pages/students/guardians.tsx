@@ -28,6 +28,7 @@ type Guardian = {
     user_id: number | null;
     students_count: number;
     students: { id: number; first_name: string; last_name: string; admission_no: string }[];
+    matched_student_ids: number[];
 };
 
 const blank = { first_name: '', last_name: '', gender: '', phone: '', alt_phone: '', email: '', occupation: '', national_id: '', address: '', preferred_channel: 'sms' };
@@ -92,7 +93,12 @@ export default function Guardians({ guardians, filters: initial }: { guardians: 
             render: (g) => (
                 <div className="flex flex-wrap gap-1">
                     {g.students.map((s) => (
-                        <Link key={s.id} href={`/students/${s.id}`} className="badge badge-soft-primary hover:underline">
+                        <Link
+                            key={s.id}
+                            href={`/students/${s.id}`}
+                            title={s.admission_no}
+                            className={`badge hover:underline ${g.matched_student_ids.includes(s.id) ? 'badge-primary' : 'badge-soft-primary'}`}
+                        >
                             {s.first_name} {s.last_name}
                         </Link>
                     ))}
@@ -141,7 +147,7 @@ export default function Guardians({ guardians, filters: initial }: { guardians: 
             />
             <div className="panel">
                 <FilterBar>
-                    <SearchInput value={filters.search} onChange={(v) => setFilter('search', v)} placeholder="Search name, phone or email…" />
+                    <SearchInput value={filters.search} onChange={(v) => setFilter('search', v)} placeholder="Search guardian or student: name, phone, email, admission no…" />
                 </FilterBar>
                 <DataTable columns={columns} paginated={guardians} empty="No guardians found" />
             </div>

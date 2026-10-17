@@ -20,17 +20,25 @@ class GuardianController extends Controller
     {
         $search = $request->string('search')->toString();
 
+        $words = array_map('mb_strtolower', Guardian::searchWords($search));
+
         $guardians = Guardian::query()
             ->withCount('students')
-            ->with('students:id,first_name,last_name,admission_no')
-            ->when($search, fn ($q) => $q->where(fn ($q) => $q
-                ->where('first_name', 'like', "%{$search}%")
-                ->orWhere('last_name', 'like', "%{$search}%")
-                ->orWhere('phone', 'like', "%{$search}%")
-                ->orWhere('email', 'like', "%{$search}%")))
+            ->with('students:id,first_name,middle_name,last_name,admission_no')
+            ->search($search)
             ->orderBy('first_name')
             ->paginate($this->perPage())
-            ->withQueryString();
+            ->withQueryString()
+            ->through(function (Guardian $g) use ($words) {
+                // Flag the children that matched the search so the list shows why a guardian appears.
+                $g->setAttribute('matched_student_ids', $words ? $g->students->filter(function ($s) use ($words) {
+                    $haystack = mb_strtolower("{$s->first_name} {$s->middle_name} {$s->last_name} {$s->admission_no}");
+
+                    return collect($words)->contains(fn ($w) => str_contains($haystack, $w));
+                })->pluck('id')->values() : []);
+
+                return $g;
+            });
 
         return Inertia::render('students/guardians', [
             'guardians' => $guardians,
@@ -45,7 +53,7 @@ class GuardianController extends Controller
 
         return response()->json(
             Guardian::query()
-                ->where(fn ($q) => $q->where('first_name', 'like', "%{$term}%")->orWhere('last_name', 'like', "%{$term}%")->orWhere('phone', 'like', "%{$term}%"))
+                ->search($term)
                 ->limit(10)->get(['id', 'first_name', 'last_name', 'phone'])
                 ->map(fn ($g) => ['value' => $g->id, 'label' => "{$g->full_name} · {$g->phone}"]),
         );
