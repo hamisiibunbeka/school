@@ -332,7 +332,7 @@ class JournalController extends AccountingController
 
     private function reversibleHere(Journal $journal): bool
     {
-        return ! $journal->source_type || class_basename($journal->source_type) === 'Expense';
+        return ! $journal->source_type || in_array(class_basename($journal->source_type), ['Expense', 'BankReconciliation'], true);
     }
 
     private function assertEditable(Journal $journal): void

@@ -23,6 +23,7 @@ class DocumentNumber
         'employee' => 'EMP-',
         'purchase_order' => 'PO-',
         'pocket_money' => 'PM-',
+        'transfer' => 'TRF-',
     ];
 
     public static function next(string $type): string

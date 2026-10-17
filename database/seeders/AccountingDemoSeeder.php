@@ -6,12 +6,15 @@ use App\Models\Account;
 use App\Models\Budget;
 use App\Models\Expense;
 use App\Models\FiscalYear;
+use App\Models\FundTransfer;
 use App\Models\Journal;
 use App\Models\User;
 use App\Services\Accounting\LedgerService;
 use App\Services\AuditLogger;
 use App\Services\DocumentNumber;
+use App\Support\Tenancy;
 use Carbon\CarbonImmutable;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Auth;
 
@@ -42,7 +45,7 @@ class AccountingDemoSeeder extends Seeder
         $this->ledger = app(LedgerService::class);
         $this->acc = Account::pluck('id', 'code')->all();
 
-        $maker = User::where('email', 'bursar@mzenzi.test')->first() ?? User::where('school_id', app(\App\Support\Tenancy::class)->schoolId())->first();
+        $maker = User::where('email', 'bursar@mzenzi.test')->first() ?? User::where('school_id', app(Tenancy::class)->schoolId())->first();
         $checker = User::where('email', 'admin@mzenzi.test')->first() ?? $maker;
         if (! $maker) {
             return;
@@ -73,6 +76,8 @@ class AccountingDemoSeeder extends Seeder
         $debits = [
             '1500' => '850000000', '1510' => '65000000', '1520' => '180000000', '1530' => '35000000',
             '1200' => '42000000', '1210' => '18500000', '1100' => '2500000', '1400' => '6000000',
+            // Staff loans outstanding: two support staff, recovered through payroll at 60,000 + 45,000 a month (24 months left).
+            '1310' => '2520000',
         ];
         $credits = ['1590' => '120000000', '2600' => '150000000', '2100' => '8500000'];
 
@@ -213,7 +218,6 @@ class AccountingDemoSeeder extends Seeder
             ['03-31', 'general', 'LOAN-Q1', 'Quarterly repayment of CRDB development loan (principal)', [['2600', 7500000, 0], ['1200', 0, 7500000]]],
             ['06-30', 'general', 'LOAN-Q2', 'Quarterly repayment of CRDB development loan (principal)', [['2600', 7500000, 0], ['1200', 0, 7500000]]],
             ['09-30', 'general', 'LOAN-Q3', 'Quarterly repayment of CRDB development loan (principal)', [['2600', 7500000, 0], ['1200', 0, 7500000]]],
-            ['04-14', 'general', 'TRF-NMB-CRDB', 'Transfer of fees collections from NMB to CRDB operations account', [['1200', 10000000, 0], ['1210', 0, 10000000]]],
         ];
         for ($m = 1; $m <= min(10, $today->month); $m++) {
             $entries[] = [sprintf('%02d-03', $m), 'general', 'PC-'.sprintf('%02d', $m), 'Petty cash top-up for '.CarbonImmutable::create($year, $m, 1)->format('F Y'), [['1110', 500000, 0], ['1200', 0, 500000]]];
@@ -228,6 +232,102 @@ class AccountingDemoSeeder extends Seeder
                 array_map(fn ($r) => ['account_id' => $this->acc[$r[0]], 'debit' => (string) $r[1], 'credit' => (string) $r[2]], $rows),
             );
         }
+
+        $this->monthlySweeps($year);
+    }
+
+    /**
+     * Fees are collected into M-Pesa, NMB and cash, while salaries and most
+     * suppliers are paid from CRDB. Each month, before payroll (paid ~25th),
+     * the bursar moves collections into CRDB, keeping a working float in each.
+     * Runs after the fee receipts and vouchers exist, so amounts follow the
+     * actual balances on the transfer date.
+     */
+    private function monthlySweeps(int $year): void
+    {
+        $today = CarbonImmutable::now();
+        // [from account, float left behind, charge per transfer, method, narration]
+        $sources = [
+            ['1250', '3000000', '1500', 'mobile_money', 'Mobile money collections swept to CRDB operations account'],
+            ['1210', '5000000', '10000', 'bank_transfer', 'Fees collections transferred from NMB to CRDB operations account'],
+            ['1100', '2000000', '0', 'cash_deposit', 'Cash fees collections banked into CRDB operations account'],
+        ];
+
+        for ($m = 1; $m <= 12; $m++) {
+            $date = CarbonImmutable::create($year, $m, 20);
+            while ($date->isWeekend()) {
+                $date = $date->subDay();
+            }
+            if ($date->greaterThanOrEqualTo($today->startOfDay())) {
+                break;
+            }
+
+            foreach ($sources as [$code, $float, $charges, $method, $narration]) {
+                $account = Account::find($this->acc[$code]);
+                $available = bcsub(bcsub($this->ledger->balance($account, null, $date->toDateString()), $float, 2), $charges, 2);
+                // Round down to whole thousands, as a bursar would transfer.
+                $amount = bcmul(bcdiv($available, '1000', 0), '1000', 2);
+                if (bccomp($amount, '100000', 2) < 0) {
+                    continue;
+                }
+
+                $this->transfer($date, $code, '1200', $amount, $charges, $method, $narration.' — '.$date->format('F Y'));
+            }
+        }
+
+        // One transfer raised by the bursar this week, still awaiting approval.
+        $recent = $today->subDays(2);
+        if ($recent->year === $year) {
+            $transfer = FundTransfer::create([
+                'transfer_no' => DocumentNumber::next('transfer'),
+                'date' => $recent->toDateString(),
+                'from_account_id' => $this->acc['1250'],
+                'to_account_id' => $this->acc['1200'],
+                'amount' => '2500000',
+                'charges' => '1500',
+                'charge_account_id' => $this->acc['6600'],
+                'method' => 'mobile_money',
+                'reference' => 'MP'.mt_rand(10000000, 99999999),
+                'description' => 'Mid-month M-Pesa sweep to CRDB for supplier payments',
+                'status' => 'pending',
+                'created_by' => $this->makerId,
+            ]);
+            AuditLogger::log('created', $transfer, "Fund transfer {$transfer->transfer_no} raised", null, null, 'accounting');
+        }
+    }
+
+    /** A posted fund transfer: prepared by the bursar, approved by the admin. */
+    private function transfer(CarbonImmutable $date, string $from, string $to, string $amount, string $charges, string $method, string $description): void
+    {
+        $transfer = FundTransfer::create([
+            'transfer_no' => DocumentNumber::next('transfer'),
+            'date' => $date->toDateString(),
+            'from_account_id' => $this->acc[$from],
+            'to_account_id' => $this->acc[$to],
+            'amount' => $amount,
+            'charges' => $charges,
+            'charge_account_id' => bccomp($charges, '0', 2) > 0 ? $this->acc['6600'] : null,
+            'method' => $method,
+            'reference' => $method === 'cash_deposit' ? 'DEP-SLIP '.mt_rand(4000, 9999) : 'TT'.mt_rand(10000000, 99999999),
+            'description' => $description,
+            'status' => 'posted',
+            'created_by' => $this->makerId,
+            'approved_by' => $this->checkerId,
+        ]);
+
+        $lines = [['account_id' => $this->acc[$to], 'debit' => $amount, 'narration' => 'Transfer in']];
+        if (bccomp($charges, '0', 2) > 0) {
+            $lines[] = ['account_id' => $this->acc['6600'], 'debit' => $charges, 'narration' => "Charges on transfer {$transfer->transfer_no}"];
+        }
+        $lines[] = ['account_id' => $this->acc[$from], 'credit' => $transfer->totalOut(), 'narration' => 'Transfer out'];
+
+        $journal = $this->post([
+            'date' => $date->toDateString(),
+            'type' => 'transfer',
+            'reference' => $transfer->reference,
+            'narration' => "{$transfer->transfer_no}: {$description}",
+        ], $lines, $transfer);
+        $transfer->forceFill(['journal_id' => $journal->id, 'created_at' => $date->setTime(9, 30), 'updated_at' => $date->setTime(15, 0)])->save();
     }
 
     /** Draft, submitted and rejected manual journals to demonstrate maker-checker. */
@@ -300,7 +400,7 @@ class AccountingDemoSeeder extends Seeder
      * @param  array<string, mixed>  $header
      * @param  array<int, array<string, mixed>>  $lines
      */
-    private function post(array $header, array $lines, ?\Illuminate\Database\Eloquent\Model $source = null): Journal
+    private function post(array $header, array $lines, ?Model $source = null): Journal
     {
         $journal = $this->ledger->record($header, $lines, $source, false);
         $journal->forceFill(['approved_by' => $this->checkerId])->save();

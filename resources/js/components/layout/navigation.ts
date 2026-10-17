@@ -137,6 +137,8 @@ export const navigation: NavSection[] = [
                     { title: 'Chart of Accounts', href: '/accounting/accounts' },
                     { title: 'Journals', href: '/accounting/journals' },
                     { title: 'Expenses & Vouchers', href: '/accounting/expenses' },
+                    { title: 'Fund Transfers', href: '/accounting/transfers' },
+                    { title: 'Bank Reconciliation', href: '/accounting/reconciliations' },
                     { title: 'General Ledger', href: '/accounting/ledger' },
                     { title: 'Trial Balance', href: '/accounting/trial-balance' },
                     { title: 'Income Statement', href: '/accounting/income-statement' },

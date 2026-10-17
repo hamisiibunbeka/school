@@ -7,7 +7,9 @@ use App\Models\FiscalYear;
 use App\Models\Journal;
 use App\Services\AuditLogger;
 use App\Services\DocumentNumber;
+use App\Support\Tenancy;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
@@ -136,7 +138,7 @@ class LedgerService
     /**
      * Debit/credit totals per account for posted journals in a period.
      *
-     * @return \Illuminate\Support\Collection<int, object{account_id:int, dr:string, cr:string}>
+     * @return Collection<int, object{account_id:int, dr:string, cr:string}>
      */
     public function totalsByAccount(?string $from = null, ?string $to = null)
     {
@@ -152,7 +154,7 @@ class LedgerService
     {
         return DB::table('journal_lines')
             ->join('journals', 'journals.id', '=', 'journal_lines.journal_id')
-            ->where('journal_lines.school_id', app(\App\Support\Tenancy::class)->schoolId())
+            ->where('journal_lines.school_id', app(Tenancy::class)->schoolId())
             ->whereIn('journals.status', ['posted', 'reversed'])
             ->when($from, fn ($q) => $q->whereDate('journals.date', '>=', $from))
             ->when($to, fn ($q) => $q->whereDate('journals.date', '<=', $to));
