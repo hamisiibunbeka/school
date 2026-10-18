@@ -5,9 +5,12 @@ namespace App\Http\Controllers\Academics;
 use App\Http\Controllers\Controller;
 use App\Models\AcademicYear;
 use App\Models\Term;
+use App\Support\EducationLevel;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
+use Illuminate\Validation\Rule;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -24,6 +27,7 @@ class AcademicYearController extends Controller
         $years = AcademicYear::with('terms')->orderByDesc('start_date')->get()->map(fn (AcademicYear $y) => [
             'id' => $y->id,
             'name' => $y->name,
+            'education_level' => $y->education_level,
             'start_date' => $y->start_date?->toDateString(),
             'end_date' => $y->end_date?->toDateString(),
             'is_current' => $y->is_current,
@@ -37,7 +41,7 @@ class AcademicYearController extends Controller
             ])->values(),
         ]);
 
-        return Inertia::render('academics/years', ['years' => $years]);
+        return Inertia::render('academics/years', ['years' => $years, 'levels' => EducationLevel::options()]);
     }
 
     public function store(Request $request): RedirectResponse
@@ -45,7 +49,7 @@ class AcademicYearController extends Controller
         $data = $this->validateYear($request);
         $year = DB::transaction(function () use ($data) {
             if ($data['is_current'] ?? false) {
-                AcademicYear::query()->update(['is_current' => false]);
+                $this->clearCurrent($data['education_level']);
             }
 
             return AcademicYear::create($data);
@@ -60,11 +64,16 @@ class AcademicYearController extends Controller
     public function update(Request $request, AcademicYear $year): RedirectResponse
     {
         $data = $this->validateYear($request);
-        $old = $year->only(['name', 'start_date', 'end_date', 'is_current']);
+        if ($data['education_level'] !== $year->education_level && $this->yearInUse($year)) {
+            $this->toast("{$year->name} already has enrolments, exams or invoices; its level cannot change.", 'error');
+
+            return back();
+        }
+        $old = $year->only(['name', 'start_date', 'end_date', 'is_current', 'education_level']);
 
         DB::transaction(function () use ($year, $data) {
             if ($data['is_current'] ?? false) {
-                AcademicYear::whereKeyNot($year->id)->update(['is_current' => false]);
+                $this->clearCurrent($data['education_level'], $year->id);
             }
             $year->update($data);
         });
@@ -93,12 +102,13 @@ class AcademicYearController extends Controller
     public function setCurrent(AcademicYear $year): RedirectResponse
     {
         DB::transaction(function () use ($year) {
-            AcademicYear::whereKeyNot($year->id)->update(['is_current' => false]);
+            $this->clearCurrent($year->education_level, $year->id);
             $year->update(['is_current' => true]);
         });
 
-        $this->audit('set_current', $year, "Set {$year->name} as the current academic year", 'academics');
-        $this->toast("{$year->name} is now the current academic year.");
+        $label = EducationLevel::label($year->education_level);
+        $this->audit('set_current', $year, "Set {$year->name} as the current {$label} academic year", 'academics');
+        $this->toast("{$year->name} is now the current {$label} academic year.");
 
         return back();
     }
@@ -109,7 +119,7 @@ class AcademicYearController extends Controller
 
         $term = DB::transaction(function () use ($year, $data) {
             if ($data['is_current'] ?? false) {
-                Term::query()->update(['is_current' => false]);
+                $this->clearCurrentTerm($year->education_level);
             }
 
             return $year->terms()->create($data);
@@ -127,7 +137,7 @@ class AcademicYearController extends Controller
 
         DB::transaction(function () use ($term, $data) {
             if ($data['is_current'] ?? false) {
-                Term::whereKeyNot($term->id)->update(['is_current' => false]);
+                $this->clearCurrentTerm($term->academicYear->education_level, $term->id);
             }
             $term->update($data);
         });
@@ -161,10 +171,11 @@ class AcademicYearController extends Controller
     public function setCurrentTerm(Term $term): RedirectResponse
     {
         DB::transaction(function () use ($term) {
-            Term::whereKeyNot($term->id)->update(['is_current' => false]);
+            $level = $term->academicYear->education_level;
+            $this->clearCurrentTerm($level, $term->id);
             $term->update(['is_current' => true]);
-            // The year that owns the current term becomes the current year too.
-            AcademicYear::whereKeyNot($term->academic_year_id)->update(['is_current' => false]);
+            // The year that owns the current term becomes the current year of its level too.
+            $this->clearCurrent($level, $term->academic_year_id);
             AcademicYear::whereKey($term->academic_year_id)->update(['is_current' => true]);
         });
 
@@ -172,6 +183,19 @@ class AcademicYearController extends Controller
         $this->toast("{$term->name} is now the current term.");
 
         return back();
+    }
+
+    /** O-Level and A-Level each keep their own current year. */
+    private function clearCurrent(string $level, ?int $exceptId = null): void
+    {
+        AcademicYear::where('education_level', $level)->when($exceptId, fn ($q) => $q->whereKeyNot($exceptId))->update(['is_current' => false]);
+    }
+
+    private function clearCurrentTerm(string $level, ?int $exceptId = null): void
+    {
+        Term::whereHas('academicYear', fn ($q) => $q->where('education_level', $level))
+            ->when($exceptId, fn ($q) => $q->whereKeyNot($exceptId))
+            ->update(['is_current' => false]);
     }
 
     private function yearInUse(AcademicYear $year): bool
@@ -195,7 +219,7 @@ class AcademicYearController extends Controller
     /** Defensive check for module tables that may carry a term_id column. */
     private function tableHasTerm(string $table, int $termId): bool
     {
-        if (! \Illuminate\Support\Facades\Schema::hasColumn($table, 'term_id')) {
+        if (! Schema::hasColumn($table, 'term_id')) {
             return false;
         }
 
@@ -207,6 +231,7 @@ class AcademicYearController extends Controller
     {
         return $request->validate([
             'name' => ['required', 'string', 'max:50'],
+            'education_level' => ['required', Rule::in(EducationLevel::ALL)],
             'start_date' => ['required', 'date'],
             'end_date' => ['required', 'date', 'after:start_date'],
             'is_current' => ['boolean'],

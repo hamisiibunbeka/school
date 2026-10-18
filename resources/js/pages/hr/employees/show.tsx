@@ -4,6 +4,7 @@ import {
     BriefcaseBusiness,
     CalendarCheck,
     CalendarPlus,
+    ClipboardList,
     FileText,
     History,
     KeyRound,
@@ -30,6 +31,7 @@ import { useCan } from '@/hooks/use-can';
 import { confirm } from '@/lib/swal';
 import { date, dateTime, money, num, titleCase, weekdayDate } from '@/lib/utils';
 import type { Option } from '@/types';
+import PersonDuties, { type PersonDuty } from '../../duties/_components/person-duties';
 import { LeaveModal } from '../_components/leave-modal';
 
 type Employee = {
@@ -63,8 +65,28 @@ type Employee = {
 };
 
 type Balance = { type_id: number; type: string; entitled: number; used: number; pending: number; remaining: number; is_paid: boolean };
-type LeaveRow = { id: number; type: string | null; start_date: string; end_date: string; days: number; reason: string | null; status: string; approver: string | null; decision_note: string | null };
-type PayslipRow = { id: number; period: string; status: string; payment_date: string | null; gross_pay: string; paye: string; nssf_employee: string; total_deductions: string; net_pay: string };
+type LeaveRow = {
+    id: number;
+    type: string | null;
+    start_date: string;
+    end_date: string;
+    days: number;
+    reason: string | null;
+    status: string;
+    approver: string | null;
+    decision_note: string | null;
+};
+type PayslipRow = {
+    id: number;
+    period: string;
+    status: string;
+    payment_date: string | null;
+    gross_pay: string;
+    paye: string;
+    nssf_employee: string;
+    total_deductions: string;
+    net_pay: string;
+};
 
 type Props = {
     employee: Employee;
@@ -81,6 +103,8 @@ type Props = {
     };
     subjects: { id: number; subject: string; code: string | null; class: string; stream: string | null; periods_per_week: number | null }[];
     classTeacherOf: string[];
+    caretakerOf: { name: string; role: string }[];
+    duties: PersonDuty[];
     payslips: PayslipRow[];
     components: { name: string; type: string; calculation: string; value: string; amount: string | null }[];
     statuses: Option[];
@@ -90,7 +114,22 @@ type Props = {
 
 const monthLabel = (m: string) => date(`${m}-01`, { month: 'short', year: '2-digit' });
 
-export default function EmployeeShow({ employee, canSeeSalary, leave, leaveTypes, attendance, subjects, classTeacherOf, payslips, components, statuses, roles, history }: Props) {
+export default function EmployeeShow({
+    employee,
+    canSeeSalary,
+    leave,
+    leaveTypes,
+    attendance,
+    subjects,
+    classTeacherOf,
+    caretakerOf,
+    duties,
+    payslips,
+    components,
+    statuses,
+    roles,
+    history,
+}: Props) {
     const can = useCan();
     const { school } = usePage().props;
     const cur = school?.currency ?? 'TZS';
@@ -111,6 +150,7 @@ export default function EmployeeShow({ employee, canSeeSalary, leave, leaveTypes
         ...(canSeeSalary ? [{ key: 'payslips', label: 'Payslips', icon: Wallet, count: payslips.length }] : []),
         { key: 'attendance', label: 'Attendance', icon: CalendarCheck },
         { key: 'subjects', label: 'Teaching load', icon: FileText, count: subjects.length },
+        { key: 'duties', label: 'Duties', icon: ClipboardList, count: duties.filter((d) => d.status !== 'ended').length + classTeacherOf.length + caretakerOf.length },
         { key: 'history', label: 'History', icon: History },
     ];
 
@@ -276,10 +316,18 @@ export default function EmployeeShow({ employee, canSeeSalary, leave, leaveTypes
                                             <li key={i} className="flex items-center justify-between py-2">
                                                 <span>
                                                     <span className="font-semibold">{c.name}</span>{' '}
-                                                    <span className={`badge ms-1 ${c.type === 'allowance' ? 'badge-soft-success' : c.type === 'deduction' ? 'badge-soft-danger' : 'badge-soft-info'}`}>{titleCase(c.type)}</span>
+                                                    <span
+                                                        className={`badge ms-1 ${c.type === 'allowance' ? 'badge-soft-success' : c.type === 'deduction' ? 'badge-soft-danger' : 'badge-soft-info'}`}
+                                                    >
+                                                        {titleCase(c.type)}
+                                                    </span>
                                                 </span>
                                                 <span className="font-semibold">
-                                                    {c.amount !== null ? money(c.amount, '') : c.calculation === 'percent_of_basic' ? `${Number(c.value)}% of basic` : money(c.value, '')}
+                                                    {c.amount !== null
+                                                        ? money(c.amount, '')
+                                                        : c.calculation === 'percent_of_basic'
+                                                          ? `${Number(c.value)}% of basic`
+                                                          : money(c.value, '')}
                                                 </span>
                                             </li>
                                         ))}
@@ -492,6 +540,37 @@ export default function EmployeeShow({ employee, canSeeSalary, leave, leaveTypes
                 </div>
             )}
 
+            {tab === 'duties' && (
+                <div className="space-y-6">
+                    {(classTeacherOf.length > 0 || caretakerOf.length > 0) && (
+                        <div className="panel">
+                            <h5 className="mb-3 text-lg font-bold">Standing responsibilities</h5>
+                            <div className="flex flex-wrap gap-2 text-sm">
+                                {classTeacherOf.map((c) => (
+                                    <span key={c} className="badge badge-soft-primary">
+                                        Class teacher · {c}
+                                    </span>
+                                ))}
+                                {caretakerOf.map((d) => (
+                                    <span key={d.name} className="badge badge-soft-secondary">
+                                        {d.role} · {d.name}
+                                    </span>
+                                ))}
+                            </div>
+                        </div>
+                    )}
+                    <div className="panel">
+                        <div className="mb-4 flex items-center justify-between">
+                            <h5 className="text-lg font-bold">Duties apart from teaching</h5>
+                            <Link href="/hr/duties" className="text-sm font-bold text-primary hover:underline">
+                                Duty roster
+                            </Link>
+                        </div>
+                        <PersonDuties duties={duties} href="/hr/duties" />
+                    </div>
+                </div>
+            )}
+
             {tab === 'subjects' && (
                 <div className="panel">
                     <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
@@ -598,7 +677,12 @@ function StatusModal({ open, onClose, employeeId, current, statuses }: { open: b
     const submit = async (e: FormEvent) => {
         e.preventDefault();
         if (form.data.status === 'terminated') {
-            const { confirmed } = await confirm({ title: 'Terminate this employee?', text: 'Their system login will be disabled and they will be excluded from future payroll runs.', danger: true, confirmText: 'Terminate' });
+            const { confirmed } = await confirm({
+                title: 'Terminate this employee?',
+                text: 'Their system login will be disabled and they will be excluded from future payroll runs.',
+                danger: true,
+                confirmText: 'Terminate',
+            });
             if (!confirmed) return;
         }
         form.post(`/hr/employees/${employeeId}/status`, { preserveScroll: true, onSuccess: () => (form.setData('reason', ''), onClose()) });
@@ -607,8 +691,21 @@ function StatusModal({ open, onClose, employeeId, current, statuses }: { open: b
         <Modal open={open} onClose={onClose} title="Change employment status">
             <form onSubmit={submit} className="space-y-4">
                 <Select label="New status" value={form.data.status} onChange={(e) => form.setData('status', e.target.value)} options={statuses} error={form.errors.status} />
-                <Input label="Effective date" type="date" value={form.data.effective_date} onChange={(e) => form.setData('effective_date', e.target.value)} error={form.errors.effective_date} />
-                <Textarea label="Reason" required value={form.data.reason} onChange={(e) => form.setData('reason', e.target.value)} error={form.errors.reason} placeholder="e.g. Contract ended / disciplinary hearing pending" />
+                <Input
+                    label="Effective date"
+                    type="date"
+                    value={form.data.effective_date}
+                    onChange={(e) => form.setData('effective_date', e.target.value)}
+                    error={form.errors.effective_date}
+                />
+                <Textarea
+                    label="Reason"
+                    required
+                    value={form.data.reason}
+                    onChange={(e) => form.setData('reason', e.target.value)}
+                    error={form.errors.reason}
+                    placeholder="e.g. Contract ended / disciplinary hearing pending"
+                />
                 <p className="text-xs text-white-dark">The change and reason are recorded in the audit trail. Suspended or terminated staff lose system access.</p>
                 <div className="flex justify-center gap-3">
                     <button type="button" className="btn btn-outline-dark" onClick={onClose}>
@@ -637,7 +734,15 @@ function LoginModal({ open, onClose, employee, roles }: { open: boolean; onClose
                     <strong className="text-black dark:text-white-light">{employee.full_name}</strong>. The temporary password is shown once after saving — share it securely.
                 </p>
                 <Input label="Login email" type="email" required value={form.data.email} onChange={(e) => form.setData('email', e.target.value)} error={form.errors.email} />
-                <Select label="Role" required placeholder="Select role…" value={form.data.role_id} onChange={(e) => form.setData('role_id', e.target.value)} options={roles} error={form.errors.role_id} />
+                <Select
+                    label="Role"
+                    required
+                    placeholder="Select role…"
+                    value={form.data.role_id}
+                    onChange={(e) => form.setData('role_id', e.target.value)}
+                    options={roles}
+                    error={form.errors.role_id}
+                />
                 <div className="flex justify-center gap-3">
                     <button type="button" className="btn btn-outline-dark" onClick={onClose}>
                         Cancel

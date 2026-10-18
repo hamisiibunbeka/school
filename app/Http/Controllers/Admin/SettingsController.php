@@ -34,6 +34,10 @@ class SettingsController extends Controller
         'mobile_money_provider' => '',
         'mobile_money_paybill' => '',
         'mobile_money_account' => '',
+        // Teacher workload (periods per week); teachers can have their own limit on their HR record.
+        'max_teaching_periods' => 30,
+        'workload_enforcement' => 'warn', // warn | block
+        'class_teacher_periods' => 0,
     ];
 
     public function edit(): Response
@@ -138,7 +142,10 @@ class SettingsController extends Controller
             'mobile_money_provider' => ['nullable', 'string', 'max:50'],
             'mobile_money_paybill' => ['nullable', 'string', 'max:30'],
             'mobile_money_account' => ['nullable', 'string', 'max:100'],
-        ]);
+            'max_teaching_periods' => ['required', 'integer', 'min:1', 'max:80'],
+            'workload_enforcement' => ['required', Rule::in(['warn', 'block'])],
+            'class_teacher_periods' => ['required', 'integer', 'min:0', 'max:20'],
+        ], [], ['max_teaching_periods' => 'weekly period limit', 'class_teacher_periods' => 'class-teacher periods']);
 
         $old = $school->settings ?? [];
         $school->settings = array_merge($old, $data);

@@ -5,12 +5,14 @@ namespace App\Http\Controllers\Boarding;
 use App\Http\Controllers\Controller;
 use App\Models\BedAllocation;
 use App\Models\Dormitory;
+use App\Models\DormitoryCaretaker;
 use App\Models\DormitoryRoom;
 use App\Models\LeavePass;
 use App\Models\Student;
 use App\Support\Lookups;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -20,7 +22,7 @@ class DormitoryController extends Controller
     public function index(Request $request): Response
     {
         $dormitories = Dormitory::query()
-            ->with(['warden:id,first_name,last_name,phone', 'rooms' => fn ($q) => $q->withCount('activeAllocations')])
+            ->with(['caretakers.employee:id,first_name,last_name,phone,gender', 'rooms' => fn ($q) => $q->withCount('activeAllocations')])
             ->orderBy('name')
             ->get()
             ->map(function (Dormitory $d) {
@@ -33,9 +35,12 @@ class DormitoryController extends Controller
                     'capacity' => (int) $d->capacity,
                     'occupied' => (int) $occupied,
                     'description' => $d->description,
-                    'warden_id' => $d->warden_id,
-                    'warden' => $d->warden?->full_name,
-                    'warden_phone' => $d->warden?->phone,
+                    'caretakers' => $d->caretakers->map(fn (DormitoryCaretaker $c) => [
+                        'employee_id' => $c->employee_id,
+                        'role' => $c->role,
+                        'name' => $c->employee?->full_name,
+                        'phone' => $c->employee?->phone,
+                    ])->values(),
                     'rooms' => $d->rooms->map(fn (DormitoryRoom $r) => [
                         'id' => $r->id,
                         'name' => $r->name,
@@ -51,7 +56,7 @@ class DormitoryController extends Controller
 
         return Inertia::render('boarding/dormitories', [
             'dormitories' => $dormitories->values(),
-            'wardens' => Lookups::employees(),
+            'staff' => Lookups::employees(),
             'stats' => [
                 'dormitories' => $dormitories->count(),
                 'rooms' => $dormitories->sum(fn ($d) => count($d['rooms'])),
@@ -67,7 +72,13 @@ class DormitoryController extends Controller
 
     public function store(Request $request): RedirectResponse
     {
-        $dormitory = Dormitory::create($this->validated($request));
+        $data = $this->validated($request);
+        $dormitory = DB::transaction(function () use ($data) {
+            $dormitory = Dormitory::create(collect($data)->except('caretakers')->all());
+            $this->syncCaretakers($dormitory, $data['caretakers'] ?? []);
+
+            return $dormitory;
+        });
         $this->audit('created', $dormitory, "Dormitory {$dormitory->name} created", 'boarding');
         $this->toast('Dormitory created. Add rooms to set its capacity.');
 
@@ -88,9 +99,13 @@ class DormitoryController extends Controller
             }
         }
 
-        $old = $dormitory->only(array_keys($data));
-        $dormitory->update($data);
-        $this->audit('updated', $dormitory, "Dormitory {$dormitory->name} updated", 'boarding', $old, $data);
+        $fields = collect($data)->except('caretakers')->all();
+        $old = $dormitory->only(array_keys($fields)) + ['caretakers' => $this->caretakerSummary($dormitory)];
+        DB::transaction(function () use ($dormitory, $fields, $data) {
+            $dormitory->update($fields);
+            $this->syncCaretakers($dormitory, $data['caretakers'] ?? []);
+        });
+        $this->audit('updated', $dormitory, "Dormitory {$dormitory->name} updated", 'boarding', $old, $fields + ['caretakers' => $this->caretakerSummary($dormitory)]);
         $this->toast('Dormitory updated.');
 
         return back();
@@ -157,12 +172,33 @@ class DormitoryController extends Controller
     /** @return array<string, mixed> */
     private function validated(Request $request): array
     {
-        return $request->validate([
+        $data = $request->validate([
             'name' => ['required', 'string', 'max:100'],
             'gender' => ['required', Rule::in(Dormitory::GENDERS)],
-            'warden_id' => ['nullable', Rule::exists('employees', 'id')->where('school_id', $this->tenancy()->schoolId())],
             'description' => ['nullable', 'string', 'max:255'],
-        ]);
+            'caretakers' => ['nullable', 'array', 'max:10'],
+            'caretakers.*.employee_id' => ['required', 'distinct', Rule::exists('employees', 'id')->where('school_id', $this->tenancy()->schoolId())],
+            'caretakers.*.role' => ['required', Rule::in(DormitoryCaretaker::ROLES)],
+        ], ['caretakers.*.employee_id.distinct' => 'The same person is listed twice.'], ['caretakers.*.employee_id' => 'staff member', 'caretakers.*.role' => 'role']);
+        $data['caretakers'] = array_values($data['caretakers'] ?? []);
+
+        return $data;
+    }
+
+    /** Replace the dormitory's patrons / matrons / assistants. */
+    private function syncCaretakers(Dormitory $dormitory, array $caretakers): void
+    {
+        $dormitory->caretakers()->delete();
+        foreach ($caretakers as $c) {
+            $dormitory->caretakers()->create(['employee_id' => $c['employee_id'], 'role' => $c['role']]);
+        }
+        $dormitory->unsetRelation('caretakers');
+    }
+
+    private function caretakerSummary(Dormitory $dormitory): string
+    {
+        return $dormitory->caretakers()->with('employee:id,first_name,last_name')->get()
+            ->map(fn (DormitoryCaretaker $c) => "{$c->employee?->full_name} ({$c->role})")->implode(', ');
     }
 
     /** @return array<string, mixed> */

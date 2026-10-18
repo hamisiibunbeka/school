@@ -3,8 +3,12 @@
 namespace App\Http\Controllers\Academics;
 
 use App\Http\Controllers\Controller;
+use App\Models\Combination;
 use App\Models\SchoolClass;
 use App\Models\Stream;
+use App\Services\Academics\CombinationService;
+use App\Services\Academics\WorkloadService;
+use App\Support\EducationLevel;
 use App\Support\Lookups;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -16,6 +20,8 @@ use Inertia\Response;
 /** Classes and streams with class teachers and enrolment counts (SRS 4.6). */
 class ClassController extends Controller
 {
+    public function __construct(private CombinationService $combinations, private WorkloadService $workload) {}
+
     public function index(): Response
     {
         $schoolId = $this->tenancy()->schoolId();
@@ -27,7 +33,7 @@ class ClassController extends Controller
         $subjects = DB::table('class_subjects')->where('class_subjects.school_id', $schoolId)
             ->selectRaw('school_class_id, COUNT(DISTINCT subject_id) as total')->groupBy('school_class_id')->pluck('total', 'school_class_id');
 
-        $classes = SchoolClass::with(['streams.classTeacher:id,first_name,last_name'])->orderBy('level')->orderBy('name')->get()
+        $classes = SchoolClass::with(['streams.classTeacher:id,first_name,last_name', 'streams.combination:id,code,name'])->orderBy('level')->orderBy('name')->get()
             ->map(function (SchoolClass $c) use ($byClass, $byStream, $subjects) {
                 $rows = $byClass[$c->id] ?? collect();
 
@@ -36,6 +42,7 @@ class ClassController extends Controller
                     'name' => $c->name,
                     'code' => $c->code,
                     'level' => $c->level,
+                    'education_level' => $c->education_level,
                     'capacity' => $c->capacity,
                     'students' => (int) $rows->sum('total'),
                     'boys' => (int) $rows->where('gender', 'male')->sum('total'),
@@ -46,6 +53,9 @@ class ClassController extends Controller
                         'name' => $s->name,
                         'capacity' => $s->capacity,
                         'class_teacher_id' => $s->class_teacher_id,
+                        'combination_id' => $s->combination_id,
+                        'combination' => $s->combination?->code,
+                        'combination_name' => $s->combination?->name,
                         'class_teacher' => $s->classTeacher?->full_name,
                         'students' => (int) ($byStream[$s->id] ?? 0),
                     ])->values(),
@@ -55,6 +65,9 @@ class ClassController extends Controller
         return Inertia::render('academics/classes', [
             'classes' => $classes,
             'teachers' => Lookups::teachers(),
+            'levels' => EducationLevel::options(),
+            'combinations' => Combination::active()->orderBy('code')->get(['id', 'code', 'name'])
+                ->map(fn ($c) => ['value' => $c->id, 'label' => "{$c->code} — {$c->name}"]),
         ]);
     }
 
@@ -79,7 +92,12 @@ class ClassController extends Controller
     public function update(Request $request, SchoolClass $class): RedirectResponse
     {
         $data = $this->validateClass($request, $class);
-        $old = $class->only(['name', 'code', 'level', 'capacity']);
+        if ($data['education_level'] !== $class->education_level && DB::table('exam_marks')->where('school_id', $this->tenancy()->schoolId())->where('school_class_id', $class->id)->exists()) {
+            $this->toast("{$class->name} already has exam marks graded as ".EducationLevel::label($class->education_level).'; its education level cannot change.', 'error');
+
+            return back();
+        }
+        $old = $class->only(['name', 'code', 'level', 'capacity', 'education_level']);
         $class->update(collect($data)->except('streams')->all());
 
         $this->audit('updated', $class, "Updated class {$class->name}", 'academics', $old, $class->only(array_keys($old)));
@@ -111,10 +129,13 @@ class ClassController extends Controller
     public function storeStream(Request $request, SchoolClass $class): RedirectResponse
     {
         $data = $this->validateStream($request, $class);
+        $result = $this->checkClassTeacher($data['class_teacher_id'] ?? null, null);
         $stream = $class->streams()->create($data);
+        $this->combinations->syncStreamAllocations($stream);
 
         $this->audit('created', $stream, "Added stream {$class->name} {$stream->name}", 'academics');
         $this->toast("Stream {$stream->name} added to {$class->name}.");
+        $this->warnIfOver($result);
 
         return back();
     }
@@ -122,11 +143,17 @@ class ClassController extends Controller
     public function updateStream(Request $request, Stream $stream): RedirectResponse
     {
         $data = $this->validateStream($request, $stream->schoolClass, $stream);
-        $old = $stream->only(['name', 'capacity', 'class_teacher_id']);
+        $result = $this->checkClassTeacher($data['class_teacher_id'] ?? null, $stream->class_teacher_id);
+        $old = $stream->only(['name', 'capacity', 'class_teacher_id', 'combination_id']);
         $stream->update($data);
+        if ($old['combination_id'] !== $stream->combination_id) {
+            $stream->unsetRelation('combination');
+            $this->combinations->syncStreamAllocations($stream);
+        }
 
         $this->audit('updated', $stream, "Updated stream {$stream->schoolClass?->name} {$stream->name}", 'academics', $old, $stream->only(array_keys($old)));
         $this->toast('Stream updated.');
+        $this->warnIfOver($result);
 
         return back();
     }
@@ -146,6 +173,24 @@ class ClassController extends Controller
         return back();
     }
 
+    /** Being a class teacher adds duty periods (school setting): respect the teacher's limit. */
+    private function checkClassTeacher(?int $newTeacherId, ?int $currentTeacherId): ?array
+    {
+        $periods = $this->workload->settings()['class_teacher_periods'];
+        if (! $newTeacherId || $newTeacherId === $currentTeacherId || $periods === 0) {
+            return null;
+        }
+
+        return $this->workload->check((int) $newTeacherId, $periods, null, 'class_teacher_id');
+    }
+
+    private function warnIfOver(?array $result): void
+    {
+        if ($result && $result['over']) {
+            $this->toast("Saved, but {$result['name']} now carries {$result['total']} periods/week including class-teacher duty (limit {$result['limit']}).", 'warning');
+        }
+    }
+
     /** @return array<string, mixed> */
     private function validateClass(Request $request, ?SchoolClass $class = null): array
     {
@@ -155,6 +200,7 @@ class ClassController extends Controller
             'name' => ['required', 'string', 'max:60', Rule::unique('school_classes')->where('school_id', $schoolId)->ignore($class?->id)],
             'code' => ['nullable', 'string', 'max:20'],
             'level' => ['required', 'integer', 'min:1', 'max:20'],
+            'education_level' => ['required', Rule::in(EducationLevel::ALL)],
             'capacity' => ['nullable', 'integer', 'min:1', 'max:2000'],
             'streams' => ['nullable', 'string', 'max:100'],
         ]);
@@ -169,6 +215,15 @@ class ClassController extends Controller
             'name' => ['required', 'string', 'max:40', Rule::unique('streams')->where('school_id', $schoolId)->where('school_class_id', $class->id)->ignore($stream?->id)],
             'capacity' => ['nullable', 'integer', 'min:1', 'max:500'],
             'class_teacher_id' => ['nullable', Rule::exists('employees', 'id')->where('school_id', $schoolId)],
-        ], [], ['class_teacher_id' => 'class teacher']);
+            // A-Level streams are a combination; O-Level streams have none.
+            'combination_id' => [
+                $class->isALevel() ? 'required' : 'prohibited',
+                'nullable',
+                Rule::exists('combinations', 'id')->where('school_id', $schoolId),
+            ],
+        ], [
+            'combination_id.required' => 'Choose the combination taught in this A-Level stream.',
+            'combination_id.prohibited' => 'Only A-Level (Form V–VI) streams have a combination.',
+        ], ['class_teacher_id' => 'class teacher', 'combination_id' => 'combination']);
     }
 }

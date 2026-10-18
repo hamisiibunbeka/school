@@ -20,34 +20,50 @@ type Dorm = {
     capacity: number;
     occupied: number;
     description: string | null;
-    warden_id: number | null;
-    warden: string | null;
-    warden_phone: string | null;
+    caretakers: Caretaker[];
     rooms: Room[];
 };
+type Caretaker = { employee_id: number; role: string; name: string | null; phone: string | null };
+type CaretakerInput = { employee_id: string | number; role: string };
 type Props = {
     dormitories: Dorm[];
-    wardens: Option[];
+    staff: Option[];
     stats: { dormitories: number; rooms: number; capacity: number; occupied: number; boarders: number; unallocated: number; out_on_leave: number; overdue: number };
 };
 
 const genderLabel: Record<string, string> = { male: 'Boys', female: 'Girls', mixed: 'Mixed' };
+const roleLabel: Record<string, string> = { patron: 'Patron', matron: 'Matron', assistant: 'Assistant' };
+const defaultRole = (gender: string) => (gender === 'female' ? 'matron' : 'patron');
 const genderTone: Record<string, string> = { male: 'badge-soft-info', female: 'badge-soft-secondary', mixed: 'badge-soft-dark' };
 
-export default function Dormitories({ dormitories, wardens, stats }: Props) {
+export default function Dormitories({ dormitories, staff, stats }: Props) {
     const can = useCan();
     const manage = can('boarding.manage');
     const [dormOpen, setDormOpen] = useState(false);
     const [editing, setEditing] = useState<Dorm | null>(null);
     const [roomFor, setRoomFor] = useState<{ dorm: Dorm; room: Room | null } | null>(null);
-    const dormForm = useForm({ name: '', gender: 'male', warden_id: '' as string | number, description: '' });
+    const dormForm = useForm({ name: '', gender: 'male', description: '', caretakers: [] as CaretakerInput[] });
     const roomForm = useForm({ name: '', capacity: '6' as string | number });
 
     const openDorm = (d: Dorm | null) => {
         setEditing(d);
         dormForm.clearErrors();
-        dormForm.setData(d ? { name: d.name, gender: d.gender, warden_id: d.warden_id ?? '', description: d.description ?? '' } : { name: '', gender: 'male', warden_id: '', description: '' });
+        dormForm.setData(
+            d
+                ? { name: d.name, gender: d.gender, description: d.description ?? '', caretakers: d.caretakers.map((c) => ({ employee_id: c.employee_id, role: c.role })) }
+                : { name: '', gender: 'male', description: '', caretakers: [{ employee_id: '', role: 'patron' }] },
+        );
         setDormOpen(true);
+    };
+
+    const setCaretaker = (i: number, patch: Partial<CaretakerInput>) =>
+        dormForm.setData(
+            'caretakers',
+            dormForm.data.caretakers.map((c, j) => (j === i ? { ...c, ...patch } : c)),
+        );
+    const caretakerError = (i: number) => {
+        const errors = dormForm.errors as Record<string, string | undefined>;
+        return errors[`caretakers.${i}.employee_id`] ?? errors[`caretakers.${i}.role`];
     };
 
     const openRoom = (dorm: Dorm, room: Room | null) => {
@@ -98,9 +114,27 @@ export default function Dormitories({ dormitories, wardens, stats }: Props) {
 
             <div className="mb-6 grid grid-cols-2 gap-4 xl:grid-cols-4">
                 <StatCard title="Dormitories" value={num(stats.dormitories)} icon={Building2} tone="primary" hint={`${num(stats.rooms)} rooms`} />
-                <StatCard title="Beds occupied" value={`${num(stats.occupied)} / ${num(stats.capacity)}`} icon={BedDouble} tone="success" hint={`${num(Math.max(0, stats.capacity - stats.occupied))} beds free`} />
-                <StatCard title="Unallocated boarders" value={num(stats.unallocated)} icon={UserX} tone={stats.unallocated ? 'warning' : 'info'} hint={`${num(stats.boarders)} active boarders`} />
-                <StatCard title="Out on leave" value={num(stats.out_on_leave)} icon={Users} tone={stats.overdue ? 'danger' : 'secondary'} hint={stats.overdue ? `${stats.overdue} overdue return` : 'None overdue'} />
+                <StatCard
+                    title="Beds occupied"
+                    value={`${num(stats.occupied)} / ${num(stats.capacity)}`}
+                    icon={BedDouble}
+                    tone="success"
+                    hint={`${num(Math.max(0, stats.capacity - stats.occupied))} beds free`}
+                />
+                <StatCard
+                    title="Unallocated boarders"
+                    value={num(stats.unallocated)}
+                    icon={UserX}
+                    tone={stats.unallocated ? 'warning' : 'info'}
+                    hint={`${num(stats.boarders)} active boarders`}
+                />
+                <StatCard
+                    title="Out on leave"
+                    value={num(stats.out_on_leave)}
+                    icon={Users}
+                    tone={stats.overdue ? 'danger' : 'secondary'}
+                    hint={stats.overdue ? `${stats.overdue} overdue return` : 'None overdue'}
+                />
             </div>
 
             {stats.capacity > 0 && (
@@ -131,10 +165,21 @@ export default function Dormitories({ dormitories, wardens, stats }: Props) {
                                             <h5 className="text-lg font-bold text-black dark:text-white-light">{d.name}</h5>
                                             <span className={`badge ${genderTone[d.gender] ?? 'badge-soft-dark'}`}>{genderLabel[d.gender] ?? titleCase(d.gender)}</span>
                                         </div>
-                                        <div className="flex items-center gap-1 text-xs text-white-dark">
-                                            <ShieldCheck className="h-3.5 w-3.5" /> Warden: {d.warden ?? 'Not assigned'}
-                                            {d.warden_phone && <span>· {d.warden_phone}</span>}
-                                        </div>
+                                        {d.caretakers.length === 0 ? (
+                                            <div className="flex items-center gap-1 text-xs text-warning">
+                                                <ShieldCheck className="h-3.5 w-3.5" /> No patron / matron assigned
+                                            </div>
+                                        ) : (
+                                            <div className="mt-0.5 flex flex-wrap gap-x-3 gap-y-0.5 text-xs text-white-dark">
+                                                {d.caretakers.map((c) => (
+                                                    <span key={c.employee_id} className="inline-flex items-center gap-1">
+                                                        <ShieldCheck className="h-3.5 w-3.5 text-primary" />
+                                                        <span className="font-semibold text-black dark:text-white-light">{roleLabel[c.role] ?? titleCase(c.role)}:</span> {c.name}
+                                                        {c.phone && <span>· {c.phone}</span>}
+                                                    </span>
+                                                ))}
+                                            </div>
+                                        )}
                                     </div>
                                 </div>
                                 {manage && (
@@ -187,7 +232,14 @@ export default function Dormitories({ dormitories, wardens, stats }: Props) {
 
             <Modal open={dormOpen} onClose={() => setDormOpen(false)} title={editing ? 'Edit dormitory' : 'Add dormitory'}>
                 <form onSubmit={submitDorm} className="space-y-4">
-                    <Input label="Name" required value={dormForm.data.name} onChange={(e) => dormForm.setData('name', e.target.value)} error={dormForm.errors.name} placeholder="e.g. Kilimanjaro House" />
+                    <Input
+                        label="Name"
+                        required
+                        value={dormForm.data.name}
+                        onChange={(e) => dormForm.setData('name', e.target.value)}
+                        error={dormForm.errors.name}
+                        placeholder="e.g. Kilimanjaro House"
+                    />
                     <FormGrid>
                         <Select
                             label="Gender policy"
@@ -201,9 +253,68 @@ export default function Dormitories({ dormitories, wardens, stats }: Props) {
                                 { value: 'mixed', label: 'Mixed' },
                             ]}
                         />
-                        <Select label="Warden / patron" placeholder="— None —" value={dormForm.data.warden_id} onChange={(e) => dormForm.setData('warden_id', e.target.value)} options={wardens} error={dormForm.errors.warden_id} />
                     </FormGrid>
-                    <Input label="Description" value={dormForm.data.description} onChange={(e) => dormForm.setData('description', e.target.value)} error={dormForm.errors.description} />
+                    <div>
+                        <div className="mb-2 flex items-center justify-between">
+                            <label className="mb-0">Patrons / matrons</label>
+                            <button
+                                type="button"
+                                className="btn btn-sm btn-outline-primary"
+                                onClick={() =>
+                                    dormForm.setData('caretakers', [
+                                        ...dormForm.data.caretakers,
+                                        { employee_id: '', role: dormForm.data.caretakers.length ? 'assistant' : defaultRole(dormForm.data.gender) },
+                                    ])
+                                }
+                            >
+                                <Plus className="h-3.5 w-3.5" /> Add
+                            </button>
+                        </div>
+                        {dormForm.data.caretakers.length === 0 && <p className="text-xs text-white-dark">Nobody assigned yet.</p>}
+                        <div className="space-y-2">
+                            {dormForm.data.caretakers.map((c, i) => (
+                                <div key={i}>
+                                    <div className="flex items-start gap-2">
+                                        <select className="form-select flex-1" value={c.employee_id} onChange={(e) => setCaretaker(i, { employee_id: e.target.value })}>
+                                            <option value="">— Select staff member —</option>
+                                            {staff.map((o) => (
+                                                <option key={o.value} value={o.value}>
+                                                    {o.label}
+                                                </option>
+                                            ))}
+                                        </select>
+                                        <select className="form-select w-36" value={c.role} onChange={(e) => setCaretaker(i, { role: e.target.value })}>
+                                            {Object.entries(roleLabel).map(([v, l]) => (
+                                                <option key={v} value={v}>
+                                                    {l}
+                                                </option>
+                                            ))}
+                                        </select>
+                                        <button
+                                            type="button"
+                                            className="btn btn-outline-danger px-2.5"
+                                            title="Remove"
+                                            onClick={() =>
+                                                dormForm.setData(
+                                                    'caretakers',
+                                                    dormForm.data.caretakers.filter((_, j) => j !== i),
+                                                )
+                                            }
+                                        >
+                                            <Trash2 className="h-4 w-4" />
+                                        </button>
+                                    </div>
+                                    {caretakerError(i) && <p className="mt-1 text-xs text-danger">{caretakerError(i)}</p>}
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                    <Input
+                        label="Description"
+                        value={dormForm.data.description}
+                        onChange={(e) => dormForm.setData('description', e.target.value)}
+                        error={dormForm.errors.description}
+                    />
                     <p className="text-xs text-white-dark">Capacity is calculated automatically from the rooms you add.</p>
                     <div className="flex justify-center gap-3">
                         <button type="button" className="btn btn-outline-dark" onClick={() => setDormOpen(false)}>
@@ -219,7 +330,15 @@ export default function Dormitories({ dormitories, wardens, stats }: Props) {
             <Modal open={!!roomFor} onClose={() => setRoomFor(null)} title={roomFor?.room ? `Edit ${roomFor.room.name}` : `Add room to ${roomFor?.dorm.name ?? ''}`} size="sm">
                 <form onSubmit={submitRoom} className="space-y-4">
                     <Input label="Room name / number" required value={roomForm.data.name} onChange={(e) => roomForm.setData('name', e.target.value)} error={roomForm.errors.name} />
-                    <Input label="Beds (capacity)" type="number" min={1} required value={roomForm.data.capacity} onChange={(e) => roomForm.setData('capacity', e.target.value)} error={roomForm.errors.capacity} />
+                    <Input
+                        label="Beds (capacity)"
+                        type="number"
+                        min={1}
+                        required
+                        value={roomForm.data.capacity}
+                        onChange={(e) => roomForm.setData('capacity', e.target.value)}
+                        error={roomForm.errors.capacity}
+                    />
                     <div className="flex justify-center gap-3">
                         <button type="button" className="btn btn-outline-dark" onClick={() => setRoomFor(null)}>
                             Cancel

@@ -8,6 +8,7 @@ use App\Models\ExamMark;
 use App\Models\Term;
 use App\Services\Exams\ResultsService;
 use App\Services\Exams\TeacherAccess;
+use App\Support\EducationLevel;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
@@ -34,7 +35,7 @@ class ResultsController extends Controller
             'classes' => $this->classOptions($exam),
             'analysis' => $classId ? $this->results->classResults($exam, $classId, $streamId) : null,
             'canApprove' => $this->access->canApprove($request->user()),
-            'scale' => $this->results->scale()->map(fn ($g) => ['grade' => $g->grade, 'min' => (float) $g->min_score, 'max' => (float) $g->max_score, 'points' => (float) $g->points, 'remark' => $g->remark])->values(),
+            'scale' => $this->results->scale($exam->educationLevel())->map(fn ($g) => ['grade' => $g->grade, 'min' => (float) $g->min_score, 'max' => (float) $g->max_score, 'points' => (float) $g->points, 'remark' => $g->remark])->values(),
         ]);
     }
 
@@ -88,7 +89,7 @@ class ResultsController extends Controller
                     'subjects' => collect($s['marks'])->filter()->map(fn ($m, $subjectId) => $m + [
                         'subject' => $subjects[$subjectId]['name'] ?? '',
                         'teacher' => $teachersByStream[$sid ?? 0][$subjectId] ?? null,
-                        'remark' => $m['is_absent'] ? 'Absent' : ($m['percentage'] !== null ? ($this->results->grade($m['percentage'])['remark'] ?? null) : null),
+                        'remark' => $m['is_absent'] ? 'Absent' : ($m['percentage'] !== null ? ($this->results->grade($m['percentage'], $analysis['level'])['remark'] ?? null) : null),
                     ])->values()->all(),
                     'attendance' => [
                         'days' => $days,
@@ -129,7 +130,7 @@ class ResultsController extends Controller
             'cards' => $cards,
             'context' => $context,
             'canApprove' => $this->access->canApprove($request->user()),
-            'scale' => $this->results->scale()->map(fn ($g) => ['grade' => $g->grade, 'min' => (float) $g->min_score, 'max' => (float) $g->max_score, 'points' => (float) $g->points, 'remark' => $g->remark])->values(),
+            'scale' => $this->results->scale($exam?->educationLevel() ?? EducationLevel::O_LEVEL)->map(fn ($g) => ['grade' => $g->grade, 'min' => (float) $g->min_score, 'max' => (float) $g->max_score, 'points' => (float) $g->points, 'remark' => $g->remark])->values(),
         ]);
     }
 
@@ -147,6 +148,7 @@ class ResultsController extends Controller
             'start_date' => $exam->start_date?->toDateString(),
             'end_date' => $exam->end_date?->toDateString(),
             'published_at' => $exam->published_at?->toIso8601String(),
+            'level' => $exam->educationLevel(),
         ];
     }
 

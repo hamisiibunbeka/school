@@ -90,6 +90,11 @@ class Student extends SchoolModel
         return $this->hasMany(Enrolment::class)->latest('start_date');
     }
 
+    public function dutyAssignments(): HasMany
+    {
+        return $this->hasMany(DutyAssignment::class);
+    }
+
     public function documents(): HasMany
     {
         return $this->hasMany(StudentDocument::class);

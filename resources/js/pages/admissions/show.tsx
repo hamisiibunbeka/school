@@ -23,6 +23,11 @@ type Application = {
     age: number | null;
     school_class_id: number | null;
     class: string | null;
+    combination?: string | null;
+    combination_name?: string | null;
+    csee_index_no?: string | null;
+    csee_division?: string | null;
+    csee_points?: number | null;
     year: string | null;
     residence_type: string;
     previous_school: string | null;
@@ -53,7 +58,7 @@ type Props = {
     transitions: string[];
     decisions: string[];
     duplicates: Duplicate[];
-    classes: (Option & { streams: Option[] })[];
+    classes: (Option & { streams: (Option & { combination?: string | null })[] })[];
     currentYear: string | null;
     history?: HistoryItem[];
 };
@@ -100,7 +105,15 @@ export default function AdmissionShow({ application: a, transitions, decisions, 
     const [target, setTarget] = useState<string | null>(null);
     const [enrolOpen, setEnrolOpen] = useState(false);
     const move = useForm({ status: '', decision_notes: '', interview_date: '', assessment_score: '' });
-    const enrol = useForm({ school_class_id: a.school_class_id ? String(a.school_class_id) : '', stream_id: '', admission_no: '', admission_date: today(), confirm_duplicate: false });
+    // Form Five: preselect the stream that teaches the applicant's combination.
+    const comboStream = a.combination ? classes.find((c) => c.value === a.school_class_id)?.streams.find((s) => s.combination === a.combination) : undefined;
+    const enrol = useForm({
+        school_class_id: a.school_class_id ? String(a.school_class_id) : '',
+        stream_id: comboStream ? String(comboStream.value) : '',
+        admission_no: '',
+        admission_date: today(),
+        confirm_duplicate: false,
+    });
     const streams = classes.find((c) => String(c.value) === enrol.data.school_class_id)?.streams ?? [];
     const current = stepIndex(a.status);
     const closed = ['rejected', 'withdrawn'].includes(a.status);
@@ -131,6 +144,11 @@ export default function AdmissionShow({ application: a, transitions, decisions, 
                 breadcrumbs={[{ title: 'Admissions', href: '/admissions' }, { title: a.application_no }]}
                 actions={
                     <>
+                        {a.combination && ['accepted', 'enrolled'].includes(a.status) && (
+                            <Link href={`/admissions/joining-instructions/print?application=${a.id}`} className="btn btn-outline-primary">
+                                <FileText className="h-4 w-4" /> Joining instruction
+                            </Link>
+                        )}
                         {['accepted', 'enrolled'].includes(a.status) && (
                             <Link href={`/admissions/${a.id}/letter`} className="btn btn-outline-dark">
                                 <FileText className="h-4 w-4" /> Admission letter
@@ -168,6 +186,11 @@ export default function AdmissionShow({ application: a, transitions, decisions, 
                         <div className="mt-1 flex flex-wrap gap-x-5 gap-y-1 text-sm text-white-dark">
                             <span>
                                 Applying for <strong className="text-black dark:text-white-light">{a.class ?? '—'}</strong> {a.year && `· ${a.year}`}
+                                {a.combination && (
+                                    <span className="badge badge-soft-secondary ms-2" title={a.combination_name ?? ''}>
+                                        {a.combination}
+                                    </span>
+                                )}
                             </span>
                             <span>{titleCase(a.gender)}</span>
                             {a.age !== null && <span>{a.age} yrs</span>}
@@ -182,7 +205,12 @@ export default function AdmissionShow({ application: a, transitions, decisions, 
                         {STEPS.map((s, i) => {
                             const done = current > i || (current === i && a.status === 'enrolled');
                             const active = current === i && a.status !== 'enrolled';
-                            const label = s.key === 'decision' && current >= 3 && a.status !== 'enrolled' ? titleCase(a.status) : s.key === 'decision' && a.status === 'enrolled' ? 'Accepted' : s.label;
+                            const label =
+                                s.key === 'decision' && current >= 3 && a.status !== 'enrolled'
+                                    ? titleCase(a.status)
+                                    : s.key === 'decision' && a.status === 'enrolled'
+                                      ? 'Accepted'
+                                      : s.label;
                             return (
                                 <div key={s.key} className="flex min-w-[110px] flex-1 items-center">
                                     <div className="flex flex-col items-center gap-1.5">
@@ -190,13 +218,20 @@ export default function AdmissionShow({ application: a, transitions, decisions, 
                                             className={cn(
                                                 'grid h-9 w-9 place-content-center rounded-full border-2 text-sm font-bold',
                                                 done && 'border-success bg-success text-white',
-                                                active && (a.status === 'rejected' ? 'border-danger bg-danger text-white' : a.status === 'waitlisted' ? 'border-warning bg-warning text-white' : 'border-primary bg-primary text-white'),
+                                                active &&
+                                                    (a.status === 'rejected'
+                                                        ? 'border-danger bg-danger text-white'
+                                                        : a.status === 'waitlisted'
+                                                          ? 'border-warning bg-warning text-white'
+                                                          : 'border-primary bg-primary text-white'),
                                                 !done && !active && 'border-white-light text-white-dark dark:border-[#1b2e4b]',
                                             )}
                                         >
                                             {done ? <Check className="h-4 w-4" /> : i + 1}
                                         </span>
-                                        <span className={cn('text-xs font-bold whitespace-nowrap', active || done ? 'text-black dark:text-white-light' : 'text-white-dark')}>{label}</span>
+                                        <span className={cn('text-xs font-bold whitespace-nowrap', active || done ? 'text-black dark:text-white-light' : 'text-white-dark')}>
+                                            {label}
+                                        </span>
                                     </div>
                                     {i < STEPS.length - 1 && <div className={cn('mx-2 mb-5 h-0.5 flex-1', current > i ? 'bg-success' : 'bg-white-light dark:bg-[#1b2e4b]')} />}
                                 </div>
@@ -253,6 +288,17 @@ export default function AdmissionShow({ application: a, transitions, decisions, 
                                 ['Last name', a.last_name],
                                 ['Date of birth', date(a.date_of_birth)],
                                 ['Previous school', a.previous_school],
+                                ...(a.combination
+                                    ? [
+                                          ['Combination', `${a.combination} — ${a.combination_name ?? ''}`],
+                                          [
+                                              'CSEE result',
+                                              [a.csee_index_no, a.csee_division && `Division ${a.csee_division}`, a.csee_points && `${a.csee_points} points`]
+                                                  .filter(Boolean)
+                                                  .join(' · ') || null,
+                                          ],
+                                      ]
+                                    : []),
                                 ['Home address', a.address],
                                 ['Intake', `${a.class ?? '—'} · ${a.year ?? '—'}`],
                                 ['Residence', titleCase(a.residence_type)],
@@ -364,7 +410,12 @@ export default function AdmissionShow({ application: a, transitions, decisions, 
                             <ol className="relative space-y-4 border-s border-white-light ps-5 dark:border-[#1b2e4b]">
                                 {history.map((h) => (
                                     <li key={h.id} className="relative">
-                                        <span className={cn('absolute -start-[26px] top-1 h-3 w-3 rounded-full ring-4 ring-white dark:ring-black', h.action === 'enrolled' ? 'bg-primary' : h.action === 'status_changed' ? 'bg-secondary' : 'bg-success')} />
+                                        <span
+                                            className={cn(
+                                                'absolute -start-[26px] top-1 h-3 w-3 rounded-full ring-4 ring-white dark:ring-black',
+                                                h.action === 'enrolled' ? 'bg-primary' : h.action === 'status_changed' ? 'bg-secondary' : 'bg-success',
+                                            )}
+                                        />
                                         <div className="text-sm font-semibold text-black dark:text-white-light">{h.description}</div>
                                         <div className="text-xs text-white-dark">
                                             {h.user ?? 'System'} · {dateTime(h.created_at)}
@@ -382,12 +433,38 @@ export default function AdmissionShow({ application: a, transitions, decisions, 
                 <form onSubmit={submitMove} className="space-y-5">
                     {target === 'interview' && (
                         <FormGrid>
-                            <Input label="Interview / assessment date" type="date" required value={move.data.interview_date} onChange={(e) => move.setData('interview_date', e.target.value)} error={move.errors.interview_date} />
-                            <Input label="Assessment score (%)" type="number" min={0} max={100} step="0.5" value={move.data.assessment_score} onChange={(e) => move.setData('assessment_score', e.target.value)} error={move.errors.assessment_score} help="Can be added later" />
+                            <Input
+                                label="Interview / assessment date"
+                                type="date"
+                                required
+                                value={move.data.interview_date}
+                                onChange={(e) => move.setData('interview_date', e.target.value)}
+                                error={move.errors.interview_date}
+                            />
+                            <Input
+                                label="Assessment score (%)"
+                                type="number"
+                                min={0}
+                                max={100}
+                                step="0.5"
+                                value={move.data.assessment_score}
+                                onChange={(e) => move.setData('assessment_score', e.target.value)}
+                                error={move.errors.assessment_score}
+                                help="Can be added later"
+                            />
                         </FormGrid>
                     )}
                     {target && ['accepted', 'waitlisted', 'rejected'].includes(target) && (
-                        <Input label="Assessment score (%)" type="number" min={0} max={100} step="0.5" value={move.data.assessment_score} onChange={(e) => move.setData('assessment_score', e.target.value)} error={move.errors.assessment_score} />
+                        <Input
+                            label="Assessment score (%)"
+                            type="number"
+                            min={0}
+                            max={100}
+                            step="0.5"
+                            value={move.data.assessment_score}
+                            onChange={(e) => move.setData('assessment_score', e.target.value)}
+                            error={move.errors.assessment_score}
+                        />
                     )}
                     <Textarea
                         label={needsNotes ? 'Decision notes' : 'Notes (optional)'}
@@ -413,7 +490,8 @@ export default function AdmissionShow({ application: a, transitions, decisions, 
             <Modal open={enrolOpen} onClose={() => setEnrolOpen(false)} title={`Enrol ${a.full_name}`} size="lg">
                 <form onSubmit={submitEnrol} className="space-y-5">
                     <p className="text-sm text-white-dark">
-                        Creates the student record from this application, links {a.guardian_name} as primary guardian (re-using an existing guardian with phone {a.guardian_phone}) and enrols the learner for {currentYear ?? 'the current year'}.
+                        Creates the student record from this application, links {a.guardian_name} as primary guardian (re-using an existing guardian with phone {a.guardian_phone})
+                        and enrols the learner for {currentYear ?? 'the current year'}.
                     </p>
                     <FormGrid>
                         <Select
@@ -425,16 +503,40 @@ export default function AdmissionShow({ application: a, transitions, decisions, 
                             onChange={(e) => enrol.setData((d) => ({ ...d, school_class_id: e.target.value, stream_id: '' }))}
                             error={enrol.errors.school_class_id}
                         />
-                        <Select label="Stream" placeholder={streams.length ? 'Select stream…' : 'No streams'} options={streams} value={enrol.data.stream_id} onChange={(e) => enrol.setData('stream_id', e.target.value)} error={enrol.errors.stream_id} />
-                        <Input label="Admission number" placeholder="Auto-generated if blank" value={enrol.data.admission_no} onChange={(e) => enrol.setData('admission_no', e.target.value)} error={enrol.errors.admission_no} />
-                        <Input label="Admission date" type="date" required value={enrol.data.admission_date} onChange={(e) => enrol.setData('admission_date', e.target.value)} error={enrol.errors.admission_date} />
+                        <Select
+                            label="Stream"
+                            placeholder={streams.length ? 'Select stream…' : 'No streams'}
+                            options={streams}
+                            value={enrol.data.stream_id}
+                            onChange={(e) => enrol.setData('stream_id', e.target.value)}
+                            error={enrol.errors.stream_id}
+                        />
+                        <Input
+                            label="Admission number"
+                            placeholder="Auto-generated if blank"
+                            value={enrol.data.admission_no}
+                            onChange={(e) => enrol.setData('admission_no', e.target.value)}
+                            error={enrol.errors.admission_no}
+                        />
+                        <Input
+                            label="Admission date"
+                            type="date"
+                            required
+                            value={enrol.data.admission_date}
+                            onChange={(e) => enrol.setData('admission_date', e.target.value)}
+                            error={enrol.errors.admission_date}
+                        />
                     </FormGrid>
                     {duplicates.length > 0 && (
                         <div className="rounded-md border border-warning/40 bg-warning-light p-3 text-sm dark:bg-warning-dark-light">
                             <div className="mb-2 flex items-center gap-2 font-bold text-warning">
                                 <AlertTriangle className="h-4 w-4" /> {duplicates.length} existing student(s) share this name and date of birth
                             </div>
-                            <Checkbox label="I have checked — this is a different learner" checked={enrol.data.confirm_duplicate} onChange={(e) => enrol.setData('confirm_duplicate', e.target.checked)} />
+                            <Checkbox
+                                label="I have checked — this is a different learner"
+                                checked={enrol.data.confirm_duplicate}
+                                onChange={(e) => enrol.setData('confirm_duplicate', e.target.checked)}
+                            />
                             {enrol.errors.confirm_duplicate && <p className="form-error mt-1">{enrol.errors.confirm_duplicate}</p>}
                         </div>
                     )}

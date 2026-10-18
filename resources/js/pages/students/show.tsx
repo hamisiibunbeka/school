@@ -1,7 +1,9 @@
 import { Link, router, useForm, usePage } from '@inertiajs/react';
 import {
+    BedDouble,
     BookOpen,
     CalendarCheck,
+    ClipboardList,
     Eye,
     FileText,
     HandHeart,
@@ -33,6 +35,7 @@ import { useCan } from '@/hooks/use-can';
 import { confirm } from '@/lib/swal';
 import { date, dateTime, money, titleCase } from '@/lib/utils';
 import type { Option } from '@/types';
+import PersonDuties, { type PersonDuty } from '../duties/_components/person-duties';
 import SponsorshipFields, { emptySponsorship, MAX_ATTACHMENT_MB, type SponsorOption, type SponsorshipInput } from './_components/sponsorship-fields';
 
 type Sponsorship = {
@@ -51,7 +54,15 @@ type Sponsorship = {
     sponsor: { id: number; name: string; type: string; contact_person: string | null; phone: string | null; email: string | null; address: string | null } | null;
 };
 
-type Guardian = { id: number; full_name: string; phone: string; email: string | null; occupation: string | null; user_id: number | null; pivot: { relationship: string; is_primary: boolean } };
+type Guardian = {
+    id: number;
+    full_name: string;
+    phone: string;
+    email: string | null;
+    occupation: string | null;
+    user_id: number | null;
+    pivot: { relationship: string; is_primary: boolean };
+};
 type Props = {
     student: {
         id: number;
@@ -76,7 +87,16 @@ type Props = {
         guardians: Guardian[];
         sponsorships: Sponsorship[];
         documents: { id: number; title: string; mime_type: string | null; size: number | null; created_at: string; uploader: { name: string } | null }[];
-        enrolments: { id: number; status: string; start_date: string | null; end_date: string | null; remarks: string | null; academic_year: { name: string } | null; school_class: { name: string } | null; stream: { name: string } | null }[];
+        enrolments: {
+            id: number;
+            status: string;
+            start_date: string | null;
+            end_date: string | null;
+            remarks: string | null;
+            academic_year: { name: string } | null;
+            school_class: { name: string } | null;
+            stream: { name: string } | null;
+        }[];
     };
     attendance: { present: number; absent: number; late: number; excused: number };
     finance: {
@@ -88,14 +108,40 @@ type Props = {
     };
     results: { exam: string; exam_id: number; average: number; subjects: { subject: string; score: string | null; grade: string | null; is_absent: number }[] }[];
     discipline: { id: number; incident_date: string; type: string; title: string; action_taken: string | null; status: string }[];
+    care: {
+        teachers: CarePerson[];
+        dormitory: { name: string | null; room: string | null; bed: string | null; caretakers: CarePerson[] } | null;
+    };
+    duties: PersonDuty[];
     statuses: Option[];
     sponsors: SponsorOption[];
     sponsorTypes: Option[];
 };
 
+type CarePerson = { id: number; name: string; phone: string | null; role: string };
+
+function CareRow({ p }: { p: CarePerson }) {
+    return (
+        <div className="flex items-center gap-3">
+            <Avatar name={p.name} className="h-9 w-9 text-xs" />
+            <div className="min-w-0">
+                <div className="truncate font-semibold text-black dark:text-white-light">{p.name}</div>
+                <div className="flex flex-wrap items-center gap-x-2 text-xs text-white-dark">
+                    <span>{p.role}</span>
+                    {p.phone && (
+                        <span className="inline-flex items-center gap-1">
+                            <Phone className="h-3 w-3" /> {p.phone}
+                        </span>
+                    )}
+                </div>
+            </div>
+        </div>
+    );
+}
+
 const coverageLabel = (sp: Pick<Sponsorship, 'coverage' | 'percentage'>) => (sp.coverage === 'partial' ? `${Number(sp.percentage)}% (partial)` : 'Full sponsorship');
 
-export default function StudentShow({ student, attendance, finance, results, discipline, statuses, sponsors, sponsorTypes }: Props) {
+export default function StudentShow({ student, attendance, finance, results, discipline, care, duties, statuses, sponsors, sponsorTypes }: Props) {
     const can = useCan();
     const { school } = usePage().props;
     const cur = school?.currency ?? 'TZS';
@@ -116,6 +162,7 @@ export default function StudentShow({ student, attendance, finance, results, dis
         { key: 'academics', label: 'Results', icon: FileText, count: results.length },
         { key: 'fees', label: 'Fees', icon: Wallet },
         { key: 'attendance', label: 'Attendance', icon: CalendarCheck },
+        { key: 'duties', label: 'Duties', icon: ClipboardList, count: duties.filter((d) => d.status !== 'ended').length },
         { key: 'documents', label: 'Documents', icon: Upload, count: student.documents.length },
         { key: 'history', label: 'History & Conduct', icon: History },
     ];
@@ -170,7 +217,13 @@ export default function StudentShow({ student, attendance, finance, results, dis
                             {student.age !== null && <span>{student.age} yrs</span>}
                             <span className="badge badge-soft-secondary">{titleCase(student.residence_type)}</span>
                             {activeSponsorships.map((sp) => (
-                                <button key={sp.id} type="button" onClick={() => setTab('sponsorship')} className="badge badge-soft-success inline-flex items-center gap-1" title={coverageLabel(sp)}>
+                                <button
+                                    key={sp.id}
+                                    type="button"
+                                    onClick={() => setTab('sponsorship')}
+                                    className="badge badge-soft-success inline-flex items-center gap-1"
+                                    title={coverageLabel(sp)}
+                                >
                                     <HandHeart className="h-3 w-3" /> Sponsored by {sp.sponsor?.name}
                                 </button>
                             ))}
@@ -249,6 +302,71 @@ export default function StudentShow({ student, attendance, finance, results, dis
                             <p className="text-sm text-white-dark">No guardian linked.</p>
                         )}
                     </div>
+                    <div className="panel">
+                        <h5 className="mb-4 flex items-center gap-2 text-lg font-bold">
+                            <Users className="h-5 w-5 text-primary" /> Class teacher
+                        </h5>
+                        {care.teachers.length ? (
+                            <div className="space-y-3">
+                                {care.teachers.map((p) => (
+                                    <CareRow key={`${p.role}-${p.id}`} p={p} />
+                                ))}
+                            </div>
+                        ) : (
+                            <p className="text-sm text-white-dark">No class teacher assigned to {student.class || 'this class'} yet.</p>
+                        )}
+                    </div>
+                    <div className="panel">
+                        <h5 className="mb-4 flex items-center gap-2 text-lg font-bold">
+                            <BedDouble className="h-5 w-5 text-secondary" /> Boarding
+                        </h5>
+                        {care.dormitory ? (
+                            <>
+                                <div className="mb-3 text-sm">
+                                    <span className="font-semibold text-black dark:text-white-light">{care.dormitory.name}</span>
+                                    <span className="text-white-dark">
+                                        {' '}
+                                        · {care.dormitory.room}
+                                        {care.dormitory.bed && `, bed ${care.dormitory.bed}`}
+                                    </span>
+                                </div>
+                                {care.dormitory.caretakers.length ? (
+                                    <div className="space-y-3">
+                                        {care.dormitory.caretakers.map((p) => (
+                                            <CareRow key={p.id} p={p} />
+                                        ))}
+                                    </div>
+                                ) : (
+                                    <p className="text-sm text-warning">No patron / matron assigned to this dormitory.</p>
+                                )}
+                            </>
+                        ) : (
+                            <p className="text-sm text-white-dark">{student.residence_type === 'boarding' ? 'Boarder without a bed allocation.' : 'Day scholar — no dormitory.'}</p>
+                        )}
+                    </div>
+                    <div className="panel">
+                        <div className="mb-4 flex items-center justify-between">
+                            <h5 className="flex items-center gap-2 text-lg font-bold">
+                                <ClipboardList className="h-5 w-5 text-warning" /> Duties
+                            </h5>
+                            <button type="button" className="text-sm font-bold text-primary hover:underline" onClick={() => setTab('duties')}>
+                                All duties
+                            </button>
+                        </div>
+                        <PersonDuties duties={duties} href="/students/duties" compact />
+                    </div>
+                </div>
+            )}
+
+            {tab === 'duties' && (
+                <div className="panel">
+                    <div className="mb-4 flex items-center justify-between">
+                        <h5 className="text-lg font-bold">Duties after class</h5>
+                        <Link href="/students/duties" className="text-sm font-bold text-primary hover:underline">
+                            Duty roster
+                        </Link>
+                    </div>
+                    <PersonDuties duties={duties} href="/students/duties" />
                 </div>
             )}
 
@@ -298,7 +416,11 @@ export default function StudentShow({ student, attendance, finance, results, dis
                                         )}
                                         {g.occupation && <div className="text-white-dark">{g.occupation}</div>}
                                         <div className="pt-1">
-                                            {g.user_id ? <span className="badge badge-soft-success">Portal access active</span> : <span className="badge badge-soft-dark">No portal access</span>}
+                                            {g.user_id ? (
+                                                <span className="badge badge-soft-success">Portal access active</span>
+                                            ) : (
+                                                <span className="badge badge-soft-dark">No portal access</span>
+                                            )}
                                         </div>
                                     </div>
                                 </div>
@@ -326,7 +448,10 @@ export default function StudentShow({ student, attendance, finance, results, dis
                     {student.sponsorships.length ? (
                         <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
                             {student.sponsorships.map((sp) => (
-                                <div key={sp.id} className={`rounded-lg border p-4 ${sp.status === 'active' ? 'border-success/40' : 'border-white-light opacity-75 dark:border-[#1b2e4b]'}`}>
+                                <div
+                                    key={sp.id}
+                                    className={`rounded-lg border p-4 ${sp.status === 'active' ? 'border-success/40' : 'border-white-light opacity-75 dark:border-[#1b2e4b]'}`}
+                                >
                                     <div className="flex items-start gap-3">
                                         <Avatar name={sp.sponsor?.name} />
                                         <div className="min-w-0 flex-1">
@@ -346,8 +471,17 @@ export default function StudentShow({ student, attendance, finance, results, dis
                                                         className="text-warning hover:opacity-70"
                                                         title="End sponsorship"
                                                         onClick={async () => {
-                                                            const { confirmed } = await confirm({ title: `End sponsorship by ${sp.sponsor?.name}?`, text: 'It ends today and stays in the history.', confirmText: 'End sponsorship' });
-                                                            if (confirmed) router.post(`/sponsorships/${sp.id}/end`, { end_date: new Date().toISOString().slice(0, 10) }, { preserveScroll: true });
+                                                            const { confirmed } = await confirm({
+                                                                title: `End sponsorship by ${sp.sponsor?.name}?`,
+                                                                text: 'It ends today and stays in the history.',
+                                                                confirmText: 'End sponsorship',
+                                                            });
+                                                            if (confirmed)
+                                                                router.post(
+                                                                    `/sponsorships/${sp.id}/end`,
+                                                                    { end_date: new Date().toISOString().slice(0, 10) },
+                                                                    { preserveScroll: true },
+                                                                );
                                                         }}
                                                     >
                                                         <RefreshCw className="h-4 w-4" />
@@ -357,7 +491,12 @@ export default function StudentShow({ student, attendance, finance, results, dis
                                                     className="text-danger hover:opacity-70"
                                                     title="Delete (entered by mistake)"
                                                     onClick={async () => {
-                                                        const { confirmed } = await confirm({ title: 'Delete this sponsorship record?', text: 'Use this only for entries made by mistake. To stop a real sponsorship, end it instead.', danger: true, confirmText: 'Delete' });
+                                                        const { confirmed } = await confirm({
+                                                            title: 'Delete this sponsorship record?',
+                                                            text: 'Use this only for entries made by mistake. To stop a real sponsorship, end it instead.',
+                                                            danger: true,
+                                                            confirmText: 'Delete',
+                                                        });
                                                         if (confirmed) router.delete(`/sponsorships/${sp.id}`, { preserveScroll: true });
                                                     }}
                                                 >
@@ -410,7 +549,10 @@ export default function StudentShow({ student, attendance, finance, results, dis
                             ))}
                         </div>
                     ) : (
-                        <EmptyState title="Not sponsored" description="Fees and support come from the parents/guardians. Add a sponsor if an organisation or well-wisher supports this student." />
+                        <EmptyState
+                            title="Not sponsored"
+                            description="Fees and support come from the parents/guardians. Add a sponsor if an organisation or well-wisher supports this student."
+                        />
                     )}
                 </div>
             )}
@@ -448,7 +590,7 @@ export default function StudentShow({ student, attendance, finance, results, dis
                                             {r.subjects.map((s) => (
                                                 <tr key={s.subject}>
                                                     <td className="font-semibold">{s.subject}</td>
-                                                    <td className="text-center!">{s.is_absent ? <span className="badge badge-soft-danger">ABS</span> : s.score ?? '—'}</td>
+                                                    <td className="text-center!">{s.is_absent ? <span className="badge badge-soft-danger">ABS</span> : (s.score ?? '—')}</td>
                                                     <td className="text-center! font-bold text-primary">{s.grade ?? '—'}</td>
                                                 </tr>
                                             ))}
@@ -596,7 +738,8 @@ export default function StudentShow({ student, attendance, finance, results, dis
                             ))}
                         </div>
                         <p className="mt-6 text-sm text-white-dark">
-                            Overall attendance rate: <strong className="text-black dark:text-white-light">{attendanceRate !== null ? `${attendanceRate}%` : '—'}</strong> across {totalDays} recorded school days.
+                            Overall attendance rate: <strong className="text-black dark:text-white-light">{attendanceRate !== null ? `${attendanceRate}%` : '—'}</strong> across{' '}
+                            {totalDays} recorded school days.
                         </p>
                     </div>
                 </div>
@@ -628,7 +771,12 @@ export default function StudentShow({ student, attendance, finance, results, dis
                                     {student.documents.map((d) => (
                                         <tr key={d.id}>
                                             <td className="font-semibold">
-                                                <a href={`/students/${student.id}/documents/${d.id}`} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1.5 text-primary hover:underline">
+                                                <a
+                                                    href={`/students/${student.id}/documents/${d.id}`}
+                                                    target="_blank"
+                                                    rel="noreferrer"
+                                                    className="inline-flex items-center gap-1.5 text-primary hover:underline"
+                                                >
                                                     <Paperclip className="h-4 w-4 shrink-0" /> {d.title}
                                                 </a>
                                             </td>
@@ -638,7 +786,13 @@ export default function StudentShow({ student, attendance, finance, results, dis
                                                 {dateTime(d.created_at)} {d.uploader && <span className="text-white-dark">by {d.uploader.name}</span>}
                                             </td>
                                             <td className="text-end! whitespace-nowrap">
-                                                <a href={`/students/${student.id}/documents/${d.id}`} target="_blank" rel="noreferrer" className="me-3 inline-block text-info hover:opacity-70" title="View / download">
+                                                <a
+                                                    href={`/students/${student.id}/documents/${d.id}`}
+                                                    target="_blank"
+                                                    rel="noreferrer"
+                                                    className="me-3 inline-block text-info hover:opacity-70"
+                                                    title="View / download"
+                                                >
                                                     <Eye className="h-4 w-4" />
                                                 </a>
                                                 {can('students.manage') && (
@@ -722,7 +876,14 @@ export default function StudentShow({ student, attendance, finance, results, dis
             )}
 
             <StatusModal open={statusOpen} onClose={() => setStatusOpen(false)} studentId={student.id} current={student.status} statuses={statuses} />
-            <SponsorshipModal key={sponsorModal === null ? 'closed' : sponsorModal === 'new' ? 'new' : sponsorModal.id} sponsorship={sponsorModal} onClose={() => setSponsorModal(null)} studentId={student.id} sponsors={sponsors} sponsorTypes={sponsorTypes} />
+            <SponsorshipModal
+                key={sponsorModal === null ? 'closed' : sponsorModal === 'new' ? 'new' : sponsorModal.id}
+                sponsorship={sponsorModal}
+                onClose={() => setSponsorModal(null)}
+                studentId={student.id}
+                sponsors={sponsors}
+                sponsorTypes={sponsorTypes}
+            />
             <GuardianModal open={guardianOpen} onClose={() => setGuardianOpen(false)} studentId={student.id} />
             <DocumentModal open={docOpen} onClose={() => setDocOpen(false)} studentId={student.id} />
         </>
@@ -740,7 +901,14 @@ function StatusModal({ open, onClose, studentId, current, statuses }: { open: bo
             <form onSubmit={submit} className="space-y-4">
                 <Select label="New status" value={form.data.status} onChange={(e) => form.setData('status', e.target.value)} options={statuses} error={form.errors.status} />
                 <Input label="Effective date" type="date" value={form.data.effective_date} onChange={(e) => form.setData('effective_date', e.target.value)} />
-                <Textarea label="Reason" required value={form.data.reason} onChange={(e) => form.setData('reason', e.target.value)} error={form.errors.reason} placeholder="e.g. Transferred to Azania Secondary School" />
+                <Textarea
+                    label="Reason"
+                    required
+                    value={form.data.reason}
+                    onChange={(e) => form.setData('reason', e.target.value)}
+                    error={form.errors.reason}
+                    placeholder="e.g. Transferred to Azania Secondary School"
+                />
                 <div className="flex justify-center gap-3">
                     <button type="button" className="btn btn-outline-dark" onClick={onClose}>
                         Cancel
@@ -849,7 +1017,13 @@ function GuardianModal({ open, onClose, studentId }: { open: boolean; onClose: (
             <form onSubmit={submit} className="space-y-4">
                 <Input label="Search existing guardians" placeholder="Type a name or phone…" onChange={(e) => search(e.target.value)} />
                 {results.length > 0 && (
-                    <Select label="Select existing guardian" placeholder="— or create a new one below —" value={form.data.guardian_id} onChange={(e) => form.setData('guardian_id', e.target.value)} options={results} />
+                    <Select
+                        label="Select existing guardian"
+                        placeholder="— or create a new one below —"
+                        value={form.data.guardian_id}
+                        onChange={(e) => form.setData('guardian_id', e.target.value)}
+                        options={results}
+                    />
                 )}
                 {!form.data.guardian_id && (
                     <FormGrid>
@@ -860,9 +1034,15 @@ function GuardianModal({ open, onClose, studentId }: { open: boolean; onClose: (
                     </FormGrid>
                 )}
                 <FormGrid>
-                    <Select label="Relationship" value={form.data.relationship} onChange={(e) => form.setData('relationship', e.target.value)} options={['Father', 'Mother', 'Guardian', 'Uncle', 'Aunt', 'Grandparent', 'Sibling', 'Sponsor']} />
+                    <Select
+                        label="Relationship"
+                        value={form.data.relationship}
+                        onChange={(e) => form.setData('relationship', e.target.value)}
+                        options={['Father', 'Mother', 'Guardian', 'Uncle', 'Aunt', 'Grandparent', 'Sibling', 'Sponsor']}
+                    />
                     <label className="mt-7 flex items-center gap-2">
-                        <input type="checkbox" className="form-checkbox" checked={form.data.is_primary} onChange={(e) => form.setData('is_primary', e.target.checked)} /> Primary contact
+                        <input type="checkbox" className="form-checkbox" checked={form.data.is_primary} onChange={(e) => form.setData('is_primary', e.target.checked)} /> Primary
+                        contact
                     </label>
                 </FormGrid>
                 <div className="flex justify-center gap-3">
@@ -889,9 +1069,23 @@ function DocumentModal({ open, onClose, studentId }: { open: boolean; onClose: (
     return (
         <Modal open={open} onClose={onClose} title="Upload document">
             <form onSubmit={submit} className="space-y-4">
-                <Input label="Document title" required value={form.data.title} onChange={(e) => form.setData('title', e.target.value)} error={form.errors.title} placeholder="e.g. Birth certificate" />
-                <Input label="File" type="file" required accept=".pdf,.jpg,.jpeg,.png,.doc,.docx" onChange={(e) => form.setData('file', e.target.files?.[0] ?? null)}
-                    error={form.errors.file ?? (tooBig ? `This file is ${((form.data.file?.size ?? 0) / 1048576).toFixed(1)} MB — the limit is ${MAX_ATTACHMENT_MB} MB.` : undefined)}
+                <Input
+                    label="Document title"
+                    required
+                    value={form.data.title}
+                    onChange={(e) => form.setData('title', e.target.value)}
+                    error={form.errors.title}
+                    placeholder="e.g. Birth certificate"
+                />
+                <Input
+                    label="File"
+                    type="file"
+                    required
+                    accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"
+                    onChange={(e) => form.setData('file', e.target.files?.[0] ?? null)}
+                    error={
+                        form.errors.file ?? (tooBig ? `This file is ${((form.data.file?.size ?? 0) / 1048576).toFixed(1)} MB — the limit is ${MAX_ATTACHMENT_MB} MB.` : undefined)
+                    }
                     help={`PDF, image or Word document up to ${MAX_ATTACHMENT_MB} MB`}
                 />
                 <div className="flex justify-center gap-3">

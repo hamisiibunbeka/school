@@ -11,6 +11,7 @@ use App\Models\Role;
 use App\Models\SalaryComponent;
 use App\Models\User;
 use App\Services\DocumentNumber;
+use App\Services\Duties\DutyService;
 use App\Support\Lookups;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -165,6 +166,11 @@ class EmployeeController extends Controller
             ->where('streams.school_id', $schoolId)->where('streams.class_teacher_id', $employee->id)
             ->get(['school_classes.name as class', 'streams.name as stream'])->map(fn ($s) => trim("{$s->class} {$s->stream}"));
 
+        $caretakerOf = DB::table('dormitory_caretakers')->join('dormitories', 'dormitories.id', '=', 'dormitory_caretakers.dormitory_id')
+            ->where('dormitory_caretakers.school_id', $schoolId)->where('dormitory_caretakers.employee_id', $employee->id)
+            ->orderBy('dormitories.name')->get(['dormitories.name', 'dormitory_caretakers.role'])
+            ->map(fn ($d) => ['name' => $d->name, 'role' => ucfirst($d->role)]);
+
         $payslips = $canSeeSalary
             ? Payslip::with('run:id,period,status,payment_date')->where('employee_id', $employee->id)->latest('id')->limit(24)->get()
                 ->map(fn (Payslip $p) => [
@@ -210,6 +216,8 @@ class EmployeeController extends Controller
             ],
             'subjects' => $subjects,
             'classTeacherOf' => $classTeacherOf,
+            'caretakerOf' => $caretakerOf,
+            'duties' => app(DutyService::class)->forPerson($employee),
             'payslips' => $payslips,
             'components' => $components,
             'statuses' => Lookups::enum(self::STATUSES),
@@ -388,7 +396,7 @@ class EmployeeController extends Controller
     {
         $schoolId = $this->tenancy()->schoolId();
 
-        return $request->validate([
+        $data = $request->validate([
             'employee_no' => ['nullable', 'string', 'max:30', Rule::unique('employees')->where('school_id', $schoolId)->ignore($employee?->id)],
             'first_name' => ['required', 'string', 'max:100'],
             'last_name' => ['required', 'string', 'max:100'],
@@ -411,9 +419,16 @@ class EmployeeController extends Controller
             'bank_account' => ['nullable', 'string', 'max:40'],
             'nssf_no' => ['nullable', 'string', 'max:40'],
             'tin' => ['nullable', 'string', 'max:40'],
+            // Teaching workload: own weekly limit (blank = school default) and non-teaching duty periods.
+            'max_periods' => ['nullable', 'integer', 'min:1', 'max:80'],
+            'duty_periods' => ['nullable', 'integer', 'min:0', 'max:40'],
+            'duty_note' => ['nullable', 'string', 'max:150'],
         ], [
             'date_of_birth.before' => 'Employees must be at least 15 years old.',
             'contract_end_date.required' => 'Contract staff need a contract end date.',
-        ], ['department_id' => 'department', 'tin' => 'TIN', 'nssf_no' => 'NSSF number']);
+        ], ['department_id' => 'department', 'tin' => 'TIN', 'nssf_no' => 'NSSF number', 'max_periods' => 'weekly period limit', 'duty_periods' => 'duty periods']);
+        $data['duty_periods'] = (int) ($data['duty_periods'] ?? 0);
+
+        return $data;
     }
 }

@@ -68,6 +68,12 @@ class AdmissionApplication extends SchoolModel
         return $this->belongsTo(AcademicYear::class);
     }
 
+    /** Form Five: the combination the student was selected for. */
+    public function combination(): BelongsTo
+    {
+        return $this->belongsTo(Combination::class);
+    }
+
     public function schoolClass(): BelongsTo
     {
         return $this->belongsTo(SchoolClass::class);

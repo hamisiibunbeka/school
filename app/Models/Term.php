@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Support\EducationLevel;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class Term extends SchoolModel
@@ -16,10 +17,13 @@ class Term extends SchoolModel
         return $this->belongsTo(AcademicYear::class);
     }
 
-    public static function current(): ?self
+    /** Current term of an education level (A-Level terms run July–May). */
+    public static function current(string $level = EducationLevel::O_LEVEL): ?self
     {
-        return static::where('is_current', true)->first()
-            ?? static::whereDate('start_date', '<=', now())->whereDate('end_date', '>=', now())->first()
-            ?? static::latest('start_date')->first();
+        $q = fn () => static::whereHas('academicYear', fn ($y) => $y->where('education_level', $level));
+
+        return $q()->where('is_current', true)->first()
+            ?? $q()->whereDate('start_date', '<=', now())->whereDate('end_date', '>=', now())->first()
+            ?? $q()->latest('start_date')->first();
     }
 }

@@ -4,6 +4,7 @@ use App\Http\Controllers\Students\GuardianController;
 use App\Http\Controllers\Students\PromotionController;
 use App\Http\Controllers\Students\SponsorshipController;
 use App\Http\Controllers\Students\StudentController;
+use App\Http\Controllers\Students\StudentDutyController;
 use Illuminate\Support\Facades\Route;
 
 // Students & guardians (SRS 4.4, 4.5)
@@ -30,6 +31,17 @@ Route::middleware('can:students.manage')->group(function () {
     Route::put('guardians/{guardian}', [GuardianController::class, 'update'])->name('guardians.update');
     Route::delete('guardians/{guardian}', [GuardianController::class, 'destroy'])->name('guardians.destroy');
     Route::post('guardians/{guardian}/portal-access', [GuardianController::class, 'portalAccess'])->name('guardians.portal');
+
+    Route::prefix('students/duties')->name('students.duties.')->controller(StudentDutyController::class)->group(function () {
+        Route::post('types', 'storeType')->name('types.store');
+        Route::put('types/{dutyType}', 'updateType')->name('types.update');
+        Route::delete('types/{dutyType}', 'destroyType')->name('types.destroy');
+        Route::post('assign', 'assign')->name('assign');
+        Route::post('generate', 'generate')->name('generate');
+        Route::put('assignments/{dutyAssignment}', 'updateAssignment')->name('assignments.update');
+        Route::delete('assignments/{dutyAssignment}', 'destroyAssignment')->name('assignments.destroy');
+        Route::post('log', 'log')->name('log');
+    });
 });
 
 Route::middleware('can:students.view')->group(function () {
@@ -37,6 +49,7 @@ Route::middleware('can:students.view')->group(function () {
     Route::get('students/{student}/documents/{document}', [StudentController::class, 'viewDocument'])->name('students.documents.show');
     Route::get('students', [StudentController::class, 'index'])->name('students.index');
     Route::get('students/export', [StudentController::class, 'export'])->name('students.export');
+    Route::get('students/duties', [StudentDutyController::class, 'index'])->name('students.duties.index');
     Route::get('students/{student}', [StudentController::class, 'show'])->name('students.show');
     Route::get('students/{student}/id-card', [StudentController::class, 'idCard'])->name('students.id-card');
     Route::get('guardians', [GuardianController::class, 'index'])->name('guardians.index');

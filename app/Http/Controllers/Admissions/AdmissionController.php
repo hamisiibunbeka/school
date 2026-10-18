@@ -6,15 +6,18 @@ use App\Http\Controllers\Controller;
 use App\Models\AcademicYear;
 use App\Models\AdmissionApplication;
 use App\Models\AuditLog;
+use App\Models\Combination;
 use App\Models\Enrolment;
 use App\Models\Guardian;
 use App\Models\Student;
 use App\Services\DocumentNumber;
+use App\Support\EducationLevel;
 use App\Support\Lookups;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
@@ -98,6 +101,7 @@ class AdmissionController extends Controller
             'classes' => Lookups::classes(),
             'years' => Lookups::academicYears(),
             'defaultYearId' => $this->defaultIntakeYear()?->id,
+            'combinations' => $this->combinationOptions(),
         ]);
     }
 
@@ -122,7 +126,7 @@ class AdmissionController extends Controller
 
     public function show(AdmissionApplication $application): Response
     {
-        $application->load(['schoolClass:id,name', 'academicYear:id,name', 'decider:id,name', 'student:id,first_name,last_name,admission_no']);
+        $application->load(['schoolClass:id,name', 'combination:id,code,name', 'academicYear:id,name', 'decider:id,name', 'student:id,first_name,last_name,admission_no']);
 
         $history = AuditLog::with('user:id,name')
             ->where('auditable_type', $application->getMorphClass())
@@ -146,6 +150,8 @@ class AdmissionController extends Controller
                 'created_at' => $application->created_at?->toDateTimeString(),
                 'age' => $application->date_of_birth?->age,
                 'class' => $application->schoolClass?->name,
+                'combination' => $application->combination?->code,
+                'combination_name' => $application->combination?->name,
                 'year' => $application->academicYear?->name,
                 'decider' => $application->decider?->name,
                 'documents' => collect($application->documents ?? [])->map(fn ($d, $i) => ['index' => $i, 'title' => $d['title'] ?? 'Document', 'size' => $d['size'] ?? null, 'mime' => $d['mime'] ?? null])->values(),
@@ -161,13 +167,13 @@ class AdmissionController extends Controller
     }
 
     /** Securely stream a document uploaded with an online application (private storage). */
-    public function document(AdmissionApplication $application, int $index): \Symfony\Component\HttpFoundation\StreamedResponse
+    public function document(AdmissionApplication $application, int $index): StreamedResponse
     {
         $doc = ($application->documents ?? [])[$index] ?? null;
-        abort_unless($doc && \Illuminate\Support\Facades\Storage::disk('local')->exists($doc['path']), 404);
+        abort_unless($doc && Storage::disk('local')->exists($doc['path']), 404);
         $this->audit('viewed_document', $application, "Viewed document '{$doc['title']}' of application {$application->application_no}", 'admissions');
 
-        return \Illuminate\Support\Facades\Storage::disk('local')->download($doc['path'], $doc['title']);
+        return Storage::disk('local')->download($doc['path'], $doc['title']);
     }
 
     public function edit(AdmissionApplication $application): Response|RedirectResponse
@@ -186,6 +192,7 @@ class AdmissionController extends Controller
             'classes' => Lookups::classes(),
             'years' => Lookups::academicYears(),
             'defaultYearId' => $application->academic_year_id,
+            'combinations' => $this->combinationOptions(),
         ]);
     }
 
@@ -279,7 +286,7 @@ class AdmissionController extends Controller
             throw ValidationException::withMessages(['confirm_duplicate' => 'A student with the same name and date of birth already exists. Confirm this is a different learner to continue.']);
         }
 
-        $year = AcademicYear::current();
+        $year = AcademicYear::currentFor((int) $data['school_class_id']);
 
         $student = DB::transaction(function () use ($application, $data, $year) {
             $student = new Student([
@@ -351,7 +358,7 @@ class AdmissionController extends Controller
         }
 
         $application->load(['schoolClass:id,name', 'academicYear', 'decider:id,name', 'student:id,admission_no']);
-        $year = $application->academicYear ?? AcademicYear::current();
+        $year = $application->academicYear ?? AcademicYear::currentFor($application->school_class_id);
 
         return Inertia::render('admissions/letter', [
             'application' => [
@@ -437,6 +444,25 @@ class AdmissionController extends Controller
             'guardian_email' => ['nullable', 'email', 'max:150'],
             'medical_notes' => ['nullable', 'string', 'max:2000'],
             'notes' => ['nullable', 'string', 'max:2000'],
-        ], [], ['academic_year_id' => 'academic year', 'school_class_id' => 'class']);
+            // Form Five applicants: selected combination and Form Four (CSEE) result.
+            'combination_id' => [
+                EducationLevel::forClass((int) $request->input('school_class_id')) === EducationLevel::A_LEVEL ? 'required' : 'prohibited',
+                'nullable',
+                Rule::exists('combinations', 'id')->where('school_id', $schoolId),
+            ],
+            'csee_index_no' => ['nullable', 'string', 'max:30'],
+            'csee_division' => ['nullable', Rule::in(['I', 'II', 'III', 'IV', '0'])],
+            'csee_points' => ['nullable', 'integer', 'min:7', 'max:35'],
+        ], [
+            'combination_id.required' => 'Choose the combination for this Form Five applicant.',
+            'combination_id.prohibited' => 'Only A-Level (Form Five) applicants have a combination.',
+        ], ['academic_year_id' => 'academic year', 'school_class_id' => 'class', 'combination_id' => 'combination']);
+    }
+
+    /** @return array<int, array{value:int, label:string, code:string}> */
+    private function combinationOptions(): array
+    {
+        return Combination::active()->orderBy('code')->get(['id', 'code', 'name'])
+            ->map(fn ($c) => ['value' => $c->id, 'label' => "{$c->code} — {$c->name}", 'code' => $c->code])->all();
     }
 }

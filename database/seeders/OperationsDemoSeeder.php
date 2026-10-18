@@ -72,16 +72,25 @@ class OperationsDemoSeeder extends Seeder
         $maleTeacher = Employee::where('category', 'teaching')->where('gender', 'male')->orderBy('id')->skip(1)->value('id');
         $femaleTeacher = Employee::where('category', 'teaching')->where('gender', 'female')->orderBy('id')->skip(2)->value('id');
 
+        $maleAssistant = Employee::where('category', 'teaching')->where('gender', 'male')->orderBy('id')->skip(3)->value('id');
+        $femaleAssistant = Employee::where('category', 'teaching')->where('gender', 'female')->orderBy('id')->skip(3)->value('id');
+
+        // [name, gender, [[employee, role] …], description]
         $dorms = [
-            ['Kilimanjaro House', 'male', $boardingMaster, 'Main boys hostel, Block A'],
-            ['Serengeti House', 'male', $maleTeacher, 'Boys hostel, Block B (Forms Three & Four)'],
-            ['Ngorongoro House', 'female', $matron, 'Main girls hostel, Block C'],
-            ['Mikumi House', 'female', $femaleTeacher, 'Girls hostel, Block D (Forms Three & Four)'],
+            ['Kilimanjaro House', 'male', [[$boardingMaster, 'patron'], [$maleAssistant, 'assistant']], 'Main boys hostel, Block A'],
+            ['Serengeti House', 'male', [[$maleTeacher, 'patron']], 'Boys hostel, Block B (Forms Three & Four)'],
+            ['Ngorongoro House', 'female', [[$matron, 'matron'], [$femaleAssistant, 'assistant']], 'Main girls hostel, Block C'],
+            ['Mikumi House', 'female', [[$femaleTeacher, 'matron']], 'Girls hostel, Block D (Forms Three & Four)'],
         ];
 
         $rooms = ['male' => collect(), 'female' => collect()];
-        foreach ($dorms as [$name, $gender, $warden, $description]) {
-            $dorm = Dormitory::create(['name' => $name, 'gender' => $gender, 'warden_id' => $warden, 'description' => $description]);
+        foreach ($dorms as [$name, $gender, $caretakers, $description]) {
+            $dorm = Dormitory::create(['name' => $name, 'gender' => $gender, 'description' => $description]);
+            foreach ($caretakers as [$employeeId, $role]) {
+                if ($employeeId) {
+                    $dorm->caretakers()->firstOrCreate(['employee_id' => $employeeId], ['role' => $role]);
+                }
+            }
             foreach (range(1, 4) as $n) {
                 $rooms[$gender]->push($dorm->rooms()->create(['name' => 'Room '.substr($name, 0, 1).$n, 'capacity' => 6]));
             }
@@ -433,11 +442,13 @@ class OperationsDemoSeeder extends Seeder
             $date = $event['date']->toDateString();
             if ($event['kind'] === 'po1') {
                 $stock->receivePurchaseOrder($po1, $po1->items->mapWithKeys(fn ($l) => [$l->id => (string) $l->quantity])->all(), $date, 'Delivered in full — DN 2231');
+
                 continue;
             }
             if ($event['kind'] === 'po2') {
                 $lines = $po2->items()->get();
                 $stock->receivePurchaseOrder($po2, $lines->mapWithKeys(fn ($l, $i) => [$l->id => $i < 2 ? bcdiv((string) $l->quantity, '2', 2) : (string) $l->quantity])->all(), $date, 'Partial delivery — balance of exercise books and paper to follow');
+
                 continue;
             }
             if (in_array($event['kind'], ['wo', 'adj', 'ret'], true)) {
@@ -448,6 +459,7 @@ class OperationsDemoSeeder extends Seeder
                     'ret' => $stock->move($items['ST-MAN']['model'], 'return', '15.00', ['date' => $date, 'issued_to' => 'Form Four', 'reference' => 'RTN-014', 'notes' => 'Unused manila sheets returned after project week']),
                 };
                 $stock->postMovement($m);
+
                 continue;
             }
             foreach ($items as $sku => ['model' => $item, 'row' => $row]) {

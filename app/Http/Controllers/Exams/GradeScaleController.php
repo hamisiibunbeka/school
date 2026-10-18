@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Exams;
 use App\Http\Controllers\Controller;
 use App\Models\GradeScale;
 use App\Services\Exams\TeacherAccess;
+use App\Support\EducationLevel;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -23,7 +24,8 @@ class GradeScaleController extends Controller
 
     public function index(Request $request): Response
     {
-        $grades = GradeScale::orderByDesc('min_score')->get();
+        $level = in_array($request->query('level'), EducationLevel::ALL, true) ? $request->query('level') : EducationLevel::O_LEVEL;
+        $grades = GradeScale::where('education_level', $level)->orderByDesc('min_score')->get();
 
         // Gaps in 0–100 coverage are flagged for the administrator.
         $gaps = [];
@@ -49,6 +51,8 @@ class GradeScaleController extends Controller
                 'remark' => $g->remark,
             ])->values(),
             'gaps' => $gaps,
+            'level' => $level,
+            'levels' => EducationLevel::options(),
             'canManage' => $request->user()->can('exams.manage') && ! $this->access->isRestricted($request->user()),
         ]);
     }
@@ -93,7 +97,8 @@ class GradeScaleController extends Controller
     private function validated(Request $request, ?GradeScale $grade = null): array
     {
         $data = $request->validate([
-            'grade' => ['required', 'string', 'max:5', Rule::unique('grade_scales', 'grade')->where('school_id', $this->tenancy()->schoolId())->ignore($grade?->id)],
+            'education_level' => ['required', Rule::in(EducationLevel::ALL)],
+            'grade' => ['required', 'string', 'max:5', Rule::unique('grade_scales', 'grade')->where('school_id', $this->tenancy()->schoolId())->where('education_level', $request->input('education_level'))->ignore($grade?->id)],
             'min_score' => ['required', 'numeric', 'min:0', 'max:100'],
             'max_score' => ['required', 'numeric', 'min:0', 'max:100', 'gte:min_score'],
             'points' => ['required', 'numeric', 'min:0', 'max:99'],
@@ -101,6 +106,7 @@ class GradeScaleController extends Controller
         ], ['max_score.gte' => 'The maximum must be greater than or equal to the minimum.']);
 
         $overlap = GradeScale::query()
+            ->where('education_level', $data['education_level'])
             ->when($grade, fn ($q) => $q->whereKeyNot($grade->id))
             ->where('min_score', '<=', $data['max_score'])
             ->where('max_score', '>=', $data['min_score'])

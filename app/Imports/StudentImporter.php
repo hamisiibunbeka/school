@@ -6,9 +6,9 @@ use App\Models\AcademicYear;
 use App\Models\Enrolment;
 use App\Models\Guardian;
 use App\Models\SchoolClass;
-use App\Models\Stream;
 use App\Models\Student;
 use App\Services\DocumentNumber;
+use App\Support\EducationLevel;
 use Illuminate\Support\Str;
 
 class StudentImporter extends Importer
@@ -21,7 +21,8 @@ class StudentImporter extends Importer
 
     private array $nameDob = [];
 
-    private ?AcademicYear $year = null;
+    /** @var array<string, ?AcademicYear> current year per education level */
+    private array $years = [];
 
     public static function key(): string
     {
@@ -83,7 +84,9 @@ class StudentImporter extends Importer
         $this->admissionNos = Student::withTrashed()->pluck('id', 'admission_no')->mapWithKeys(fn ($id, $no) => [Str::lower($no) => $id])->all();
         $this->nameDob = Student::query()->get(['first_name', 'last_name', 'date_of_birth'])
             ->mapWithKeys(fn ($s) => [Str::lower("{$s->first_name}|{$s->last_name}|{$s->date_of_birth?->toDateString()}") => true])->all();
-        $this->year = AcademicYear::current();
+        foreach (EducationLevel::ALL as $level) {
+            $this->years[$level] = AcademicYear::current($level);
+        }
     }
 
     protected function validateRow(array $row): array
@@ -179,9 +182,10 @@ class StudentImporter extends Importer
             $student->guardians()->syncWithoutDetaching([$g->id => ['relationship' => $guardian['relationship'], 'is_primary' => true]]);
         }
 
-        if ($this->year) {
+        $year = $this->years[EducationLevel::forClass($student->school_class_id)] ?? null;
+        if ($year) {
             Enrolment::create([
-                'student_id' => $student->id, 'academic_year_id' => $this->year->id, 'school_class_id' => $student->school_class_id,
+                'student_id' => $student->id, 'academic_year_id' => $year->id, 'school_class_id' => $student->school_class_id,
                 'stream_id' => $student->stream_id, 'status' => 'active', 'start_date' => $student->admission_date,
             ]);
         }

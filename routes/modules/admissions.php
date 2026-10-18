@@ -1,11 +1,14 @@
 <?php
 
 use App\Http\Controllers\Admissions\AdmissionController;
+use App\Http\Controllers\Admissions\JoiningInstructionController;
 use Illuminate\Support\Facades\Route;
 
 // Admissions & enrolment (SRS 4.3, workflow SRS 13)
 Route::middleware('can:admissions.manage')->group(function () {
     Route::get('admissions/create', [AdmissionController::class, 'create'])->name('admissions.create');
+    Route::get('admissions/joining-instructions', [JoiningInstructionController::class, 'edit'])->name('admissions.joining.edit');
+    Route::put('admissions/joining-instructions', [JoiningInstructionController::class, 'update'])->name('admissions.joining.update');
     Route::post('admissions', [AdmissionController::class, 'store'])->name('admissions.store');
     Route::get('admissions/{application}/edit', [AdmissionController::class, 'edit'])->name('admissions.edit');
     Route::put('admissions/{application}', [AdmissionController::class, 'update'])->name('admissions.update');
@@ -17,6 +20,7 @@ Route::middleware('can:admissions.manage')->group(function () {
 Route::middleware('can:admissions.view')->group(function () {
     Route::get('admissions', [AdmissionController::class, 'index'])->name('admissions.index');
     Route::get('admissions/export', [AdmissionController::class, 'export'])->name('admissions.export');
+    Route::get('admissions/joining-instructions/print', [JoiningInstructionController::class, 'print'])->name('admissions.joining.print');
     Route::get('admissions/{application}', [AdmissionController::class, 'show'])->name('admissions.show');
     Route::get('admissions/{application}/letter', [AdmissionController::class, 'letter'])->name('admissions.letter');
     Route::get('admissions/{application}/documents/{index}', [AdmissionController::class, 'document'])->whereNumber('index')->name('admissions.document');

@@ -20,13 +20,19 @@ class Lookups
     /** @return array<int, array{value:int, label:string, streams: array<int, array{value:int,label:string}>}> */
     public static function classes(): array
     {
-        return SchoolClass::with('streams:id,school_class_id,name')
+        return SchoolClass::with(['streams:id,school_class_id,name,combination_id', 'streams.combination:id,code'])
             ->orderBy('level')->orderBy('name')
-            ->get(['id', 'name', 'level'])
+            ->get(['id', 'name', 'level', 'education_level'])
             ->map(fn ($c) => [
                 'value' => $c->id,
                 'label' => $c->name,
-                'streams' => $c->streams->map(fn ($s) => ['value' => $s->id, 'label' => $s->name])->values()->all(),
+                'education_level' => $c->education_level,
+                // A-Level streams show their combination, e.g. "A · PCM".
+                'streams' => $c->streams->map(fn ($s) => [
+                    'value' => $s->id,
+                    'label' => $s->combination ? "{$s->name} · {$s->combination->code}" : $s->name,
+                    'combination' => $s->combination?->code,
+                ])->values()->all(),
             ])->all();
     }
 
@@ -42,16 +48,21 @@ class Lookups
     public static function academicYears(): array
     {
         return AcademicYear::orderByDesc('start_date')->get()
-            ->map(fn ($y) => ['value' => $y->id, 'label' => $y->name, 'is_current' => $y->is_current])->all();
+            ->map(fn ($y) => [
+                'value' => $y->id,
+                'label' => $y->education_level === EducationLevel::A_LEVEL ? "{$y->name} (A-Level)" : $y->name,
+                'is_current' => $y->is_current,
+                'education_level' => $y->education_level,
+            ])->all();
     }
 
     /** @return array<int, array{value:int, label:string, academic_year_id:int, is_current:bool}> */
     public static function terms(): array
     {
-        return Term::with('academicYear:id,name')->orderByDesc('start_date')->get()
+        return Term::with('academicYear:id,name,education_level')->orderByDesc('start_date')->get()
             ->map(fn ($t) => [
                 'value' => $t->id,
-                'label' => "{$t->name} — {$t->academicYear?->name}",
+                'label' => "{$t->name} — {$t->academicYear?->name}".($t->academicYear?->education_level === EducationLevel::A_LEVEL ? ' (A-Level)' : ''),
                 'academic_year_id' => $t->academic_year_id,
                 'is_current' => $t->is_current,
             ])->all();

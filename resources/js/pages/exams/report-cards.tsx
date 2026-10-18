@@ -10,13 +10,25 @@ import type { Option } from '@/types';
 import { ProvisionalNotice } from './_components/workflow';
 
 type ExamOption = Option & { status: string; classes: (Option & { streams: Option[] })[] };
-type SubjectLine = { subject: string; teacher: string | null; score: number | null; percentage: number | null; grade: string | null; points: number | null; is_absent: boolean; remark: string | null; remarks: string | null };
+type SubjectLine = {
+    subject: string;
+    teacher: string | null;
+    score: number | null;
+    percentage: number | null;
+    grade: string | null;
+    points: number | null;
+    is_absent: boolean;
+    remark: string | null;
+    remarks: string | null;
+    role?: 'principal' | 'subsidiary' | null;
+};
 type Card = {
     id: number;
     admission_no: string;
     full_name: string;
     gender: string;
     stream: string | null;
+    combination?: string | null;
     sat: number;
     total: number;
     average: number | null;
@@ -33,7 +45,17 @@ type Card = {
 
 type Props = {
     exams: ExamOption[];
-    exam: { id: number; name: string; status: string; term: string | null; year: string | null; max_score: number; start_date: string | null; end_date: string | null } | null;
+    exam: {
+        id: number;
+        name: string;
+        status: string;
+        term: string | null;
+        year: string | null;
+        max_score: number;
+        start_date: string | null;
+        end_date: string | null;
+        level?: string;
+    } | null;
     filters: { exam: string; class: string; stream: string; student: string };
     students: Option[];
     cards: Card[];
@@ -95,7 +117,15 @@ export default function ReportCards({ exams, exam, filters: initial, students, c
                             placeholder="All streams"
                         />
                     )}
-                    {students.length > 0 && <FilterSelect value={filters.student} onChange={(v) => setFilter('student', v)} options={students} placeholder="All learners" className="sm:min-w-[220px]" />}
+                    {students.length > 0 && (
+                        <FilterSelect
+                            value={filters.student}
+                            onChange={(v) => setFilter('student', v)}
+                            options={students}
+                            placeholder="All learners"
+                            className="sm:min-w-[220px]"
+                        />
+                    )}
                 </FilterBar>
                 {exam && <ProvisionalNotice exam={exam} canApprove={canApprove} />}
             </div>
@@ -121,9 +151,24 @@ export default function ReportCards({ exams, exam, filters: initial, students, c
     );
 }
 
-function ReportCard({ card: c, exam, className, context, scale }: { card: Card; exam: NonNullable<Props['exam']>; className: string; context: NonNullable<Props['context']>; scale: Props['scale'] }) {
+function ReportCard({
+    card: c,
+    exam,
+    className,
+    context,
+    scale,
+}: {
+    card: Card;
+    exam: NonNullable<Props['exam']>;
+    className: string;
+    context: NonNullable<Props['context']>;
+    scale: Props['scale'];
+}) {
     const { school } = usePage().props;
     const provisional = exam.status !== 'published';
+    const aLevel = exam.level === 'a_level';
+    // A-Level: principal subjects first, then subsidiaries (GS, BAM).
+    const lines = aLevel ? [...c.subjects].sort((a, b) => Number(a.role === 'subsidiary') - Number(b.role === 'subsidiary')) : c.subjects;
 
     return (
         <div className="panel report-card relative">
@@ -147,6 +192,7 @@ function ReportCard({ card: c, exam, className, context, scale }: { card: Card; 
                 <Info label="Name" value={c.full_name} wide />
                 <Info label="Admission No." value={c.admission_no} />
                 <Info label="Class" value={`${className}${c.stream ? ` ${c.stream}` : ''}`} />
+                {aLevel && <Info label="Combination" value={c.combination ?? '—'} />}
                 <Info label="Gender" value={c.gender === 'female' ? 'Female' : 'Male'} />
                 <Info label="Position" value={c.position ? `${c.position} of ${context.class_size}` : '—'} />
                 <Info label="Class teacher" value={c.class_teacher ?? '—'} />
@@ -160,17 +206,22 @@ function ReportCard({ card: c, exam, className, context, scale }: { card: Card; 
                             <th className="text-end!">Score / {num(exam.max_score)}</th>
                             <th className="text-end!">%</th>
                             <th className="text-center!">Grade</th>
+                            {aLevel && <th className="text-center!">Pts</th>}
                             <th>Remark</th>
                             <th>Teacher</th>
                         </tr>
                     </thead>
                     <tbody>
-                        {c.subjects.map((s) => (
-                            <tr key={s.subject}>
-                                <td className="font-semibold">{s.subject}</td>
+                        {lines.map((s) => (
+                            <tr key={s.subject} className={cn(s.role === 'subsidiary' && 'text-white-dark')}>
+                                <td className="font-semibold">
+                                    {s.subject}
+                                    {s.role === 'subsidiary' && <span className="ms-1 text-[10px] font-normal uppercase">(Subsidiary – not counted)</span>}
+                                </td>
                                 <td className="text-end">{s.is_absent ? 'ABS' : s.score !== null ? num(s.score, s.score % 1 ? 1 : 0) : '—'}</td>
                                 <td className="text-end">{s.percentage !== null ? s.percentage.toFixed(0) : '—'}</td>
                                 <td className={cn('text-center font-bold', s.grade === 'F' && 'text-danger')}>{s.grade ?? '—'}</td>
+                                {aLevel && <td className="text-center">{s.role === 'principal' && s.points !== null ? s.points : '—'}</td>}
                                 <td>{s.remarks || s.remark || '—'}</td>
                                 <td className="text-xs">{s.teacher ?? '—'}</td>
                             </tr>
@@ -178,10 +229,11 @@ function ReportCard({ card: c, exam, className, context, scale }: { card: Card; 
                     </tbody>
                     <tfoot>
                         <tr className="font-bold">
-                            <td>Total ({c.sat} subjects)</td>
+                            <td>{aLevel ? `Principal subjects (${c.sat})` : `Total (${c.sat} subjects)`}</td>
                             <td className="text-end">{num(c.total, c.total % 1 ? 1 : 0)}</td>
                             <td className="text-end">{c.average !== null ? c.average.toFixed(1) : '—'}</td>
                             <td className="text-center">{c.grade ?? '—'}</td>
+                            {aLevel && <td className="text-center">{c.points ?? '—'}</td>}
                             <td colSpan={2}>{c.remark ?? ''}</td>
                         </tr>
                     </tfoot>
@@ -191,7 +243,11 @@ function ReportCard({ card: c, exam, className, context, scale }: { card: Card; 
             <div className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-4">
                 <Summary label="Average" value={c.average !== null ? `${c.average.toFixed(1)}%` : '—'} />
                 <Summary label="Position" value={c.position ? `${c.position} / ${context.class_size}` : '—'} />
-                <Summary label="Division" value={c.division === 'INC' ? 'Incomplete' : c.division} hint={c.points !== null ? `${c.points} points (best 7)` : undefined} />
+                <Summary
+                    label="Division"
+                    value={c.division === 'INC' ? 'Incomplete' : c.division}
+                    hint={c.points !== null ? `${c.points} points (${aLevel ? '3 principal subjects' : 'best 7'})` : undefined}
+                />
                 <Summary label="Class average" value={context.class_average !== null ? `${context.class_average}%` : '—'} />
             </div>
 
@@ -235,7 +291,10 @@ function ReportCard({ card: c, exam, className, context, scale }: { card: Card; 
                     <FileText className="me-1 inline h-3.5 w-3.5" />
                     Next term opens: <b>{context.next_term ? weekdayDate(context.next_term) : '________________'}</b>
                 </span>
-                <span className="text-white-dark">Grading: {scale.map((g) => `${g.grade} ${g.min}–${Math.round(g.max)}`).join(' · ')} · Div I 7–17, II 18–21, III 22–25, IV 26–33, 0 34–35</span>
+                <span className="text-white-dark">
+                    Grading: {scale.map((g) => `${g.grade} ${g.min}–${Math.round(g.max)}`).join(' · ')} ·{' '}
+                    {aLevel ? 'Div I 3–9, II 10–12, III 13–17, IV 18–19, 0 20–21 (3 principal subjects)' : 'Div I 7–17, II 18–21, III 22–25, IV 26–33, 0 34–35'}
+                </span>
             </div>
         </div>
     );

@@ -7,6 +7,11 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 /** A subject offered in a class (optionally a single stream) and the teacher assigned to it. */
 class ClassSubject extends SchoolModel
 {
+    protected function casts(): array
+    {
+        return ['is_joint' => 'boolean', 'periods_per_week' => 'integer'];
+    }
+
     public function schoolClass(): BelongsTo
     {
         return $this->belongsTo(SchoolClass::class);

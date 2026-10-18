@@ -2,11 +2,8 @@
 
 namespace App\Imports;
 
-use App\Models\Department;
-use App\Models\Employee;
 use App\Models\SchoolClass;
 use App\Models\Stream;
-use App\Models\Subject;
 use Illuminate\Support\Str;
 
 class ClassImporter extends Importer

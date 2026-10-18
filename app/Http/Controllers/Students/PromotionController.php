@@ -7,6 +7,7 @@ use App\Models\AcademicYear;
 use App\Models\Enrolment;
 use App\Models\SchoolClass;
 use App\Models\Student;
+use App\Support\EducationLevel;
 use App\Support\Lookups;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -22,7 +23,8 @@ class PromotionController extends Controller
     {
         $classId = $request->integer('class') ?: null;
         $class = $classId ? SchoolClass::find($classId) : null;
-        $next = $class ? SchoolClass::where('level', '>', $class->level)->orderBy('level')->first() : null;
+        // Promotion stays within a level: Form IV leavers enter Form V through selection/admission.
+        $next = $class ? SchoolClass::where('level', '>', $class->level)->where('education_level', $class->education_level)->orderBy('level')->first() : null;
 
         return Inertia::render('students/promotions', [
             'classes' => Lookups::classes(),
@@ -50,6 +52,17 @@ class PromotionController extends Controller
 
         if (! $data['to_class_id'] && collect($data['decisions'])->contains('action', 'promote')) {
             return back()->withErrors(['to_class_id' => 'Choose the class students are being promoted to.']);
+        }
+
+        $from = SchoolClass::findOrFail($data['from_class_id']);
+        $to = $data['to_class_id'] ? SchoolClass::find($data['to_class_id']) : null;
+        if ($to && $to->education_level !== $from->education_level && collect($data['decisions'])->contains('action', 'promote')) {
+            return back()->withErrors(['to_class_id' => "Students cannot be promoted from {$from->name} into {$to->name}: A-Level (Form V) places come through Form Five selection or admission. Graduate Form IV students instead."]);
+        }
+        $yearLevel = AcademicYear::whereKey($data['academic_year_id'])->value('education_level');
+        $targetLevel = ($to ?? $from)->education_level;
+        if ($yearLevel !== $targetLevel) {
+            return back()->withErrors(['academic_year_id' => 'Choose an '.EducationLevel::label($targetLevel).' academic year for these students.']);
         }
 
         $year = AcademicYear::findOrFail($data['academic_year_id']);

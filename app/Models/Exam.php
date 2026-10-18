@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Support\EducationLevel;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -56,5 +57,11 @@ class Exam extends SchoolModel
     public function isPublished(): bool
     {
         return $this->status === 'published';
+    }
+
+    /** O-Level or A-Level — an exam covers classes of one level (validated on save). */
+    public function educationLevel(): string
+    {
+        return $this->classes()->value('education_level') ?? EducationLevel::O_LEVEL;
     }
 }

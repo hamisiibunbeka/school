@@ -2,7 +2,6 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasManyThrough;
 
@@ -15,9 +14,10 @@ class Dormitory extends SchoolModel
         return $this->hasMany(DormitoryRoom::class)->orderBy('name');
     }
 
-    public function warden(): BelongsTo
+    /** Patrons, matrons and assistants (patron/matron first). */
+    public function caretakers(): HasMany
     {
-        return $this->belongsTo(Employee::class, 'warden_id');
+        return $this->hasMany(DormitoryCaretaker::class)->orderByRaw("FIELD(role, 'patron', 'matron', 'assistant')");
     }
 
     public function allocations(): HasManyThrough

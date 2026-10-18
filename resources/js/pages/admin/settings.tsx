@@ -37,6 +37,9 @@ type Settings = {
     mobile_money_provider: string;
     mobile_money_paybill: string;
     mobile_money_account: string;
+    max_teaching_periods: number | string;
+    workload_enforcement: string;
+    class_teacher_periods: number | string;
 };
 type Sequence = { type: string; prefix: string; padding: number; next_number: number; preview: string; exists: boolean };
 type Props = {
@@ -55,7 +58,11 @@ export default function SchoolSettings({ school, settings, numbering, options }:
 
     return (
         <>
-            <PageHeader title="School Settings" subtitle="Profile, branding, numbering and operational defaults." breadcrumbs={[{ title: 'Administration' }, { title: 'Settings' }]} />
+            <PageHeader
+                title="School Settings"
+                subtitle="Profile, branding, numbering and operational defaults."
+                breadcrumbs={[{ title: 'Administration' }, { title: 'Settings' }]}
+            />
             <Tabs
                 tabs={[
                     { key: 'profile', label: 'School profile', icon: Building2 },
@@ -139,9 +146,22 @@ function ProfileForm({ school, options, manage }: { school: School; options: Pro
                     </div>
                     <div className="flex-1">
                         <FormGrid>
-                            <Input label="School name" required value={form.data.name} onChange={(e) => form.setData('name', e.target.value)} error={form.errors.name} wrapperClassName="sm:col-span-2" />
+                            <Input
+                                label="School name"
+                                required
+                                value={form.data.name}
+                                onChange={(e) => form.setData('name', e.target.value)}
+                                error={form.errors.name}
+                                wrapperClassName="sm:col-span-2"
+                            />
                             <Input label="School code" value={form.data.code} onChange={(e) => form.setData('code', e.target.value)} error={form.errors.code} />
-                            <Input label="Registration no." value={form.data.registration_no} onChange={(e) => form.setData('registration_no', e.target.value)} error={form.errors.registration_no} placeholder="e.g. S.4521" />
+                            <Input
+                                label="Registration no."
+                                value={form.data.registration_no}
+                                onChange={(e) => form.setData('registration_no', e.target.value)}
+                                error={form.errors.registration_no}
+                                placeholder="e.g. S.4521"
+                            />
                             <Input label="Motto" value={form.data.motto} onChange={(e) => form.setData('motto', e.target.value)} wrapperClassName="sm:col-span-2" />
                         </FormGrid>
                     </div>
@@ -150,17 +170,45 @@ function ProfileForm({ school, options, manage }: { school: School; options: Pro
             <FormSection title="Type">
                 <FormGrid cols={4}>
                     <Select label="Level" value={form.data.level} onChange={(e) => form.setData('level', e.target.value)} options={opts(options.levels)} />
-                    <Select label="Residence type" value={form.data.residence_type} onChange={(e) => form.setData('residence_type', e.target.value)} options={opts(options.residence)} />
-                    <Select label="Currency" value={form.data.currency} onChange={(e) => form.setData('currency', e.target.value)} options={options.currencies} error={form.errors.currency} />
-                    <Select label="Timezone" value={form.data.timezone} onChange={(e) => form.setData('timezone', e.target.value)} options={options.timezones} error={form.errors.timezone} />
+                    <Select
+                        label="Residence type"
+                        value={form.data.residence_type}
+                        onChange={(e) => form.setData('residence_type', e.target.value)}
+                        options={opts(options.residence)}
+                    />
+                    <Select
+                        label="Currency"
+                        value={form.data.currency}
+                        onChange={(e) => form.setData('currency', e.target.value)}
+                        options={options.currencies}
+                        error={form.errors.currency}
+                    />
+                    <Select
+                        label="Timezone"
+                        value={form.data.timezone}
+                        onChange={(e) => form.setData('timezone', e.target.value)}
+                        options={options.timezones}
+                        error={form.errors.timezone}
+                    />
                 </FormGrid>
             </FormSection>
             <FormSection title="Contacts & address">
                 <FormGrid cols={3}>
                     <Input label="Email" type="email" value={form.data.email} onChange={(e) => form.setData('email', e.target.value)} error={form.errors.email} />
                     <Input label="Phone" value={form.data.phone} onChange={(e) => form.setData('phone', e.target.value)} error={form.errors.phone} />
-                    <Select label="Region" placeholder="Select region" value={form.data.region} onChange={(e) => form.setData('region', e.target.value)} options={options.regions} />
-                    <Input label="Postal / physical address" value={form.data.address} onChange={(e) => form.setData('address', e.target.value)} wrapperClassName="sm:col-span-2 lg:col-span-3" />
+                    <Select
+                        label="Region"
+                        placeholder="Select region"
+                        value={form.data.region}
+                        onChange={(e) => form.setData('region', e.target.value)}
+                        options={options.regions}
+                    />
+                    <Input
+                        label="Postal / physical address"
+                        value={form.data.address}
+                        onChange={(e) => form.setData('address', e.target.value)}
+                        wrapperClassName="sm:col-span-2 lg:col-span-3"
+                    />
                 </FormGrid>
             </FormSection>
             {manage && (
@@ -181,6 +229,9 @@ function GeneralForm({ settings, manage }: { settings: Settings; manage: boolean
         attendance_alert_threshold: String(settings.attendance_alert_threshold),
         fee_reminder_days: String(settings.fee_reminder_days),
         late_after: settings.late_after ?? '',
+        max_teaching_periods: String(settings.max_teaching_periods ?? 30),
+        workload_enforcement: settings.workload_enforcement ?? 'warn',
+        class_teacher_periods: String(settings.class_teacher_periods ?? 0),
     });
     const submit = (e: FormEvent) => {
         e.preventDefault();
@@ -191,7 +242,15 @@ function GeneralForm({ settings, manage }: { settings: Settings; manage: boolean
         <form onSubmit={submit} className="panel space-y-6">
             <FormSection title="Academics & attendance" description="Defaults used by exams, attendance alerts and reports.">
                 <FormGrid cols={3}>
-                    <Input label="Pass mark (%)" type="number" min={0} max={100} value={form.data.pass_mark} onChange={(e) => form.setData('pass_mark', e.target.value)} error={form.errors.pass_mark} />
+                    <Input
+                        label="Pass mark (%)"
+                        type="number"
+                        min={0}
+                        max={100}
+                        value={form.data.pass_mark}
+                        onChange={(e) => form.setData('pass_mark', e.target.value)}
+                        error={form.errors.pass_mark}
+                    />
                     <Input
                         label="Attendance alert threshold (%)"
                         type="number"
@@ -202,7 +261,50 @@ function GeneralForm({ settings, manage }: { settings: Settings; manage: boolean
                         error={form.errors.attendance_alert_threshold}
                         help="Flag learners whose attendance falls below this rate."
                     />
-                    <Input label="Mark late after" type="time" value={form.data.late_after} onChange={(e) => form.setData('late_after', e.target.value)} error={form.errors.late_after} />
+                    <Input
+                        label="Mark late after"
+                        type="time"
+                        value={form.data.late_after}
+                        onChange={(e) => form.setData('late_after', e.target.value)}
+                        error={form.errors.late_after}
+                    />
+                </FormGrid>
+            </FormSection>
+            <FormSection
+                title="Teacher workload"
+                description="Weekly teaching load used on Academics → Teacher Allocation. A teacher's own limit (on their HR record) overrides the default."
+            >
+                <FormGrid cols={3}>
+                    <Input
+                        label="Default limit (periods per week)"
+                        type="number"
+                        min={1}
+                        max={80}
+                        value={form.data.max_teaching_periods}
+                        onChange={(e) => form.setData('max_teaching_periods', e.target.value)}
+                        error={form.errors.max_teaching_periods}
+                        help="Teachers above this are flagged as overloaded."
+                    />
+                    <Select
+                        label="When a teacher goes over the limit"
+                        value={form.data.workload_enforcement}
+                        onChange={(e) => form.setData('workload_enforcement', e.target.value)}
+                        options={[
+                            { value: 'warn', label: 'Warn, but allow saving' },
+                            { value: 'block', label: 'Block the allocation' },
+                        ]}
+                        error={form.errors.workload_enforcement}
+                    />
+                    <Input
+                        label="Class-teacher duty (periods per week)"
+                        type="number"
+                        min={0}
+                        max={20}
+                        value={form.data.class_teacher_periods}
+                        onChange={(e) => form.setData('class_teacher_periods', e.target.value)}
+                        error={form.errors.class_teacher_periods}
+                        help="Added to a teacher's load for each stream they are class teacher of. 0 = not counted."
+                    />
                 </FormGrid>
             </FormSection>
             <FormSection title="Fees & messaging">
@@ -216,7 +318,14 @@ function GeneralForm({ settings, manage }: { settings: Settings; manage: boolean
                         onChange={(e) => form.setData('fee_reminder_days', e.target.value)}
                         error={form.errors.fee_reminder_days}
                     />
-                    <Input label="SMS sender ID" maxLength={11} value={form.data.sms_sender_id} onChange={(e) => form.setData('sms_sender_id', e.target.value)} error={form.errors.sms_sender_id} help="Up to 11 letters or digits, e.g. MZENZISS. It must be registered and approved with the SMS provider (Beem) first; leave blank to use the platform default." />
+                    <Input
+                        label="SMS sender ID"
+                        maxLength={11}
+                        value={form.data.sms_sender_id}
+                        onChange={(e) => form.setData('sms_sender_id', e.target.value)}
+                        error={form.errors.sms_sender_id}
+                        help="Up to 11 letters or digits, e.g. MZENZISS. It must be registered and approved with the SMS provider (Beem) first; leave blank to use the platform default."
+                    />
                 </FormGrid>
             </FormSection>
             {manage && (
@@ -247,7 +356,8 @@ function PaymentForm({ settings, manage, currency }: { settings: Settings; manag
         const lines = [
             `Pay school fees (${currency}) using any of the following:`,
             d.bank_name && `• Bank: ${d.bank_name}${d.bank_account_name ? `, A/C name: ${d.bank_account_name}` : ''}${d.bank_account_no ? `, A/C no: ${d.bank_account_no}` : ''}`,
-            d.mobile_money_paybill && `• ${d.mobile_money_provider || 'Mobile money'}: Lipa namba / Paybill ${d.mobile_money_paybill}${d.mobile_money_account ? `, account: ${d.mobile_money_account}` : ''}`,
+            d.mobile_money_paybill &&
+                `• ${d.mobile_money_provider || 'Mobile money'}: Lipa namba / Paybill ${d.mobile_money_paybill}${d.mobile_money_account ? `, account: ${d.mobile_money_account}` : ''}`,
             'Always quote the student admission number as the reference and keep your bank slip / SMS confirmation.',
         ].filter(Boolean);
         form.setData('payment_instructions', lines.join('\n'));
@@ -265,13 +375,28 @@ function PaymentForm({ settings, manage, currency }: { settings: Settings; manag
                 </FormSection>
                 <FormSection title="Mobile money">
                     <FormGrid cols={3}>
-                        <Input label="Provider" value={form.data.mobile_money_provider} onChange={(e) => form.setData('mobile_money_provider', e.target.value)} placeholder="M-Pesa / Tigo Pesa / Airtel Money" />
+                        <Input
+                            label="Provider"
+                            value={form.data.mobile_money_provider}
+                            onChange={(e) => form.setData('mobile_money_provider', e.target.value)}
+                            placeholder="M-Pesa / Tigo Pesa / Airtel Money"
+                        />
                         <Input label="Paybill / Lipa namba" value={form.data.mobile_money_paybill} onChange={(e) => form.setData('mobile_money_paybill', e.target.value)} />
-                        <Input label="Account / reference format" value={form.data.mobile_money_account} onChange={(e) => form.setData('mobile_money_account', e.target.value)} placeholder="Admission number" />
+                        <Input
+                            label="Account / reference format"
+                            value={form.data.mobile_money_account}
+                            onChange={(e) => form.setData('mobile_money_account', e.target.value)}
+                            placeholder="Admission number"
+                        />
                     </FormGrid>
                 </FormSection>
                 <FormSection title="Instructions printed on invoices & parent portal">
-                    <Textarea rows={6} value={form.data.payment_instructions} onChange={(e) => form.setData('payment_instructions', e.target.value)} error={form.errors.payment_instructions} />
+                    <Textarea
+                        rows={6}
+                        value={form.data.payment_instructions}
+                        onChange={(e) => form.setData('payment_instructions', e.target.value)}
+                        error={form.errors.payment_instructions}
+                    />
                     {manage && (
                         <button type="button" className="btn btn-sm btn-outline-primary mt-3" onClick={compose}>
                             Generate from details above
@@ -309,7 +434,9 @@ function Numbering({ numbering, manage }: { numbering: Sequence[]; manage: boole
     return (
         <div className="panel">
             <h5 className="mb-1 text-lg font-bold">Document numbering</h5>
-            <p className="mb-5 text-sm text-white-dark">Numbers are issued sequentially per school and never reused. You can change the prefix and zero-padding; the counter itself cannot be reset.</p>
+            <p className="mb-5 text-sm text-white-dark">
+                Numbers are issued sequentially per school and never reused. You can change the prefix and zero-padding; the counter itself cannot be reset.
+            </p>
             <div className="table-responsive">
                 <table className="table">
                     <thead>
@@ -356,7 +483,15 @@ function Numbering({ numbering, manage }: { numbering: Sequence[]; manage: boole
                     className="space-y-4"
                 >
                     <Input label="Prefix" value={form.data.prefix} onChange={(e) => form.setData('prefix', e.target.value)} error={form.errors.prefix} />
-                    <Input label="Zero padding (digits)" type="number" min={1} max={10} value={form.data.padding} onChange={(e) => form.setData('padding', e.target.value)} error={form.errors.padding} />
+                    <Input
+                        label="Zero padding (digits)"
+                        type="number"
+                        min={1}
+                        max={10}
+                        value={form.data.padding}
+                        onChange={(e) => form.setData('padding', e.target.value)}
+                        error={form.errors.padding}
+                    />
                     <div className="rounded-md bg-[#f6f8fa] p-3 text-center dark:bg-[#1a2941]">
                         <div className="text-xs text-white-dark uppercase">Next number will be</div>
                         <div className="font-mono text-lg font-extrabold text-primary">{preview}</div>

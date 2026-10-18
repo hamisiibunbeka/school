@@ -6,6 +6,7 @@ use App\Imports\BookImporter;
 use App\Imports\ClassImporter;
 use App\Imports\DepartmentImporter;
 use App\Imports\EmployeeImporter;
+use App\Imports\FormFiveSelectionImporter;
 use App\Imports\GuardianImporter;
 use App\Imports\Importer;
 use App\Imports\InventoryItemImporter;
@@ -38,6 +39,7 @@ class ImportController extends Controller
         'books' => BookImporter::class,
         'inventory-items' => InventoryItemImporter::class,
         'suppliers' => SupplierImporter::class,
+        'form-five-selection' => FormFiveSelectionImporter::class,
     ];
 
     public function template(Request $request, string $type): BinaryFileResponse

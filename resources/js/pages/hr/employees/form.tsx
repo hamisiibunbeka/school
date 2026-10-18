@@ -33,6 +33,9 @@ type EmployeeData = {
     bank_account: string | null;
     nssf_no: string | null;
     tin: string | null;
+    max_periods: number | null;
+    duty_periods: number | null;
+    duty_note: string | null;
 };
 
 type Props = {
@@ -70,6 +73,9 @@ export default function EmployeeForm({ employee, departments, categories, types,
         bank_account: employee?.bank_account ?? '',
         nssf_no: employee?.nssf_no ?? '',
         tin: employee?.tin ?? '',
+        max_periods: employee?.max_periods ? String(employee.max_periods) : '',
+        duty_periods: employee?.duty_periods ? String(employee.duty_periods) : '',
+        duty_note: employee?.duty_note ?? '',
     });
     const err = form.errors as Record<string, string>;
     const set = (key: keyof typeof form.data) => (e: { target: { value: string } }) => form.setData(key, e.target.value);
@@ -133,7 +139,14 @@ export default function EmployeeForm({ employee, departments, categories, types,
                                 ]}
                                 error={err.gender}
                             />
-                            <DobAgeField value={form.data.date_of_birth} onChange={(v) => form.setData('date_of_birth', v)} error={err.date_of_birth} minAge={16} maxAge={80} typicalAge={30} />
+                            <DobAgeField
+                                value={form.data.date_of_birth}
+                                onChange={(v) => form.setData('date_of_birth', v)}
+                                error={err.date_of_birth}
+                                minAge={16}
+                                maxAge={80}
+                                typicalAge={30}
+                            />
                             <Input label="National ID (NIDA)" name="national_id" value={form.data.national_id} onChange={set('national_id')} error={err.national_id} />
                             <Input label="Qualification" name="qualification" value={form.data.qualification} onChange={set('qualification')} placeholder="e.g. B.Ed Science" />
                         </FormGrid>
@@ -143,7 +156,13 @@ export default function EmployeeForm({ employee, departments, categories, types,
                         <FormGrid cols={3}>
                             <Input label="Phone" name="phone" value={form.data.phone} onChange={set('phone')} error={err.phone} placeholder="+255…" />
                             <Input label="Email" type="email" name="email" value={form.data.email} onChange={set('email')} error={err.email} />
-                            <Input label="Emergency contact" name="emergency_contact" value={form.data.emergency_contact} onChange={set('emergency_contact')} placeholder="Name · phone" />
+                            <Input
+                                label="Emergency contact"
+                                name="emergency_contact"
+                                value={form.data.emergency_contact}
+                                onChange={set('emergency_contact')}
+                                placeholder="Name · phone"
+                            />
                             <Input label="Address" name="address" value={form.data.address} onChange={set('address')} wrapperClassName="sm:col-span-2 lg:col-span-3" />
                         </FormGrid>
                     </FormSection>
@@ -151,16 +170,41 @@ export default function EmployeeForm({ employee, departments, categories, types,
                     <FormSection title="Employment" description="Position, department and contract terms.">
                         <FormGrid cols={3}>
                             <div>
-                                <Input label="Designation" name="designation" required list="designations" value={form.data.designation} onChange={set('designation')} error={err.designation} placeholder="e.g. Physics Teacher" />
+                                <Input
+                                    label="Designation"
+                                    name="designation"
+                                    required
+                                    list="designations"
+                                    value={form.data.designation}
+                                    onChange={set('designation')}
+                                    error={err.designation}
+                                    placeholder="e.g. Physics Teacher"
+                                />
                                 <datalist id="designations">
                                     {designations.map((d) => (
                                         <option key={d} value={d} />
                                     ))}
                                 </datalist>
                             </div>
-                            <Select label="Department" name="department_id" placeholder="— None —" value={form.data.department_id} onChange={set('department_id')} options={departments} error={err.department_id} />
+                            <Select
+                                label="Department"
+                                name="department_id"
+                                placeholder="— None —"
+                                value={form.data.department_id}
+                                onChange={set('department_id')}
+                                options={departments}
+                                error={err.department_id}
+                            />
                             <Select label="Category" name="category" required value={form.data.category} onChange={set('category')} options={categories} error={err.category} />
-                            <Select label="Employment type" name="employment_type" required value={form.data.employment_type} onChange={set('employment_type')} options={types} error={err.employment_type} />
+                            <Select
+                                label="Employment type"
+                                name="employment_type"
+                                required
+                                value={form.data.employment_type}
+                                onChange={set('employment_type')}
+                                options={types}
+                                error={err.employment_type}
+                            />
                             <Input label="Hire date" type="date" name="hire_date" value={form.data.hire_date} onChange={set('hire_date')} error={err.hire_date} />
                             <Input
                                 label="Contract end date"
@@ -175,7 +219,46 @@ export default function EmployeeForm({ employee, departments, categories, types,
                         </FormGrid>
                     </FormSection>
 
-                    <FormSection title="Salary, bank & statutory" description="Confidential: visible only to HR managers and payroll staff. Allowances and deductions are configured under Payroll › Salary components.">
+                    {form.data.category === 'teaching' && (
+                        <FormSection title="Teaching workload" description="Leave the limit blank to use the school default (Settings → Teacher workload).">
+                            <FormGrid cols={3}>
+                                <Input
+                                    label="Own weekly limit (periods)"
+                                    type="number"
+                                    min={1}
+                                    max={80}
+                                    placeholder="School default"
+                                    value={form.data.max_periods}
+                                    onChange={set('max_periods')}
+                                    error={err.max_periods}
+                                    help="e.g. 20 for a head of department, 12 for part-time."
+                                />
+                                <Input
+                                    label="Other duty periods / week"
+                                    type="number"
+                                    min={0}
+                                    max={40}
+                                    placeholder="0"
+                                    value={form.data.duty_periods}
+                                    onChange={set('duty_periods')}
+                                    error={err.duty_periods}
+                                    help="Counted in the workload (class-teacher duty is added automatically)."
+                                />
+                                <Input
+                                    label="Duty description"
+                                    placeholder="e.g. Head of Science, games master"
+                                    value={form.data.duty_note}
+                                    onChange={set('duty_note')}
+                                    error={err.duty_note}
+                                />
+                            </FormGrid>
+                        </FormSection>
+                    )}
+
+                    <FormSection
+                        title="Salary, bank & statutory"
+                        description="Confidential: visible only to HR managers and payroll staff. Allowances and deductions are configured under Payroll › Salary components."
+                    >
                         <FormGrid cols={3}>
                             <Input
                                 label={`Basic salary (${school?.currency ?? 'TZS'} / month)`}

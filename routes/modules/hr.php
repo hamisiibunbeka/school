@@ -3,6 +3,7 @@
 use App\Http\Controllers\Hr\DepartmentController;
 use App\Http\Controllers\Hr\EmployeeController;
 use App\Http\Controllers\Hr\LeaveController;
+use App\Http\Controllers\Hr\StaffDutyController;
 use App\Http\Controllers\Payroll\PayrollRunController;
 use App\Http\Controllers\Payroll\PayslipController;
 use App\Http\Controllers\Payroll\SalaryComponentController;
@@ -27,6 +28,17 @@ Route::middleware('can:hr.manage')->group(function () {
     Route::post('hr/leave-types', [LeaveController::class, 'storeType'])->name('hr.leave-types.store');
     Route::put('hr/leave-types/{type}', [LeaveController::class, 'updateType'])->name('hr.leave-types.update');
     Route::delete('hr/leave-types/{type}', [LeaveController::class, 'destroyType'])->name('hr.leave-types.destroy');
+
+    Route::prefix('hr/duties')->name('hr.duties.')->controller(StaffDutyController::class)->group(function () {
+        Route::post('types', 'storeType')->name('types.store');
+        Route::put('types/{dutyType}', 'updateType')->name('types.update');
+        Route::delete('types/{dutyType}', 'destroyType')->name('types.destroy');
+        Route::post('assign', 'assign')->name('assign');
+        Route::post('generate', 'generate')->name('generate');
+        Route::put('assignments/{dutyAssignment}', 'updateAssignment')->name('assignments.update');
+        Route::delete('assignments/{dutyAssignment}', 'destroyAssignment')->name('assignments.destroy');
+        Route::post('log', 'log')->name('log');
+    });
 });
 
 Route::middleware('can:hr.view')->group(function () {
@@ -35,6 +47,7 @@ Route::middleware('can:hr.view')->group(function () {
     Route::get('hr/employees/{employee}', [EmployeeController::class, 'show'])->name('hr.employees.show');
     Route::get('hr/departments', [DepartmentController::class, 'index'])->name('hr.departments.index');
     Route::get('hr/leave', [LeaveController::class, 'index'])->name('hr.leave.index');
+    Route::get('hr/duties', [StaffDutyController::class, 'index'])->name('hr.duties.index');
 });
 
 // Any staff member may apply for (or withdraw) their own leave; HR may act for anyone (checked in controller).

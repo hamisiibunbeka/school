@@ -11,6 +11,7 @@ use App\Models\Subject;
 use App\Models\User;
 use App\Services\Exams\ResultsService;
 use App\Services\Exams\TeacherAccess;
+use App\Support\EducationLevel;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -56,11 +57,18 @@ class MarkController extends Controller
             return ['value' => $c->id, 'label' => $c->name, 'streams' => $streams->values()->all()];
         })->filter()->values();
 
+        $level = EducationLevel::forClass($classId);
+        $combos = $classId && $level === EducationLevel::A_LEVEL ? $this->results->streamCombinations($classId) : null;
+
         $subjects = [];
         if ($classId) {
             $ids = ClassSubject::where('school_class_id', $classId)
                 ->when($scopes !== null, fn ($q) => $q->where('employee_id', $this->access->employeeId($user)))
                 ->pluck('subject_id')->unique();
+            // A-Level stream chosen: only that combination's subjects.
+            if ($combos !== null && $streamId) {
+                $ids = $ids->intersect($combos[$streamId]['subjects'] ?? []);
+            }
             $subjects = Subject::whereIn('id', $ids)->orderBy('name')->get(['id', 'name', 'code'])
                 ->map(fn ($s) => ['value' => $s->id, 'label' => $s->code ? "{$s->name} ({$s->code})" : $s->name])->values();
         }
@@ -83,6 +91,7 @@ class MarkController extends Controller
                 ->where(fn ($q) => $q->whereIn('id', $marks->keys())
                     ->orWhere(fn ($w) => $w->where('school_class_id', $classId)->where('status', 'active')->whereNull('deleted_at')))
                 ->when($streamId, fn ($q) => $q->where('stream_id', $streamId))
+                ->when($combos !== null, fn ($q) => $q->whereIn('stream_id', $this->streamsTaking($combos, $subjectId)))
                 ->orderBy('first_name')->orderBy('last_name')
                 ->get();
 
@@ -117,7 +126,8 @@ class MarkController extends Controller
             'canEdit' => $canEdit,
             'lockReason' => $lockReason,
             'teacher' => $teacher,
-            'scale' => $this->results->scale()->map(fn ($g) => ['grade' => $g->grade, 'min' => (float) $g->min_score, 'max' => (float) $g->max_score, 'points' => (float) $g->points, 'remark' => $g->remark])->values(),
+            'level' => $level,
+            'scale' => $this->results->scale($level)->map(fn ($g) => ['grade' => $g->grade, 'min' => (float) $g->min_score, 'max' => (float) $g->max_score, 'points' => (float) $g->points, 'remark' => $g->remark])->values(),
         ]);
     }
 
@@ -149,10 +159,14 @@ class MarkController extends Controller
         $subjectId = (int) $data['subject_id'];
         abort_unless($this->access->canEnterMarks($user, $classId, $streamId, $subjectId), 403, 'You can only enter marks for your allocated class/subject.');
 
+        $level = EducationLevel::forClass($classId);
+        $combos = $level === EducationLevel::A_LEVEL ? $this->results->streamCombinations($classId) : null;
+
         $existing = ExamMark::where('exam_id', $exam->id)->where('subject_id', $subjectId)->where('school_class_id', $classId)->get()->keyBy('student_id');
         $valid = Student::withTrashed()
             ->where(fn ($q) => $q->whereIn('id', $existing->keys())->orWhere('school_class_id', $classId))
             ->when($streamId, fn ($q) => $q->where('stream_id', $streamId))
+            ->when($combos !== null, fn ($q) => $q->whereIn('stream_id', $this->streamsTaking($combos, $subjectId)))
             ->whereIn('id', collect($data['marks'])->pluck('student_id'))
             ->pluck('id')->flip();
 
@@ -169,7 +183,7 @@ class MarkController extends Controller
             if (! $old && $score === null && ! $absent) {
                 continue; // nothing entered yet
             }
-            $grade = $score !== null ? $this->results->grade($this->results->percentage($exam, $score)) : null;
+            $grade = $score !== null ? $this->results->grade($this->results->percentage($exam, $score), $level) : null;
 
             if ($old && ((float) $old->score !== (float) $score || (bool) $old->is_absent !== $absent || ($old->score === null) !== ($score === null))) {
                 $changes[$m['student_id']] = ['from' => $old->is_absent ? 'ABS' : $old->score, 'to' => $absent ? 'ABS' : $score];
@@ -219,5 +233,16 @@ class MarkController extends Controller
             'moderation' => $this->access->canApprove($user) ? null : 'This exam is under moderation — only moderators can change marks now.',
             default => null,
         };
+    }
+
+    /**
+     * A-Level: streams whose combination includes the subject.
+     *
+     * @param  array<int, array{subjects:array<int,int>}>  $combos
+     * @return array<int, int>
+     */
+    private function streamsTaking(array $combos, int $subjectId): array
+    {
+        return array_keys(array_filter($combos, fn ($c) => in_array($subjectId, $c['subjects'], true))) ?: [0];
     }
 }

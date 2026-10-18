@@ -2,18 +2,21 @@ import { router, useForm } from '@inertiajs/react';
 import { CalendarRange, CheckCircle2, Pencil, Plus, Star, Trash2, Users } from 'lucide-react';
 import { useState, type FormEvent } from 'react';
 import EmptyState from '@/components/ui/empty-state';
-import { Checkbox, FormGrid, Input } from '@/components/ui/form';
+import { Checkbox, FormGrid, Input, Select } from '@/components/ui/form';
 import Modal from '@/components/ui/modal';
 import PageHeader from '@/components/ui/page-header';
 import StatCard from '@/components/ui/stat-card';
+import Tabs from '@/components/ui/tabs';
 import { useCan } from '@/hooks/use-can';
 import { confirm } from '@/lib/swal';
 import { cn, date, num, today } from '@/lib/utils';
+import type { Option } from '@/types';
 
 type Term = { id: number; name: string; start_date: string; end_date: string; is_current: boolean };
-type Year = { id: number; name: string; start_date: string; end_date: string; is_current: boolean; enrolments: number; terms: Term[] };
+type Year = { id: number; name: string; education_level: string; start_date: string; end_date: string; is_current: boolean; enrolments: number; terms: Term[] };
 
 const blank = { name: '', start_date: '', end_date: '', is_current: false };
+const blankYear = { ...blank, education_level: 'o_level' };
 
 function progress(start: string, end: string): number {
     const s = new Date(`${start}T00:00:00`).getTime();
@@ -28,26 +31,39 @@ function weeks(start: string, end: string): number {
     return Math.max(1, Math.round((new Date(end).getTime() - new Date(start).getTime()) / (7 * 86400000)));
 }
 
-export default function Years({ years }: { years: Year[] }) {
+export default function Years({ years: allYears, levels }: { years: Year[]; levels: Option[] }) {
     const can = useCan();
     const manage = can('academics.manage');
     const [yearModal, setYearModal] = useState<{ open: boolean; year: Year | null }>({ open: false, year: null });
     const [termModal, setTermModal] = useState<{ open: boolean; year: Year | null; term: Term | null }>({ open: false, year: null, term: null });
-    const yearForm = useForm(blank);
+    const yearForm = useForm(blankYear);
     const termForm = useForm(blank);
+    // O-Level and A-Level (Form V–VI, July–May) keep separate calendars.
+    const hasALevel = allYears.some((y) => y.education_level === 'a_level');
+    const [level, setLevel] = useState('o_level');
+    const years = allYears.filter((y) => y.education_level === level);
+    const levelLabel = level === 'a_level' ? 'A-Level' : 'O-Level';
 
     const current = years.find((y) => y.is_current);
     const currentTerm = years.flatMap((y) => y.terms).find((t) => t.is_current);
 
     const openYear = (year: Year | null) => {
         yearForm.clearErrors();
-        yearForm.setData(year ? { name: year.name, start_date: year.start_date, end_date: year.end_date, is_current: year.is_current } : blank);
+        yearForm.setData(
+            year
+                ? { name: year.name, education_level: year.education_level, start_date: year.start_date, end_date: year.end_date, is_current: year.is_current }
+                : { ...blankYear, education_level: level },
+        );
         setYearModal({ open: true, year });
     };
 
     const openTerm = (year: Year, term: Term | null) => {
         termForm.clearErrors();
-        termForm.setData(term ? { name: term.name, start_date: term.start_date, end_date: term.end_date, is_current: term.is_current } : { ...blank, name: `Term ${['I', 'II', 'III', 'IV'][year.terms.length] ?? year.terms.length + 1}` });
+        termForm.setData(
+            term
+                ? { name: term.name, start_date: term.start_date, end_date: term.end_date, is_current: term.is_current }
+                : { ...blank, name: `Term ${['I', 'II', 'III', 'IV'][year.terms.length] ?? year.terms.length + 1}` },
+        );
         setTermModal({ open: true, year, term });
     };
 
@@ -66,7 +82,11 @@ export default function Years({ years }: { years: Year[] }) {
     };
 
     const setCurrent = async (url: string, label: string) => {
-        const { confirmed } = await confirm({ title: `Make ${label} current?`, text: 'Only one can be current per school. Attendance, fees and exams default to it.', confirmText: 'Set as current' });
+        const { confirmed } = await confirm({
+            title: `Make ${label} current?`,
+            text: `Only one can be current per level (${levelLabel}). Attendance, fees and exams default to it.`,
+            confirmText: 'Set as current',
+        });
         if (confirmed) router.post(url, {}, { preserveScroll: true });
     };
 
@@ -90,15 +110,41 @@ export default function Years({ years }: { years: Year[] }) {
                 }
             />
 
+            <Tabs
+                active={level}
+                onChange={setLevel}
+                tabs={[
+                    { key: 'o_level', label: 'O-Level (Form I–IV)', icon: CalendarRange },
+                    { key: 'a_level', label: 'A-Level (Form V–VI)', icon: CalendarRange, count: hasALevel ? undefined : 0 },
+                ]}
+            />
+            {level === 'a_level' && (
+                <p className="mb-4 text-sm text-white-dark">
+                    A-Level runs its own calendar: Form V reports around July and Form VI sits the ACSEE in May. Create a year such as “2026/2027” (July–May) with its terms here.
+                </p>
+            )}
+
             <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-3">
-                <StatCard title="Current year" value={current?.name ?? '—'} icon={CalendarRange} tone="primary" hint={current ? `${date(current.start_date)} – ${date(current.end_date)}` : 'Not set'} />
-                <StatCard title="Current term" value={currentTerm?.name ?? '—'} icon={Star} tone="warning" hint={currentTerm ? `${date(currentTerm.start_date)} – ${date(currentTerm.end_date)}` : 'Not set'} />
+                <StatCard
+                    title={`Current ${levelLabel} year`}
+                    value={current?.name ?? '—'}
+                    icon={CalendarRange}
+                    tone="primary"
+                    hint={current ? `${date(current.start_date)} – ${date(current.end_date)}` : 'Not set'}
+                />
+                <StatCard
+                    title="Current term"
+                    value={currentTerm?.name ?? '—'}
+                    icon={Star}
+                    tone="warning"
+                    hint={currentTerm ? `${date(currentTerm.start_date)} – ${date(currentTerm.end_date)}` : 'Not set'}
+                />
                 <StatCard title="Enrolments this year" value={num(current?.enrolments ?? 0)} icon={Users} tone="success" />
             </div>
 
             {years.length === 0 ? (
                 <div className="panel">
-                    <EmptyState title="No academic years yet" description="Create the first academic year and its terms." />
+                    <EmptyState title={`No ${levelLabel} academic years yet`} description="Create the first academic year and its terms." />
                 </div>
             ) : (
                 <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
@@ -129,10 +175,18 @@ export default function Years({ years }: { years: Year[] }) {
                                                     Set current
                                                 </button>
                                             )}
-                                            <button className="grid h-8 w-8 place-content-center rounded-md text-primary hover:bg-primary-light" title="Edit" onClick={() => openYear(y)}>
+                                            <button
+                                                className="grid h-8 w-8 place-content-center rounded-md text-primary hover:bg-primary-light"
+                                                title="Edit"
+                                                onClick={() => openYear(y)}
+                                            >
                                                 <Pencil className="h-4 w-4" />
                                             </button>
-                                            <button className="grid h-8 w-8 place-content-center rounded-md text-danger hover:bg-danger-light" title="Delete" onClick={() => remove(`/academics/years/${y.id}`, y.name)}>
+                                            <button
+                                                className="grid h-8 w-8 place-content-center rounded-md text-danger hover:bg-danger-light"
+                                                title="Delete"
+                                                onClick={() => remove(`/academics/years/${y.id}`, y.name)}
+                                            >
                                                 <Trash2 className="h-4 w-4" />
                                             </button>
                                         </div>
@@ -153,8 +207,19 @@ export default function Years({ years }: { years: Year[] }) {
                                     {y.terms.map((t) => {
                                         const tp = progress(t.start_date, t.end_date);
                                         return (
-                                            <div key={t.id} className={cn('flex flex-wrap items-center gap-3 rounded-lg border p-3', t.is_current ? 'border-warning/50 bg-warning-light/40 dark:bg-warning-dark-light' : 'border-white-light dark:border-[#1b2e4b]')}>
-                                                <span className={cn('grid h-10 w-10 shrink-0 place-content-center rounded-lg font-extrabold', t.is_current ? 'bg-warning text-white' : 'bg-primary-light text-primary dark:bg-primary-dark-light')}>
+                                            <div
+                                                key={t.id}
+                                                className={cn(
+                                                    'flex flex-wrap items-center gap-3 rounded-lg border p-3',
+                                                    t.is_current ? 'border-warning/50 bg-warning-light/40 dark:bg-warning-dark-light' : 'border-white-light dark:border-[#1b2e4b]',
+                                                )}
+                                            >
+                                                <span
+                                                    className={cn(
+                                                        'grid h-10 w-10 shrink-0 place-content-center rounded-lg font-extrabold',
+                                                        t.is_current ? 'bg-warning text-white' : 'bg-primary-light text-primary dark:bg-primary-dark-light',
+                                                    )}
+                                                >
                                                     {t.name.replace(/^Term\s*/i, '') || 'T'}
                                                 </span>
                                                 <div className="min-w-0 flex-1">
@@ -168,14 +233,25 @@ export default function Years({ years }: { years: Year[] }) {
                                                 {manage && (
                                                     <div className="flex items-center gap-1">
                                                         {!t.is_current && (
-                                                            <button className="btn btn-outline-warning btn-sm" onClick={() => setCurrent(`/academics/terms/${t.id}/current`, t.name)}>
+                                                            <button
+                                                                className="btn btn-outline-warning btn-sm"
+                                                                onClick={() => setCurrent(`/academics/terms/${t.id}/current`, t.name)}
+                                                            >
                                                                 Set current
                                                             </button>
                                                         )}
-                                                        <button className="grid h-8 w-8 place-content-center rounded-md text-primary hover:bg-primary-light" title="Edit term" onClick={() => openTerm(y, t)}>
+                                                        <button
+                                                            className="grid h-8 w-8 place-content-center rounded-md text-primary hover:bg-primary-light"
+                                                            title="Edit term"
+                                                            onClick={() => openTerm(y, t)}
+                                                        >
                                                             <Pencil className="h-4 w-4" />
                                                         </button>
-                                                        <button className="grid h-8 w-8 place-content-center rounded-md text-danger hover:bg-danger-light" title="Delete term" onClick={() => remove(`/academics/terms/${t.id}`, t.name)}>
+                                                        <button
+                                                            className="grid h-8 w-8 place-content-center rounded-md text-danger hover:bg-danger-light"
+                                                            title="Delete term"
+                                                            onClick={() => remove(`/academics/terms/${t.id}`, t.name)}
+                                                        >
                                                             <Trash2 className="h-4 w-4" />
                                                         </button>
                                                     </div>
@@ -198,10 +274,41 @@ export default function Years({ years }: { years: Year[] }) {
 
             <Modal open={yearModal.open} onClose={() => setYearModal({ open: false, year: null })} title={yearModal.year ? 'Edit academic year' : 'New academic year'}>
                 <form onSubmit={submitYear} className="space-y-5">
-                    <Input label="Name" required placeholder="e.g. 2027" value={yearForm.data.name} onChange={(e) => yearForm.setData('name', e.target.value)} error={yearForm.errors.name} />
                     <FormGrid>
-                        <Input label="Starts" type="date" required value={yearForm.data.start_date} onChange={(e) => yearForm.setData('start_date', e.target.value)} error={yearForm.errors.start_date} />
-                        <Input label="Ends" type="date" required value={yearForm.data.end_date} onChange={(e) => yearForm.setData('end_date', e.target.value)} error={yearForm.errors.end_date} />
+                        <Input
+                            label="Name"
+                            required
+                            placeholder={yearForm.data.education_level === 'a_level' ? 'e.g. 2026/2027' : 'e.g. 2027'}
+                            value={yearForm.data.name}
+                            onChange={(e) => yearForm.setData('name', e.target.value)}
+                            error={yearForm.errors.name}
+                        />
+                        <Select
+                            label="Level"
+                            required
+                            options={levels}
+                            value={yearForm.data.education_level}
+                            onChange={(e) => yearForm.setData('education_level', e.target.value)}
+                            error={yearForm.errors.education_level}
+                        />
+                    </FormGrid>
+                    <FormGrid>
+                        <Input
+                            label="Starts"
+                            type="date"
+                            required
+                            value={yearForm.data.start_date}
+                            onChange={(e) => yearForm.setData('start_date', e.target.value)}
+                            error={yearForm.errors.start_date}
+                        />
+                        <Input
+                            label="Ends"
+                            type="date"
+                            required
+                            value={yearForm.data.end_date}
+                            onChange={(e) => yearForm.setData('end_date', e.target.value)}
+                            error={yearForm.errors.end_date}
+                        />
                     </FormGrid>
                     <Checkbox label="Set as the current academic year" checked={yearForm.data.is_current} onChange={(e) => yearForm.setData('is_current', e.target.checked)} />
                     <div className="flex justify-center gap-3">
@@ -215,12 +322,30 @@ export default function Years({ years }: { years: Year[] }) {
                 </form>
             </Modal>
 
-            <Modal open={termModal.open} onClose={() => setTermModal({ open: false, year: null, term: null })} title={termModal.term ? `Edit ${termModal.term.name}` : `Add term to ${termModal.year?.name ?? ''}`}>
+            <Modal
+                open={termModal.open}
+                onClose={() => setTermModal({ open: false, year: null, term: null })}
+                title={termModal.term ? `Edit ${termModal.term.name}` : `Add term to ${termModal.year?.name ?? ''}`}
+            >
                 <form onSubmit={submitTerm} className="space-y-5">
                     <Input label="Name" required value={termForm.data.name} onChange={(e) => termForm.setData('name', e.target.value)} error={termForm.errors.name} />
                     <FormGrid>
-                        <Input label="Opens" type="date" required value={termForm.data.start_date} onChange={(e) => termForm.setData('start_date', e.target.value)} error={termForm.errors.start_date} />
-                        <Input label="Closes" type="date" required value={termForm.data.end_date} onChange={(e) => termForm.setData('end_date', e.target.value)} error={termForm.errors.end_date} />
+                        <Input
+                            label="Opens"
+                            type="date"
+                            required
+                            value={termForm.data.start_date}
+                            onChange={(e) => termForm.setData('start_date', e.target.value)}
+                            error={termForm.errors.start_date}
+                        />
+                        <Input
+                            label="Closes"
+                            type="date"
+                            required
+                            value={termForm.data.end_date}
+                            onChange={(e) => termForm.setData('end_date', e.target.value)}
+                            error={termForm.errors.end_date}
+                        />
                     </FormGrid>
                     {termModal.year && (
                         <p className="text-xs text-white-dark">

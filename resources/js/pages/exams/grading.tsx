@@ -1,4 +1,4 @@
-import { useForm } from '@inertiajs/react';
+import { router, useForm } from '@inertiajs/react';
 import { AlertTriangle, Info, Plus } from 'lucide-react';
 import { useState, type FormEvent } from 'react';
 import { RowActions } from '@/components/ui/actions';
@@ -6,12 +6,14 @@ import DataTable, { type Column } from '@/components/ui/data-table';
 import { FormGrid, Input } from '@/components/ui/form';
 import Modal from '@/components/ui/modal';
 import PageHeader from '@/components/ui/page-header';
+import Tabs from '@/components/ui/tabs';
 
 type Grade = { id: number; grade: string; min_score: number; max_score: number; points: number; remark: string | null };
 
-const blank = { grade: '', min_score: '' as number | string, max_score: '' as number | string, points: '' as number | string, remark: '' };
+const blank = { education_level: 'o_level', grade: '', min_score: '' as number | string, max_score: '' as number | string, points: '' as number | string, remark: '' };
 
-export default function Grading({ grades, gaps, canManage }: { grades: Grade[]; gaps: [number, number][]; canManage: boolean }) {
+export default function Grading({ grades, gaps, canManage, level }: { grades: Grade[]; gaps: [number, number][]; canManage: boolean; level: string }) {
+    const aLevel = level === 'a_level';
     const [open, setOpen] = useState(false);
     const [editing, setEditing] = useState<Grade | null>(null);
     const form = useForm(blank);
@@ -19,7 +21,11 @@ export default function Grading({ grades, gaps, canManage }: { grades: Grade[]; 
     const openForm = (g: Grade | null) => {
         setEditing(g);
         form.clearErrors();
-        form.setData(g ? { grade: g.grade, min_score: g.min_score, max_score: g.max_score, points: g.points, remark: g.remark ?? '' } : blank);
+        form.setData(
+            g
+                ? { education_level: level, grade: g.grade, min_score: g.min_score, max_score: g.max_score, points: g.points, remark: g.remark ?? '' }
+                : { ...blank, education_level: level },
+        );
         setOpen(true);
     };
 
@@ -32,7 +38,15 @@ export default function Grading({ grades, gaps, canManage }: { grades: Grade[]; 
 
     const columns: Column<Grade>[] = [
         { key: 'grade', header: 'Grade', render: (g) => <span className="badge badge-soft-primary px-3 text-base font-extrabold">{g.grade}</span> },
-        { key: 'range', header: 'Score range (%)', render: (g) => <span className="font-semibold">{g.min_score} – {g.max_score}</span> },
+        {
+            key: 'range',
+            header: 'Score range (%)',
+            render: (g) => (
+                <span className="font-semibold">
+                    {g.min_score} – {g.max_score}
+                </span>
+            ),
+        },
         {
             key: 'bar',
             header: '',
@@ -44,7 +58,12 @@ export default function Grading({ grades, gaps, canManage }: { grades: Grade[]; 
         },
         { key: 'points', header: 'Points', align: 'right', render: (g) => g.points },
         { key: 'remark', header: 'Remark', render: (g) => g.remark ?? '—' },
-        { key: 'actions', header: '', align: 'right', render: (g) => (canManage ? <RowActions onEdit={() => openForm(g)} destroy={`/exams/grading/${g.id}`} label="grade" /> : null) },
+        {
+            key: 'actions',
+            header: '',
+            align: 'right',
+            render: (g) => (canManage ? <RowActions onEdit={() => openForm(g)} destroy={`/exams/grading/${g.id}`} label="grade" /> : null),
+        },
     ];
 
     return (
@@ -60,6 +79,15 @@ export default function Grading({ grades, gaps, canManage }: { grades: Grade[]; 
                         </button>
                     )
                 }
+            />
+
+            <Tabs
+                active={level}
+                onChange={(k) => router.get('/exams/grading', { level: k }, { preserveScroll: true })}
+                tabs={[
+                    { key: 'o_level', label: 'O-Level (CSEE)' },
+                    { key: 'a_level', label: 'A-Level (ACSEE)' },
+                ]}
             />
 
             <div className="grid grid-cols-1 gap-6 xl:grid-cols-3">
@@ -78,9 +106,20 @@ export default function Grading({ grades, gaps, canManage }: { grades: Grade[]; 
                     </h5>
                     <ul className="list-disc space-y-2 ps-5 text-white-dark">
                         <li>Each mark is converted to a percentage of the exam's maximum score and graded with this scale.</li>
-                        <li>The grade and points are stored with the mark when it is saved. Changing this scale does <b>not</b> silently change published results.</li>
+                        <li>
+                            The grade and points are stored with the mark when it is saved. Changing this scale does <b>not</b> silently change published results.
+                        </li>
                         <li>Lower points are better. The grade with the highest points is treated as the fail grade; the pass mark is the lowest boundary above it.</li>
-                        <li>Division = total points of a learner's best 7 subjects: I (7–17), II (18–21), III (22–25), IV (26–33), 0 (34–35).</li>
+                        {aLevel ? (
+                            <>
+                                <li>
+                                    Division = total points of the 3 principal subjects of the learner&apos;s combination: I (3–9), II (10–12), III (13–17), IV (18–19), 0 (20–21).
+                                </li>
+                                <li>General Studies and BAM are graded with this scale but never counted in the division. S is a subsidiary pass.</li>
+                            </>
+                        ) : (
+                            <li>Division = total points of a learner&apos;s best 7 subjects: I (7–17), II (18–21), III (22–25), IV (26–33), 0 (34–35).</li>
+                        )}
                         <li>Ranges cannot overlap.</li>
                     </ul>
                 </div>
@@ -89,11 +128,54 @@ export default function Grading({ grades, gaps, canManage }: { grades: Grade[]; 
             <Modal open={open} onClose={() => setOpen(false)} title={editing ? `Edit grade ${editing.grade}` : 'Add grade'}>
                 <form onSubmit={submit} className="space-y-4">
                     <FormGrid>
-                        <Input label="Grade" required maxLength={5} value={form.data.grade} onChange={(e) => form.setData('grade', e.target.value.toUpperCase())} error={form.errors.grade} />
-                        <Input label="Points" type="number" step="0.5" min={0} required value={form.data.points} onChange={(e) => form.setData('points', e.target.value)} error={form.errors.points} />
-                        <Input label="Minimum %" type="number" step="0.01" min={0} max={100} required value={form.data.min_score} onChange={(e) => form.setData('min_score', e.target.value)} error={form.errors.min_score} />
-                        <Input label="Maximum %" type="number" step="0.01" min={0} max={100} required value={form.data.max_score} onChange={(e) => form.setData('max_score', e.target.value)} error={form.errors.max_score} />
-                        <Input label="Remark" placeholder="e.g. Excellent" value={form.data.remark} onChange={(e) => form.setData('remark', e.target.value)} error={form.errors.remark} wrapperClassName="sm:col-span-2" />
+                        <Input
+                            label="Grade"
+                            required
+                            maxLength={5}
+                            value={form.data.grade}
+                            onChange={(e) => form.setData('grade', e.target.value.toUpperCase())}
+                            error={form.errors.grade}
+                        />
+                        <Input
+                            label="Points"
+                            type="number"
+                            step="0.5"
+                            min={0}
+                            required
+                            value={form.data.points}
+                            onChange={(e) => form.setData('points', e.target.value)}
+                            error={form.errors.points}
+                        />
+                        <Input
+                            label="Minimum %"
+                            type="number"
+                            step="0.01"
+                            min={0}
+                            max={100}
+                            required
+                            value={form.data.min_score}
+                            onChange={(e) => form.setData('min_score', e.target.value)}
+                            error={form.errors.min_score}
+                        />
+                        <Input
+                            label="Maximum %"
+                            type="number"
+                            step="0.01"
+                            min={0}
+                            max={100}
+                            required
+                            value={form.data.max_score}
+                            onChange={(e) => form.setData('max_score', e.target.value)}
+                            error={form.errors.max_score}
+                        />
+                        <Input
+                            label="Remark"
+                            placeholder="e.g. Excellent"
+                            value={form.data.remark}
+                            onChange={(e) => form.setData('remark', e.target.value)}
+                            error={form.errors.remark}
+                            wrapperClassName="sm:col-span-2"
+                        />
                     </FormGrid>
                     <div className="flex justify-center gap-3">
                         <button type="button" className="btn btn-outline-dark" onClick={() => setOpen(false)}>

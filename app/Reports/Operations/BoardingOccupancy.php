@@ -52,10 +52,16 @@ class BoardingOccupancy extends Report
 
         $perRoom = $f['view'] === 'room';
 
+        // Patrons / matrons / assistants, e.g. "John Mushi (patron), Rose Kim (assistant)".
+        $caretakers = $this->table('dormitory_caretakers')
+            ->join('employees', 'employees.id', '=', 'dormitory_caretakers.employee_id')
+            ->groupBy('dormitory_caretakers.dormitory_id')
+            ->selectRaw("dormitory_caretakers.dormitory_id, GROUP_CONCAT(CONCAT(employees.first_name, ' ', employees.last_name, ' (', dormitory_caretakers.role, ')') ORDER BY FIELD(dormitory_caretakers.role, 'patron', 'matron', 'assistant') SEPARATOR ', ') as names");
+
         $q = $this->table('dormitories')
             ->leftJoin('dormitory_rooms as rooms', 'rooms.dormitory_id', '=', 'dormitories.id')
             ->leftJoinSub($occupied, 'occ', 'occ.dormitory_room_id', '=', 'rooms.id')
-            ->leftJoin('employees as warden', 'warden.id', '=', 'dormitories.warden_id')
+            ->leftJoinSub($caretakers, 'care', 'care.dormitory_id', '=', 'dormitories.id')
             ->when($f['gender'], fn ($q, $v) => $q->where('dormitories.gender', $v));
 
         if ($perRoom) {
@@ -68,14 +74,14 @@ class BoardingOccupancy extends Report
                     DB::raw('COALESCE(SUM(occ.occupied), 0) as occupied'), DB::raw("'' as warden"),
                 ]));
         } else {
-            $rows = $this->rows($q->groupBy('dormitories.id', 'dormitories.name', 'dormitories.gender', 'dormitories.capacity', 'warden.first_name', 'warden.last_name')
+            $rows = $this->rows($q->groupBy('dormitories.id', 'dormitories.name', 'dormitories.gender', 'dormitories.capacity', 'care.names')
                 ->orderBy('dormitories.name')
                 ->get([
                     'dormitories.name', 'dormitories.gender',
                     DB::raw('COUNT(rooms.id) as rooms'),
                     DB::raw('GREATEST(COALESCE(SUM(rooms.capacity), 0), dormitories.capacity) as capacity'),
                     DB::raw('COALESCE(SUM(occ.occupied), 0) as occupied'),
-                    DB::raw("COALESCE(CONCAT(warden.first_name, ' ', warden.last_name), '') as warden"),
+                    DB::raw("COALESCE(care.names, '') as warden"),
                 ]));
         }
 
@@ -102,7 +108,7 @@ class BoardingOccupancy extends Report
                 $this->col('occupied', 'Occupied', 'number'),
                 $this->col('vacant', 'Vacant', 'number'),
                 $this->col('rate', 'Occupancy', 'percent'),
-                ...($perRoom ? [] : [$this->col('warden', 'Warden')]),
+                ...($perRoom ? [] : [$this->col('warden', 'Patron / matron')]),
             ],
             'rows' => $rows,
             'totals' => ['name' => 'Total', 'rooms' => $this->count($rows, 'rooms'), 'capacity' => $capacity, 'occupied' => $occupiedTotal, 'vacant' => $this->count($rows, 'vacant'), 'rate' => $this->pct($occupiedTotal, $capacity)],

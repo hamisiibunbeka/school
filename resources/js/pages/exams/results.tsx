@@ -15,7 +15,16 @@ import Tabs from '@/components/ui/tabs';
 import { cn, exportCsv, num } from '@/lib/utils';
 import type { Option } from '@/types';
 
-export type Cell = { score: number | null; percentage: number | null; grade: string | null; points: number | null; is_absent: boolean; remarks: string | null } | null;
+export type Cell = {
+    score: number | null;
+    percentage: number | null;
+    grade: string | null;
+    points: number | null;
+    is_absent: boolean;
+    remarks: string | null;
+    /** A-Level only: subsidiary subjects (GS, BAM) are shown but never counted. */
+    role?: 'principal' | 'subsidiary' | null;
+} | null;
 export type StudentResult = {
     id: number;
     admission_no: string;
@@ -23,6 +32,7 @@ export type StudentResult = {
     gender: string;
     stream_id: number | null;
     stream: string | null;
+    combination?: string | null;
     marks: Record<number, Cell>;
     sat: number;
     total: number;
@@ -34,14 +44,40 @@ export type StudentResult = {
     passed: boolean;
     position: number | null;
 };
-type SubjectStat = { id: number; name: string; code: string | null; teacher: string | null; entered: number; sat: number; absent: number; average: number | null; highest: number | null; lowest: number | null; pass_rate: number | null; grade: string | null; distribution: Record<string, number> };
+type SubjectStat = {
+    id: number;
+    name: string;
+    code: string | null;
+    teacher: string | null;
+    entered: number;
+    sat: number;
+    absent: number;
+    average: number | null;
+    highest: number | null;
+    lowest: number | null;
+    pass_rate: number | null;
+    grade: string | null;
+    distribution: Record<string, number>;
+};
 type Analysis = {
+    level: string;
+    combinations: Record<string, Record<string, number>>;
+    unassigned: number;
     subjects: { id: number; name: string; code: string }[];
     students: StudentResult[];
     subjectStats: SubjectStat[];
     gradeDistribution: Record<string, number>;
     divisions: Record<string, number>;
-    summary: { students: number; ranked: number; class_size: number; average: number | null; pass_rate: number | null; highest: number | null; lowest: number | null; pass_mark: number };
+    summary: {
+        students: number;
+        ranked: number;
+        class_size: number;
+        average: number | null;
+        pass_rate: number | null;
+        highest: number | null;
+        lowest: number | null;
+        pass_mark: number;
+    };
 };
 
 type Props = {
@@ -53,7 +89,14 @@ type Props = {
     canApprove: boolean;
 };
 
-const divTone: Record<string, string> = { I: 'badge-soft-success', II: 'badge-soft-primary', III: 'badge-soft-info', IV: 'badge-soft-warning', '0': 'badge-soft-danger', INC: 'badge-soft-dark' };
+const divTone: Record<string, string> = {
+    I: 'badge-soft-success',
+    II: 'badge-soft-primary',
+    III: 'badge-soft-info',
+    IV: 'badge-soft-warning',
+    '0': 'badge-soft-danger',
+    INC: 'badge-soft-dark',
+};
 
 export default function Results({ exam, filters: initial, classes, analysis, scale, canApprove }: Props) {
     const { filters, setFilter } = useFilters(initial);
@@ -65,12 +108,25 @@ export default function Results({ exam, filters: initial, classes, analysis, sca
     const exportBroadsheet = () => {
         if (!analysis) return;
         exportCsv(`${exam.name}-${className}-results`, [
-            ['Position', 'Admission No', 'Student', 'Stream', ...analysis.subjects.map((s) => s.code), 'Total', 'Average %', 'Grade', 'Points', 'Division'],
+            [
+                'Position',
+                'Admission No',
+                'Student',
+                'Stream',
+                ...(analysis.level === 'a_level' ? ['Combination'] : []),
+                ...analysis.subjects.map((s) => s.code),
+                'Total',
+                'Average %',
+                'Grade',
+                'Points',
+                'Division',
+            ],
             ...analysis.students.map((s) => [
                 s.position ?? '',
                 s.admission_no,
                 s.full_name,
                 s.stream ?? '',
+                ...(analysis.level === 'a_level' ? [s.combination ?? ''] : []),
                 ...analysis.subjects.map((sub) => {
                     const c = s.marks[sub.id];
                     return c ? (c.is_absent ? 'ABS' : `${c.score ?? ''} ${c.grade ?? ''}`.trim()) : '';
@@ -96,7 +152,10 @@ export default function Results({ exam, filters: initial, classes, analysis, sca
                 breadcrumbs={[{ title: 'Exams', href: '/exams' }, { title: exam.name, href: `/exams/${exam.id}` }, { title: 'Results' }]}
                 actions={
                     <>
-                        <Link href={`/exams/report-cards?exam=${exam.id}${initial.class ? `&class=${initial.class}` : ''}${initial.stream ? `&stream=${initial.stream}` : ''}`} className="btn btn-outline-primary">
+                        <Link
+                            href={`/exams/report-cards?exam=${exam.id}${initial.class ? `&class=${initial.class}` : ''}${initial.stream ? `&stream=${initial.stream}` : ''}`}
+                            className="btn btn-outline-primary"
+                        >
                             <FileText className="h-4 w-4" /> Report cards
                         </Link>
                         <button type="button" className="btn btn-outline-success" onClick={exportBroadsheet} disabled={!analysis?.students.length}>
@@ -121,10 +180,23 @@ export default function Results({ exam, filters: initial, classes, analysis, sca
                     {streams.length > 0 && <FilterSelect value={filters.stream} onChange={(v) => setFilter('stream', v)} options={streams} placeholder="All streams" />}
                 </FilterBar>
                 <ProvisionalNotice exam={exam} canApprove={canApprove} />
-                <p className="mt-3 text-xs text-white-dark">
-                    Average = mean % of subjects sat. Division = sum of points of the best 7 subjects (I: 7–17, II: 18–21, III: 22–25, IV: 26–33, 0: 34–35; fewer than 7 subjects = INC). Position is within the whole
-                    class. Pass mark {analysis?.summary.pass_mark ?? 30}%.
-                </p>
+                {analysis?.level === 'a_level' ? (
+                    <p className="mt-3 text-xs text-white-dark">
+                        A-Level (ACSEE): each learner is graded on their combination. Division = sum of points of the 3 principal subjects, A=1 … F=7 (I: 3–9, II: 10–12, III:
+                        13–17, IV: 18–19, 0: 20–21; fewer than 3 principal subjects = INC). General Studies and BAM are shown in grey and never counted. Average is over principal
+                        subjects; position ranks by division points.
+                    </p>
+                ) : (
+                    <p className="mt-3 text-xs text-white-dark">
+                        Average = mean % of subjects sat. Division = sum of points of the best 7 subjects (I: 7–17, II: 18–21, III: 22–25, IV: 26–33, 0: 34–35; fewer than 7
+                        subjects = INC). Position is within the whole class. Pass mark {analysis?.summary.pass_mark ?? 30}%.
+                    </p>
+                )}
+                {analysis && analysis.unassigned > 0 && (
+                    <p className="mt-2 rounded-md bg-warning-light px-3 py-2 text-xs font-semibold text-warning dark:bg-warning-dark-light">
+                        {analysis.unassigned} learner(s) are not in a stream linked to a combination, so their subjects cannot be graded. Place them in a combination stream.
+                    </p>
+                )}
             </div>
 
             {!analysis ? (
@@ -138,14 +210,34 @@ export default function Results({ exam, filters: initial, classes, analysis, sca
             ) : (
                 <>
                     <div className="hidden print:block">
-                        <Letterhead title={`${exam.name} — ${className} Results`} meta={<div>{[exam.term, exam.year].filter(Boolean).join(', ')}{provisional && <div className="font-bold text-danger">PROVISIONAL</div>}</div>} />
+                        <Letterhead
+                            title={`${exam.name} — ${className} Results`}
+                            meta={
+                                <div>
+                                    {[exam.term, exam.year].filter(Boolean).join(', ')}
+                                    {provisional && <div className="font-bold text-danger">PROVISIONAL</div>}
+                                </div>
+                            }
+                        />
                     </div>
 
                     <div className="no-print mb-6 grid grid-cols-2 gap-4 xl:grid-cols-4">
                         <StatCard title="Learners ranked" value={num(analysis.summary.ranked)} icon={Users} tone="primary" hint={`${analysis.summary.class_size} in class`} />
-                        <StatCard title="Class average" value={analysis.summary.average !== null ? `${analysis.summary.average}%` : '—'} icon={Percent} tone="info" hint={`High ${analysis.summary.highest ?? '—'}% · Low ${analysis.summary.lowest ?? '—'}%`} />
+                        <StatCard
+                            title="Class average"
+                            value={analysis.summary.average !== null ? `${analysis.summary.average}%` : '—'}
+                            icon={Percent}
+                            tone="info"
+                            hint={`High ${analysis.summary.highest ?? '—'}% · Low ${analysis.summary.lowest ?? '—'}%`}
+                        />
                         <StatCard title="Pass rate" value={analysis.summary.pass_rate !== null ? `${analysis.summary.pass_rate}%` : '—'} icon={Award} tone="success" />
-                        <StatCard title="Division I – II" value={num((analysis.divisions.I ?? 0) + (analysis.divisions.II ?? 0))} icon={Trophy} tone="warning" hint={`Div I: ${analysis.divisions.I ?? 0}`} />
+                        <StatCard
+                            title="Division I – II"
+                            value={num((analysis.divisions.I ?? 0) + (analysis.divisions.II ?? 0))}
+                            icon={Trophy}
+                            tone="warning"
+                            hint={`Div I: ${analysis.divisions.I ?? 0}`}
+                        />
                     </div>
 
                     <div className="panel">
@@ -202,19 +294,25 @@ function Broadsheet({ analysis }: { analysis: Analysis }) {
                                 <div className="text-xs text-white-dark">
                                     {s.admission_no}
                                     {s.stream && ` · ${s.stream}`}
+                                    {s.combination && <span className="badge badge-soft-secondary ms-1 px-1.5 py-0">{s.combination}</span>}
                                 </div>
                             </td>
                             {analysis.subjects.map((sub) => {
                                 const c = s.marks[sub.id];
                                 return (
-                                    <td key={sub.id} className="text-center whitespace-nowrap">
+                                    <td
+                                        key={sub.id}
+                                        className={cn('text-center whitespace-nowrap', c?.role === 'subsidiary' && 'opacity-60')}
+                                        title={c?.role === 'subsidiary' ? 'Subsidiary — not counted in the division' : undefined}
+                                    >
                                         {!c ? (
                                             <span className="text-white-dark">·</span>
                                         ) : c.is_absent ? (
                                             <span className="text-xs font-bold text-white-dark">ABS</span>
                                         ) : (
                                             <>
-                                                {num(c.score, c.score !== null && c.score % 1 ? 1 : 0)} <span className={cn('text-xs font-bold', c.grade === 'F' ? 'text-danger' : 'text-primary')}>{c.grade}</span>
+                                                {num(c.score, c.score !== null && c.score % 1 ? 1 : 0)}{' '}
+                                                <span className={cn('text-xs font-bold', c.grade === 'F' ? 'text-danger' : 'text-primary')}>{c.grade}</span>
                                             </>
                                         )}
                                     </td>
@@ -278,24 +376,28 @@ function SubjectAnalysis({ analysis }: { analysis: Analysis }) {
                         </tr>
                     </thead>
                     <tbody>
-                        {[...analysis.subjectStats].sort((a, b) => (b.average ?? -1) - (a.average ?? -1)).map((s) => (
-                            <tr key={s.id}>
-                                <td className="font-semibold whitespace-nowrap">{s.name}</td>
-                                <td className="text-xs whitespace-nowrap">{s.teacher ?? '—'}</td>
-                                <td className="text-end">{s.sat}</td>
-                                <td className="text-end">{s.absent}</td>
-                                <td className="text-end font-bold">{s.average !== null ? `${s.average}%` : '—'}</td>
-                                <td className="text-center font-bold">{s.grade ?? '—'}</td>
-                                <td className="text-end">{s.highest ?? '—'}</td>
-                                <td className="text-end">{s.lowest ?? '—'}</td>
-                                <td className={cn('text-end font-semibold', s.pass_rate !== null && s.pass_rate < 50 ? 'text-danger' : 'text-success')}>{s.pass_rate !== null ? `${s.pass_rate}%` : '—'}</td>
-                                {Object.keys(analysis.gradeDistribution).map((g) => (
-                                    <td key={g} className="text-center">
-                                        {s.distribution[g] || <span className="text-white-dark">0</span>}
+                        {[...analysis.subjectStats]
+                            .sort((a, b) => (b.average ?? -1) - (a.average ?? -1))
+                            .map((s) => (
+                                <tr key={s.id}>
+                                    <td className="font-semibold whitespace-nowrap">{s.name}</td>
+                                    <td className="text-xs whitespace-nowrap">{s.teacher ?? '—'}</td>
+                                    <td className="text-end">{s.sat}</td>
+                                    <td className="text-end">{s.absent}</td>
+                                    <td className="text-end font-bold">{s.average !== null ? `${s.average}%` : '—'}</td>
+                                    <td className="text-center font-bold">{s.grade ?? '—'}</td>
+                                    <td className="text-end">{s.highest ?? '—'}</td>
+                                    <td className="text-end">{s.lowest ?? '—'}</td>
+                                    <td className={cn('text-end font-semibold', s.pass_rate !== null && s.pass_rate < 50 ? 'text-danger' : 'text-success')}>
+                                        {s.pass_rate !== null ? `${s.pass_rate}%` : '—'}
                                     </td>
-                                ))}
-                            </tr>
-                        ))}
+                                    {Object.keys(analysis.gradeDistribution).map((g) => (
+                                        <td key={g} className="text-center">
+                                            {s.distribution[g] || <span className="text-white-dark">0</span>}
+                                        </td>
+                                    ))}
+                                </tr>
+                            ))}
                     </tbody>
                 </table>
             </div>
@@ -332,6 +434,34 @@ function Distribution({ analysis, scale }: { analysis: Analysis; scale: Props['s
             </div>
             <div>
                 <h6 className="mb-2 font-bold">Division summary</h6>
+                {Object.keys(analysis.combinations ?? {}).length > 0 && (
+                    <div className="table-responsive mb-4">
+                        <table className="table-compact table text-sm">
+                            <thead>
+                                <tr>
+                                    <th>Combination</th>
+                                    {divisions.map((d) => (
+                                        <th key={d} className="text-center!">
+                                            {d === 'INC' ? 'INC' : `Div ${d}`}
+                                        </th>
+                                    ))}
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {Object.entries(analysis.combinations).map(([code, row]) => (
+                                    <tr key={code}>
+                                        <td className="font-bold">{code}</td>
+                                        {divisions.map((d) => (
+                                            <td key={d} className="text-center">
+                                                {row[d] ?? 0}
+                                            </td>
+                                        ))}
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+                )}
                 <Chart
                     type="donut"
                     height={280}
@@ -349,10 +479,15 @@ function Distribution({ analysis, scale }: { analysis: Analysis; scale: Props['s
 
 function TopPerformers({ analysis }: { analysis: Analysis }) {
     const top = analysis.students.filter((s) => s.position !== null).slice(0, 10);
-    const bottom = [...analysis.students].filter((s) => s.average !== null).sort((a, b) => (a.average ?? 0) - (b.average ?? 0)).slice(0, 5);
+    const bottom = [...analysis.students]
+        .filter((s) => s.average !== null)
+        .sort((a, b) => (a.average ?? 0) - (b.average ?? 0))
+        .slice(0, 5);
     const bestBySubject = analysis.subjects
         .map((sub) => {
-            const best = analysis.students.filter((s) => s.marks[sub.id]?.percentage != null).sort((a, b) => (b.marks[sub.id]?.percentage ?? 0) - (a.marks[sub.id]?.percentage ?? 0))[0];
+            const best = analysis.students
+                .filter((s) => s.marks[sub.id]?.percentage != null)
+                .sort((a, b) => (b.marks[sub.id]?.percentage ?? 0) - (a.marks[sub.id]?.percentage ?? 0))[0];
             return best ? { subject: sub.name, student: best.full_name, score: best.marks[sub.id]?.percentage } : null;
         })
         .filter(Boolean) as { subject: string; student: string; score: number }[];
@@ -364,7 +499,12 @@ function TopPerformers({ analysis }: { analysis: Analysis }) {
                 <div className="space-y-2">
                     {top.map((s) => (
                         <div key={s.id} className="flex items-center gap-3 rounded-md border border-white-light p-3 dark:border-[#1b2e4b]">
-                            <span className={cn('grid h-9 w-9 shrink-0 place-content-center rounded-full font-extrabold', s.position === 1 ? 'bg-warning text-white' : s.position! <= 3 ? 'bg-primary-light text-primary' : 'bg-white-light text-dark dark:bg-[#1b2e4b]')}>
+                            <span
+                                className={cn(
+                                    'grid h-9 w-9 shrink-0 place-content-center rounded-full font-extrabold',
+                                    s.position === 1 ? 'bg-warning text-white' : s.position! <= 3 ? 'bg-primary-light text-primary' : 'bg-white-light text-dark dark:bg-[#1b2e4b]',
+                                )}
+                            >
                                 {s.position === 1 ? <Medal className="h-4 w-4" /> : s.position}
                             </span>
                             <Avatar name={s.full_name} />

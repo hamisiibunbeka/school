@@ -13,10 +13,39 @@ import { cn, num } from '@/lib/utils';
 import type { Option } from '@/types';
 import ImportButton from '@/components/ui/import-button';
 
-type StreamRow = { id: number; name: string; capacity: number | null; class_teacher_id: number | null; class_teacher: string | null; students: number };
-type ClassRow = { id: number; name: string; code: string | null; level: number; capacity: number | null; students: number; boys: number; girls: number; subjects: number; streams: StreamRow[] };
+type StreamRow = {
+    id: number;
+    name: string;
+    capacity: number | null;
+    class_teacher_id: number | null;
+    class_teacher: string | null;
+    students: number;
+    combination_id: number | null;
+    combination: string | null;
+    combination_name: string | null;
+};
+type ClassRow = {
+    id: number;
+    name: string;
+    code: string | null;
+    level: number;
+    education_level: string;
+    capacity: number | null;
+    students: number;
+    boys: number;
+    girls: number;
+    subjects: number;
+    streams: StreamRow[];
+};
 
-const palette = ['from-[#4361ee] to-[#805dca]', 'from-[#00ab55] to-[#2196f3]', 'from-[#e2a03f] to-[#e7515a]', 'from-[#805dca] to-[#ef1262]', 'from-[#2196f3] to-[#00ab55]', 'from-[#3b3f5c] to-[#4361ee]'];
+const palette = [
+    'from-[#4361ee] to-[#805dca]',
+    'from-[#00ab55] to-[#2196f3]',
+    'from-[#e2a03f] to-[#e7515a]',
+    'from-[#805dca] to-[#ef1262]',
+    'from-[#2196f3] to-[#00ab55]',
+    'from-[#3b3f5c] to-[#4361ee]',
+];
 
 function Usage({ used, capacity }: { used: number; capacity: number | null }) {
     const pct = capacity ? Math.min(100, Math.round((used / capacity) * 100)) : 0;
@@ -36,13 +65,14 @@ function Usage({ used, capacity }: { used: number; capacity: number | null }) {
     );
 }
 
-export default function Classes({ classes, teachers }: { classes: ClassRow[]; teachers: Option[] }) {
+export default function Classes({ classes, teachers, levels, combinations }: { classes: ClassRow[]; teachers: Option[]; levels: Option[]; combinations: Option[] }) {
     const can = useCan();
     const manage = can('academics.manage');
     const [classModal, setClassModal] = useState<{ open: boolean; row: ClassRow | null }>({ open: false, row: null });
     const [streamModal, setStreamModal] = useState<{ open: boolean; cls: ClassRow | null; row: StreamRow | null }>({ open: false, cls: null, row: null });
-    const classForm = useForm({ name: '', code: '', level: '1', capacity: '', streams: 'A, B' });
-    const streamForm = useForm({ name: '', capacity: '', class_teacher_id: '' });
+    const classForm = useForm({ name: '', code: '', level: '1', education_level: 'o_level', capacity: '', streams: 'A, B' });
+    const streamForm = useForm({ name: '', capacity: '', class_teacher_id: '', combination_id: '' });
+    const streamIsALevel = streamModal.cls?.education_level === 'a_level';
 
     const totals = {
         students: classes.reduce((a, c) => a + c.students, 0),
@@ -55,15 +85,38 @@ export default function Classes({ classes, teachers }: { classes: ClassRow[]; te
         classForm.clearErrors();
         classForm.setData(
             row
-                ? { name: row.name, code: row.code ?? '', level: String(row.level), capacity: row.capacity ? String(row.capacity) : '', streams: '' }
-                : { name: '', code: '', level: String((classes.at(-1)?.level ?? 0) + 1), capacity: '', streams: 'A, B' },
+                ? {
+                      name: row.name,
+                      code: row.code ?? '',
+                      level: String(row.level),
+                      education_level: row.education_level,
+                      capacity: row.capacity ? String(row.capacity) : '',
+                      streams: '',
+                  }
+                : {
+                      name: '',
+                      code: '',
+                      level: String((classes.at(-1)?.level ?? 0) + 1),
+                      education_level: (classes.at(-1)?.level ?? 0) >= 4 ? 'a_level' : 'o_level',
+                      capacity: '',
+                      streams: 'A, B',
+                  },
         );
         setClassModal({ open: true, row });
     };
 
     const openStream = (cls: ClassRow, row: StreamRow | null) => {
         streamForm.clearErrors();
-        streamForm.setData(row ? { name: row.name, capacity: row.capacity ? String(row.capacity) : '', class_teacher_id: row.class_teacher_id ? String(row.class_teacher_id) : '' } : { name: '', capacity: '', class_teacher_id: '' });
+        streamForm.setData(
+            row
+                ? {
+                      name: row.name,
+                      capacity: row.capacity ? String(row.capacity) : '',
+                      class_teacher_id: row.class_teacher_id ? String(row.class_teacher_id) : '',
+                      combination_id: row.combination_id ? String(row.combination_id) : '',
+                  }
+                : { name: '', capacity: '', class_teacher_id: '', combination_id: '' },
+        );
         setStreamModal({ open: true, cls, row });
     };
 
@@ -94,12 +147,13 @@ export default function Classes({ classes, teachers }: { classes: ClassRow[]; te
                 breadcrumbs={[{ title: 'Academics' }, { title: 'Classes & Streams' }]}
                 actions={
                     <>
-                        {can('academics.manage') && <ImportButton type="classes" label="Import classes" />}{can('academics.manage') && <ImportButton type="streams" label="Import streams" />}
+                        {can('academics.manage') && <ImportButton type="classes" label="Import classes" />}
+                        {can('academics.manage') && <ImportButton type="streams" label="Import streams" />}
                         {manage && (
-                        <button className="btn btn-primary" onClick={() => openClass(null)}>
-                            <Plus className="h-4 w-4" /> New class
-                        </button>
-                    )}
+                            <button className="btn btn-primary" onClick={() => openClass(null)}>
+                                <Plus className="h-4 w-4" /> New class
+                            </button>
+                        )}
                     </>
                 }
             />
@@ -107,7 +161,13 @@ export default function Classes({ classes, teachers }: { classes: ClassRow[]; te
             <div className="mb-6 grid grid-cols-2 gap-4 xl:grid-cols-4">
                 <StatCard title="Classes" value={num(classes.length)} icon={School} tone="primary" />
                 <StatCard title="Streams" value={num(totals.streams)} icon={Layers} tone="secondary" />
-                <StatCard title="Active learners" value={num(totals.students)} icon={GraduationCap} tone="success" hint={totals.capacity ? `${Math.round((totals.students / totals.capacity) * 100)}% of capacity` : undefined} />
+                <StatCard
+                    title="Active learners"
+                    value={num(totals.students)}
+                    icon={GraduationCap}
+                    tone="success"
+                    hint={totals.capacity ? `${Math.round((totals.students / totals.capacity) * 100)}% of capacity` : undefined}
+                />
                 <StatCard title="Streams w/o class teacher" value={num(totals.noTeacher)} icon={UserRound} tone={totals.noTeacher ? 'danger' : 'info'} />
             </div>
 
@@ -126,15 +186,24 @@ export default function Classes({ classes, teachers }: { classes: ClassRow[]; te
                                         <div className="text-xs font-semibold tracking-wide uppercase opacity-80">
                                             Level {c.level}
                                             {c.code ? ` · ${c.code}` : ''}
+                                            <span className="ms-2 rounded bg-white/25 px-1.5 py-0.5 normal-case">{c.education_level === 'a_level' ? 'A-Level' : 'O-Level'}</span>
                                         </div>
                                         <h5 className="text-xl font-extrabold">{c.name}</h5>
                                     </div>
                                     {manage && (
                                         <div className="relative flex gap-1">
-                                            <button className="grid h-8 w-8 place-content-center rounded-md bg-white/20 hover:bg-white/30" title="Edit class" onClick={() => openClass(c)}>
+                                            <button
+                                                className="grid h-8 w-8 place-content-center rounded-md bg-white/20 hover:bg-white/30"
+                                                title="Edit class"
+                                                onClick={() => openClass(c)}
+                                            >
                                                 <Pencil className="h-4 w-4" />
                                             </button>
-                                            <button className="grid h-8 w-8 place-content-center rounded-md bg-white/20 hover:bg-white/30" title="Delete class" onClick={() => remove(`/academics/classes/${c.id}`, c.name)}>
+                                            <button
+                                                className="grid h-8 w-8 place-content-center rounded-md bg-white/20 hover:bg-white/30"
+                                                title="Delete class"
+                                                onClick={() => remove(`/academics/classes/${c.id}`, c.name)}
+                                            >
                                                 <Trash2 className="h-4 w-4" />
                                             </button>
                                         </div>
@@ -156,11 +225,18 @@ export default function Classes({ classes, teachers }: { classes: ClassRow[]; te
                                 <div className="space-y-2">
                                     {c.streams.map((s) => (
                                         <div key={s.id} className="flex items-center gap-3 rounded-lg border border-white-light p-3 dark:border-[#1b2e4b]">
-                                            <span className="grid h-10 w-10 shrink-0 place-content-center rounded-lg bg-primary-light text-lg font-extrabold text-primary dark:bg-primary-dark-light">{s.name}</span>
+                                            <span className="grid h-10 w-10 shrink-0 place-content-center rounded-lg bg-primary-light text-lg font-extrabold text-primary dark:bg-primary-dark-light">
+                                                {s.name}
+                                            </span>
                                             <div className="min-w-0 flex-1">
                                                 <div className="flex items-center justify-between gap-2">
                                                     <Link href={`/students?class=${c.id}&stream=${s.id}`} className="truncate font-bold hover:text-primary">
                                                         {c.name} {s.name}
+                                                        {s.combination && (
+                                                            <span className="badge badge-soft-secondary ms-1.5" title={s.combination_name ?? ''}>
+                                                                {s.combination}
+                                                            </span>
+                                                        )}
                                                     </Link>
                                                     <span className="shrink-0 text-xs font-semibold text-white-dark">
                                                         {s.students}
@@ -180,10 +256,18 @@ export default function Classes({ classes, teachers }: { classes: ClassRow[]; te
                                             </div>
                                             {manage && (
                                                 <div className="flex shrink-0 gap-0.5">
-                                                    <button className="grid h-7 w-7 place-content-center rounded-md text-primary hover:bg-primary-light" title="Edit stream" onClick={() => openStream(c, s)}>
+                                                    <button
+                                                        className="grid h-7 w-7 place-content-center rounded-md text-primary hover:bg-primary-light"
+                                                        title="Edit stream"
+                                                        onClick={() => openStream(c, s)}
+                                                    >
                                                         <Pencil className="h-3.5 w-3.5" />
                                                     </button>
-                                                    <button className="grid h-7 w-7 place-content-center rounded-md text-danger hover:bg-danger-light" title="Delete stream" onClick={() => remove(`/academics/streams/${s.id}`, `stream ${c.name} ${s.name}`)}>
+                                                    <button
+                                                        className="grid h-7 w-7 place-content-center rounded-md text-danger hover:bg-danger-light"
+                                                        title="Delete stream"
+                                                        onClick={() => remove(`/academics/streams/${s.id}`, `stream ${c.name} ${s.name}`)}
+                                                    >
                                                         <Trash2 className="h-3.5 w-3.5" />
                                                     </button>
                                                 </div>
@@ -191,6 +275,11 @@ export default function Classes({ classes, teachers }: { classes: ClassRow[]; te
                                         </div>
                                     ))}
                                     {c.streams.length === 0 && <p className="text-sm text-white-dark">No streams — learners are placed directly in the class.</p>}
+                                    {c.education_level === 'a_level' && c.streams.some((s) => !s.combination_id) && (
+                                        <p className="text-xs font-semibold text-warning">
+                                            Link every A-Level stream to a combination — students' subjects and divisions come from it.
+                                        </p>
+                                    )}
                                 </div>
                                 {manage && (
                                     <button className="btn btn-outline-primary btn-sm w-full" onClick={() => openStream(c, null)}>
@@ -206,10 +295,48 @@ export default function Classes({ classes, teachers }: { classes: ClassRow[]; te
             <Modal open={classModal.open} onClose={() => setClassModal({ open: false, row: null })} title={classModal.row ? `Edit ${classModal.row.name}` : 'New class'}>
                 <form onSubmit={submitClass} className="space-y-5">
                     <FormGrid>
-                        <Input label="Class name" required placeholder="e.g. Form Five" value={classForm.data.name} onChange={(e) => classForm.setData('name', e.target.value)} error={classForm.errors.name} />
-                        <Input label="Code" placeholder="e.g. F5" value={classForm.data.code} onChange={(e) => classForm.setData('code', e.target.value)} error={classForm.errors.code} />
-                        <Input label="Level (promotion order)" type="number" min={1} required value={classForm.data.level} onChange={(e) => classForm.setData('level', e.target.value)} error={classForm.errors.level} />
-                        <Input label="Capacity" type="number" min={1} value={classForm.data.capacity} onChange={(e) => classForm.setData('capacity', e.target.value)} error={classForm.errors.capacity} />
+                        <Input
+                            label="Class name"
+                            required
+                            placeholder="e.g. Form Five"
+                            value={classForm.data.name}
+                            onChange={(e) => classForm.setData('name', e.target.value)}
+                            error={classForm.errors.name}
+                        />
+                        <Input
+                            label="Code"
+                            placeholder="e.g. F5"
+                            value={classForm.data.code}
+                            onChange={(e) => classForm.setData('code', e.target.value)}
+                            error={classForm.errors.code}
+                        />
+                        <Input
+                            label="Level (promotion order)"
+                            type="number"
+                            min={1}
+                            required
+                            value={classForm.data.level}
+                            onChange={(e) => classForm.setData('level', e.target.value)}
+                            error={classForm.errors.level}
+                        />
+                        <Input
+                            label="Capacity"
+                            type="number"
+                            min={1}
+                            value={classForm.data.capacity}
+                            onChange={(e) => classForm.setData('capacity', e.target.value)}
+                            error={classForm.errors.capacity}
+                        />
+                        <Select
+                            label="Education level"
+                            required
+                            options={levels}
+                            value={classForm.data.education_level}
+                            onChange={(e) => classForm.setData('education_level', e.target.value)}
+                            error={classForm.errors.education_level}
+                            help="A-Level classes use combinations, the ACSEE grading and the A-Level calendar."
+                            wrapperClassName="sm:col-span-2"
+                        />
                         {!classModal.row && (
                             <Input
                                 label="Streams"
@@ -232,11 +359,29 @@ export default function Classes({ classes, teachers }: { classes: ClassRow[]; te
                 </form>
             </Modal>
 
-            <Modal open={streamModal.open} onClose={() => setStreamModal({ open: false, cls: null, row: null })} title={streamModal.row ? `Edit stream ${streamModal.cls?.name} ${streamModal.row.name}` : `Add stream to ${streamModal.cls?.name ?? ''}`}>
+            <Modal
+                open={streamModal.open}
+                onClose={() => setStreamModal({ open: false, cls: null, row: null })}
+                title={streamModal.row ? `Edit stream ${streamModal.cls?.name} ${streamModal.row.name}` : `Add stream to ${streamModal.cls?.name ?? ''}`}
+            >
                 <form onSubmit={submitStream} className="space-y-5">
                     <FormGrid>
-                        <Input label="Stream name" required placeholder="e.g. C or Blue" value={streamForm.data.name} onChange={(e) => streamForm.setData('name', e.target.value)} error={streamForm.errors.name} />
-                        <Input label="Capacity" type="number" min={1} value={streamForm.data.capacity} onChange={(e) => streamForm.setData('capacity', e.target.value)} error={streamForm.errors.capacity} />
+                        <Input
+                            label="Stream name"
+                            required
+                            placeholder="e.g. C or Blue"
+                            value={streamForm.data.name}
+                            onChange={(e) => streamForm.setData('name', e.target.value)}
+                            error={streamForm.errors.name}
+                        />
+                        <Input
+                            label="Capacity"
+                            type="number"
+                            min={1}
+                            value={streamForm.data.capacity}
+                            onChange={(e) => streamForm.setData('capacity', e.target.value)}
+                            error={streamForm.errors.capacity}
+                        />
                         <Select
                             label="Class teacher"
                             placeholder="— None —"
@@ -246,6 +391,26 @@ export default function Classes({ classes, teachers }: { classes: ClassRow[]; te
                             error={streamForm.errors.class_teacher_id}
                             wrapperClassName="sm:col-span-2"
                         />
+                        {streamIsALevel && (
+                            <Select
+                                label="Combination"
+                                required
+                                placeholder={combinations.length ? 'Choose combination…' : 'No combinations yet'}
+                                options={combinations}
+                                value={streamForm.data.combination_id}
+                                onChange={(e) => streamForm.setData('combination_id', e.target.value)}
+                                error={streamForm.errors.combination_id}
+                                help={
+                                    <>
+                                        Students in this stream take this combination&apos;s subjects.{' '}
+                                        <Link href="/academics/combinations" className="text-primary underline">
+                                            Manage combinations
+                                        </Link>
+                                    </>
+                                }
+                                wrapperClassName="sm:col-span-2"
+                            />
+                        )}
                     </FormGrid>
                     <div className="flex justify-center gap-3">
                         <button type="button" className="btn btn-outline-dark" onClick={() => setStreamModal({ open: false, cls: null, row: null })}>

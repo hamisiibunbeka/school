@@ -4,12 +4,15 @@ namespace App\Http\Controllers\Students;
 
 use App\Http\Controllers\Controller;
 use App\Models\AcademicYear;
+use App\Models\BedAllocation;
+use App\Models\Employee;
 use App\Models\Enrolment;
 use App\Models\Guardian;
 use App\Models\Sponsor;
 use App\Models\Student;
 use App\Models\StudentDocument;
 use App\Services\DocumentNumber;
+use App\Services\Duties\DutyService;
 use App\Services\Students\SponsorshipService;
 use App\Support\Lookups;
 use Illuminate\Http\RedirectResponse;
@@ -112,7 +115,7 @@ class StudentController extends Controller
                 app(SponsorshipService::class)->create($student, $data['sponsorship']);
             }
 
-            if ($year = AcademicYear::current()) {
+            if ($year = AcademicYear::currentFor($student->school_class_id)) {
                 Enrolment::create([
                     'student_id' => $student->id,
                     'academic_year_id' => $year->id,
@@ -134,7 +137,7 @@ class StudentController extends Controller
 
     public function show(Student $student): Response
     {
-        $student->load(['schoolClass:id,name', 'stream:id,name', 'guardians', 'sponsorships.sponsor', 'documents.uploader:id,name', 'enrolments.academicYear:id,name', 'enrolments.schoolClass:id,name', 'enrolments.stream:id,name']);
+        $student->load(['schoolClass:id,name', 'stream:id,name,class_teacher_id', 'guardians', 'sponsorships.sponsor', 'documents.uploader:id,name', 'enrolments.academicYear:id,name', 'enrolments.schoolClass:id,name', 'enrolments.stream:id,name']);
 
         $schoolId = $this->tenancy()->schoolId();
 
@@ -164,6 +167,20 @@ class StudentController extends Controller
 
         $discipline = $student->disciplineCases()->latest('incident_date')->get();
 
+        // Who looks after the student: the stream's class teacher and, for boarders, the dormitory patron / matron.
+        $person = fn (?Employee $e, string $role) => $e ? ['id' => $e->id, 'name' => $e->full_name, 'phone' => $e->phone, 'role' => $role] : null;
+        $student->loadMissing('stream.classTeacher:id,first_name,last_name,phone');
+        $bed = BedAllocation::active()->where('student_id', $student->id)->with('room.dormitory.caretakers.employee:id,first_name,last_name,phone')->latest('start_date')->first();
+        $care = [
+            'teachers' => array_values(array_filter([$person($student->stream?->classTeacher, 'Class teacher')])),
+            'dormitory' => $bed ? [
+                'name' => $bed->room?->dormitory?->name,
+                'room' => $bed->room?->name,
+                'bed' => $bed->bed_no,
+                'caretakers' => $bed->room?->dormitory?->caretakers->map(fn ($c) => $person($c->employee, ucfirst($c->role)))->filter()->values() ?? [],
+            ] : null,
+        ];
+
         return Inertia::render('students/show', [
             'student' => [
                 ...$student->toArray(),
@@ -187,6 +204,8 @@ class StudentController extends Controller
             ],
             'results' => $results,
             'discipline' => $discipline,
+            'care' => $care,
+            'duties' => app(DutyService::class)->forPerson($student),
             'statuses' => Lookups::enum(Student::STATUSES),
             'sponsors' => SponsorshipService::options(),
             'sponsorTypes' => Lookups::enum(Sponsor::TYPES),
@@ -389,7 +408,7 @@ class StudentController extends Controller
                 'date_of_birth' => $student->date_of_birth?->toDateString(),
                 'guardian_phone' => $student->guardians->first()?->phone,
             ],
-            'validUntil' => AcademicYear::current()?->end_date?->toDateString(),
+            'validUntil' => AcademicYear::currentFor($student->school_class_id)?->end_date?->toDateString(),
         ]);
     }
 

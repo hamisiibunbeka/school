@@ -9,6 +9,7 @@ use Carbon\CarbonImmutable;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -127,7 +128,7 @@ class CalendarController extends Controller
         $end = CarbonImmutable::parse($endDate.' '.($allDay ? '23:59' : ($data['end_time'] ?? $data['start_time'])));
 
         if ($end->lt($start)) {
-            throw \Illuminate\Validation\ValidationException::withMessages(['end_time' => 'The event must end after it starts.']);
+            throw ValidationException::withMessages(['end_time' => 'The event must end after it starts.']);
         }
 
         return [

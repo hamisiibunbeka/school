@@ -2,11 +2,17 @@
 
 namespace App\Models;
 
+use App\Support\EducationLevel;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class SchoolClass extends SchoolModel
 {
     protected $table = 'school_classes';
+
+    public function isALevel(): bool
+    {
+        return $this->education_level === EducationLevel::A_LEVEL;
+    }
 
     public function streams(): HasMany
     {

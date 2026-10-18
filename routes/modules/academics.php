@@ -4,6 +4,7 @@ use App\Http\Controllers\Academics\AcademicYearController;
 use App\Http\Controllers\Academics\AllocationController;
 use App\Http\Controllers\Academics\CalendarController;
 use App\Http\Controllers\Academics\ClassController;
+use App\Http\Controllers\Academics\CombinationController;
 use App\Http\Controllers\Academics\HomeworkController;
 use App\Http\Controllers\Academics\LessonPlanController;
 use App\Http\Controllers\Academics\SubjectController;
@@ -32,6 +33,11 @@ Route::prefix('academics')->name('academics.')->group(function () {
         Route::delete('streams/{stream}', [ClassController::class, 'destroyStream'])->name('streams.destroy');
 
         // Subjects
+        Route::post('combinations', [CombinationController::class, 'store'])->name('combinations.store');
+        Route::post('combinations/standard', [CombinationController::class, 'seedStandard'])->name('combinations.standard');
+        Route::put('combinations/{combination}', [CombinationController::class, 'update'])->name('combinations.update');
+        Route::delete('combinations/{combination}', [CombinationController::class, 'destroy'])->name('combinations.destroy');
+
         Route::post('subjects', [SubjectController::class, 'store'])->name('subjects.store');
         Route::put('subjects/{subject}', [SubjectController::class, 'update'])->name('subjects.update');
         Route::delete('subjects/{subject}', [SubjectController::class, 'destroy'])->name('subjects.destroy');
@@ -67,6 +73,7 @@ Route::prefix('academics')->name('academics.')->group(function () {
         Route::get('years', [AcademicYearController::class, 'index'])->name('years.index');
         Route::get('classes', [ClassController::class, 'index'])->name('classes.index');
         Route::get('subjects', [SubjectController::class, 'index'])->name('subjects.index');
+        Route::get('combinations', [CombinationController::class, 'index'])->name('combinations.index');
         Route::get('allocations', [AllocationController::class, 'index'])->name('allocations.index');
         Route::get('timetable', [TimetableController::class, 'index'])->name('timetable.index');
         Route::get('lesson-plans', [LessonPlanController::class, 'index'])->name('lesson-plans.index');

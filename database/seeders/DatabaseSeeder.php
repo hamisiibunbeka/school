@@ -26,10 +26,12 @@ class DatabaseSeeder extends Seeder
             AdmissionsDemoSeeder::class,
             AttendanceDemoSeeder::class,
             ExamsDemoSeeder::class,
+            ALevelDemoSeeder::class,
             FeesDemoSeeder::class,
             AccountingDemoSeeder::class,
             HrDemoSeeder::class,
             OperationsDemoSeeder::class,
+            DutiesDemoSeeder::class,
             CommunicationDemoSeeder::class,
             WebsiteDemoSeeder::class,
         ];

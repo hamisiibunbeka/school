@@ -50,4 +50,9 @@ class Employee extends SchoolModel
     {
         return $this->hasMany(ClassSubject::class);
     }
+
+    public function dutyAssignments(): HasMany
+    {
+        return $this->hasMany(DutyAssignment::class);
+    }
 }

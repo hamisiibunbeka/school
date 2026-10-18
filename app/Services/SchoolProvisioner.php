@@ -203,10 +203,27 @@ class SchoolProvisioner
         ]);
     }
 
-    /** NECTA-style default grading; fully editable per school. */
+    /** NECTA ACSEE (Form V–VI): A=1 … F=7, S = subsidiary pass. */
+    public const A_LEVEL_SCALE = [
+        ['A', 80, 100, 1, 'Excellent'],
+        ['B', 70, 79.99, 2, 'Very Good'],
+        ['C', 60, 69.99, 3, 'Good'],
+        ['D', 50, 59.99, 4, 'Satisfactory'],
+        ['E', 40, 49.99, 5, 'Pass'],
+        ['S', 35, 39.99, 6, 'Subsidiary pass'],
+        ['F', 0, 34.99, 7, 'Fail'],
+    ];
+
+    /** NECTA-style default grading (O-Level CSEE and A-Level ACSEE); fully editable per school. */
     public function seedGradeScale(): void
     {
-        if (GradeScale::exists()) {
+        if (! GradeScale::where('education_level', 'a_level')->exists()) {
+            foreach (self::A_LEVEL_SCALE as [$grade, $min, $max, $points, $remark]) {
+                GradeScale::create(['education_level' => 'a_level', 'grade' => $grade, 'min_score' => $min, 'max_score' => $max, 'points' => $points, 'remark' => $remark]);
+            }
+        }
+
+        if (GradeScale::where('education_level', 'o_level')->exists()) {
             return;
         }
 

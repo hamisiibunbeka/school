@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Support\EducationLevel;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class AcademicYear extends SchoolModel
@@ -16,8 +17,17 @@ class AcademicYear extends SchoolModel
         return $this->hasMany(Term::class)->orderBy('start_date');
     }
 
-    public static function current(): ?self
+    /** Current year of an education level (O-Level and A-Level run separate calendars). */
+    public static function current(string $level = EducationLevel::O_LEVEL): ?self
     {
-        return static::where('is_current', true)->first() ?? static::latest('start_date')->first();
+        $q = fn () => static::where('education_level', $level);
+
+        return $q()->where('is_current', true)->first() ?? $q()->latest('start_date')->first();
+    }
+
+    /** Current year for the level of the given class. */
+    public static function currentFor(?int $classId): ?self
+    {
+        return static::current(EducationLevel::forClass($classId));
     }
 }

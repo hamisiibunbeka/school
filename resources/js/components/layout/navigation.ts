@@ -55,6 +55,7 @@ export const navigation: NavSection[] = [
                 children: [
                     { title: 'Applications', href: '/admissions' },
                     { title: 'New Application', href: '/admissions/create', permission: 'admissions.manage' },
+                    { title: 'Form Five Joining', href: '/admissions/joining-instructions', permission: 'admissions.manage' },
                 ],
             },
             {
@@ -67,6 +68,7 @@ export const navigation: NavSection[] = [
                     { title: 'Add Student', href: '/students/create', permission: 'students.manage' },
                     { title: 'Guardians', href: '/guardians' },
                     { title: 'Promotions', href: '/students/promotions', permission: 'students.manage' },
+                    { title: 'Student Duties', href: '/students/duties' },
                 ],
             },
             {
@@ -78,6 +80,7 @@ export const navigation: NavSection[] = [
                     { title: 'Years & Terms', href: '/academics/years' },
                     { title: 'Classes & Streams', href: '/academics/classes' },
                     { title: 'Subjects', href: '/academics/subjects' },
+                    { title: 'Combinations (A-Level)', href: '/academics/combinations' },
                     { title: 'Teacher Allocation', href: '/academics/allocations' },
                     { title: 'Timetable', href: '/academics/timetable' },
                     { title: 'Lesson Plans', href: '/academics/lesson-plans' },
@@ -163,6 +166,7 @@ export const navigation: NavSection[] = [
                     { title: 'Employees', href: '/hr/employees', permission: 'hr.view' },
                     { title: 'Departments', href: '/hr/departments', permission: 'hr.view' },
                     { title: 'Leave Management', href: '/hr/leave', permission: 'hr.view' },
+                    { title: 'Staff Duties', href: '/hr/duties', permission: 'hr.view' },
                     { title: 'Payroll Runs', href: '/payroll', permission: 'payroll.view' },
                     { title: 'Salary Components', href: '/payroll/components', permission: 'payroll.view' },
                     { title: 'Statutory Rules (PAYE, NSSF…)', href: '/payroll/statutory', permission: 'payroll.view' },

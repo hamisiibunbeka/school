@@ -6,11 +6,14 @@ use App\Http\Controllers\Controller;
 use App\Models\AcademicYear;
 use App\Models\AuditLog;
 use App\Models\Exam;
+use App\Models\SchoolClass;
 use App\Models\Student;
 use App\Models\Term;
+use App\Models\User;
 use App\Notifications\SchoolNotification;
 use App\Services\Exams\ResultsService;
 use App\Services\Exams\TeacherAccess;
+use App\Support\EducationLevel;
 use App\Support\Lookups;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -191,7 +194,7 @@ class ExamController extends Controller
         [$from, $to, $label] = $map[$data['action']];
 
         if ($exam->status !== $from) {
-            $this->toast("This exam is ".str_replace('_', ' ', $exam->status).' — that action is not available.', 'error');
+            $this->toast('This exam is '.str_replace('_', ' ', $exam->status).' — that action is not available.', 'error');
 
             return back();
         }
@@ -253,7 +256,7 @@ class ExamController extends Controller
         return $users->count();
     }
 
-    private function canEnterStatus(Exam $exam, ?\App\Models\User $user): bool
+    private function canEnterStatus(Exam $exam, ?User $user): bool
     {
         return $exam->status === 'marks_entry' || ($exam->status === 'moderation' && $this->access->canApprove($user));
     }
@@ -285,6 +288,19 @@ class ExamController extends Controller
     private function validated(Request $request, ?Exam $exam = null): array
     {
         $schoolId = $this->tenancy()->schoolId();
+
+        $request->validate([
+            // O-Level and A-Level run separate calendars and grading, so one exam covers one level.
+            'class_ids' => [function ($attribute, $value, $fail) use ($request) {
+                $yearLevel = AcademicYear::whereKey($request->input('academic_year_id'))->value('education_level');
+                $levels = SchoolClass::whereIn('id', (array) $value)->distinct()->pluck('education_level');
+                if ($levels->count() > 1) {
+                    $fail('An exam cannot mix O-Level and A-Level classes — create one exam per level.');
+                } elseif ($yearLevel && $levels->isNotEmpty() && $levels->first() !== $yearLevel) {
+                    $fail('These classes are '.EducationLevel::label($levels->first()).' but the academic year is '.EducationLevel::label($yearLevel).'. Choose the matching year.');
+                }
+            }],
+        ]);
 
         return $request->validate([
             'name' => ['required', 'string', 'max:150'],

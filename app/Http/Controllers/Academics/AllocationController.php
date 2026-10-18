@@ -4,8 +4,8 @@ namespace App\Http\Controllers\Academics;
 
 use App\Http\Controllers\Controller;
 use App\Models\ClassSubject;
-use App\Models\Employee;
 use App\Models\SchoolClass;
+use App\Services\Academics\WorkloadService;
 use App\Support\Lookups;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -17,13 +17,11 @@ use Inertia\Response;
 /** Teacher-to-class/subject allocation with workload limits (SRS 4.6). */
 class AllocationController extends Controller
 {
-    /** Weekly periods above which a teacher is flagged as overloaded. */
-    public const MAX_PERIODS = 30;
+    public function __construct(private WorkloadService $workload) {}
 
     public function index(): Response
     {
-        $classes = SchoolClass::withCount('streams')->orderBy('level')->orderBy('name')->get(['id', 'name', 'code', 'level']);
-        $streamCounts = $classes->pluck('streams_count', 'id');
+        $classes = SchoolClass::withCount('streams')->orderBy('level')->orderBy('name')->get(['id', 'name', 'code', 'level', 'education_level']);
 
         $allocations = ClassSubject::with(['subject:id,name,code,type', 'teacher:id,first_name,last_name,employee_no', 'stream:id,name'])
             ->get()
@@ -39,31 +37,17 @@ class AllocationController extends Controller
                 'employee_id' => $a->employee_id,
                 'teacher' => $a->teacher?->full_name,
                 'periods_per_week' => $a->periods_per_week,
-                // A class-wide allocation is taught separately in every stream.
-                'effective_periods' => (int) $a->periods_per_week * ($a->stream_id ? 1 : max(1, (int) ($streamCounts[$a->school_class_id] ?? 1))),
+                'is_joint' => $a->is_joint,
+                // Class-wide: taught separately in every stream (A-Level: every stream whose combination takes it), unless joint.
+                'effective_periods' => $this->workload->effectivePeriods($a),
             ])
             ->sortBy('subject')->values();
 
-        $teachers = Employee::teachers()->active()->orderBy('first_name')->get(['id', 'first_name', 'last_name', 'employee_no', 'designation']);
-        $workload = $teachers->map(function (Employee $t) use ($allocations) {
-            $mine = $allocations->where('employee_id', $t->id);
-
-            return [
-                'id' => $t->id,
-                'name' => $t->full_name,
-                'employee_no' => $t->employee_no,
-                'designation' => $t->designation,
-                'allocations' => $mine->count(),
-                'periods' => (int) $mine->sum('effective_periods'),
-                'subjects' => $mine->pluck('subject')->unique()->values(),
-            ];
-        })->sortByDesc('periods')->values();
-
         return Inertia::render('academics/allocations', [
-            'classes' => $classes->map(fn ($c) => ['id' => $c->id, 'name' => $c->name, 'code' => $c->code, 'streams_count' => $c->streams_count])->values(),
+            'classes' => $classes->map(fn ($c) => ['id' => $c->id, 'name' => $c->name, 'code' => $c->code, 'streams_count' => $c->streams_count, 'education_level' => $c->education_level])->values(),
             'allocations' => $allocations,
-            'workload' => $workload,
-            'maxPeriods' => self::MAX_PERIODS,
+            'workload' => $this->workload->teachers(),
+            'workloadSettings' => $this->workload->settings(),
             'subjects' => Lookups::subjects(),
             'teachers' => Lookups::teachers(),
             'classOptions' => Lookups::classes(),
@@ -73,12 +57,13 @@ class AllocationController extends Controller
     public function store(Request $request): RedirectResponse
     {
         $data = $this->validated($request);
+        $result = $this->workload->check($data['employee_id'] ?? null, $this->workload->effectivePeriods($data));
         $allocation = ClassSubject::create($data);
         $allocation->load(['subject', 'schoolClass']);
 
         $this->audit('created', $allocation, "Added {$allocation->subject?->name} to {$allocation->schoolClass?->name}", 'academics');
         $this->toast("{$allocation->subject?->name} added to {$allocation->schoolClass?->name}.");
-        $this->warnIfOverloaded($data['employee_id'] ?? null);
+        $this->warnIfOver($result);
 
         return back();
     }
@@ -86,12 +71,13 @@ class AllocationController extends Controller
     public function update(Request $request, ClassSubject $allocation): RedirectResponse
     {
         $data = $this->validated($request, $allocation);
-        $old = $allocation->only(['employee_id', 'periods_per_week', 'stream_id']);
+        $result = $this->workload->check($data['employee_id'] ?? null, $this->workload->effectivePeriods($data + $allocation->only(['school_class_id', 'subject_id'])), $allocation->id);
+        $old = $allocation->only(['employee_id', 'periods_per_week', 'stream_id', 'is_joint']);
         $allocation->update($data);
 
         $this->audit('updated', $allocation, 'Changed teacher allocation', 'academics', $old, $allocation->only(array_keys($old)));
         $this->toast('Allocation updated.');
-        $this->warnIfOverloaded($data['employee_id'] ?? null);
+        $this->warnIfOver($result);
 
         return back();
     }
@@ -106,18 +92,11 @@ class AllocationController extends Controller
         return back();
     }
 
-    private function warnIfOverloaded(?int $employeeId): void
+    /** "Warn" mode: the save went through, but tell the user the teacher is now above their limit. */
+    private function warnIfOver(?array $result): void
     {
-        if (! $employeeId) {
-            return;
-        }
-
-        $periods = ClassSubject::with('schoolClass')->where('employee_id', $employeeId)->get()
-            ->sum(fn (ClassSubject $a) => (int) $a->periods_per_week * ($a->stream_id ? 1 : max(1, $a->schoolClass?->streams()->count() ?? 1)));
-
-        if ($periods > self::MAX_PERIODS) {
-            $name = Employee::find($employeeId)?->full_name;
-            $this->toast("Saved, but {$name} now carries {$periods} periods/week (limit ".self::MAX_PERIODS.').', 'warning');
+        if ($result && $result['over']) {
+            $this->toast("Saved, but {$result['name']} now carries {$result['total']} periods/week (limit {$result['limit']}).", 'warning');
         }
     }
 
@@ -131,6 +110,7 @@ class AllocationController extends Controller
             'subject_id' => ['required', Rule::exists('subjects', 'id')->where('school_id', $schoolId)],
             'employee_id' => ['nullable', Rule::exists('employees', 'id')->where('school_id', $schoolId)],
             'periods_per_week' => ['required', 'integer', 'min:1', 'max:20'],
+            'is_joint' => ['boolean'],
         ], [], ['school_class_id' => 'class', 'stream_id' => 'stream', 'subject_id' => 'subject', 'employee_id' => 'teacher']);
 
         $duplicate = ClassSubject::where('school_class_id', $data['school_class_id'])
@@ -142,6 +122,9 @@ class AllocationController extends Controller
         if ($duplicate) {
             throw ValidationException::withMessages(['subject_id' => 'This subject is already allocated to that class/stream.']);
         }
+
+        // "Taught jointly" only applies to class-wide allocations.
+        $data['is_joint'] = empty($data['stream_id']) && ! empty($data['is_joint']);
 
         return $data;
     }
