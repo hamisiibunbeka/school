@@ -298,7 +298,7 @@ class SiteController extends Controller
         $labels = [
             'submitted' => 'Received — awaiting review', 'under_review' => 'Under review', 'interview' => 'Invited for interview / assessment',
             'accepted' => 'Accepted — the school will contact you', 'waitlisted' => 'Waitlisted', 'rejected' => 'Not successful',
-            'enrolled' => 'Enrolled — welcome!', 'withdrawn' => 'Withdrawn',
+            'awaiting_fees' => 'Admitted — pay the first fee installment to complete enrolment', 'enrolled' => 'Enrolled — welcome!', 'withdrawn' => 'Withdrawn',
         ];
 
         return [

@@ -123,9 +123,11 @@ export const navigation: NavSection[] = [
                 permission: 'fees.view',
                 children: [
                     { title: 'Collect Payment', href: '/fees/payments/create', permission: 'fees.manage' },
+                    { title: 'Admission Clearance', href: '/fees/clearance' },
                     { title: 'Payments & Receipts', href: '/fees/payments' },
                     { title: 'Invoices', href: '/fees/invoices' },
                     { title: 'Fee Structures', href: '/fees/structures' },
+                    { title: 'Installment Settings', href: '/fees/installments' },
                     { title: 'Discounts & Scholarships', href: '/fees/discounts' },
                     { title: 'Arrears & Aging', href: '/fees/arrears' },
                     { title: 'Fee Categories', href: '/fees/categories' },

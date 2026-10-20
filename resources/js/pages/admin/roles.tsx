@@ -8,9 +8,9 @@ import { confirm } from '@/lib/swal';
 import { cn, titleCase } from '@/lib/utils';
 
 type Role = { id: number; name: string; slug: string; description: string | null; permissions: string[]; is_system: boolean; users_count: number; is_portal: boolean };
-type Props = { roles: Role[]; modules: { key: string; label: string }[]; portalPermissions: string[] };
+type Props = { roles: Role[]; modules: { key: string; label: string }[]; portalPermissions: string[]; specialPermissions: { key: string; label: string }[] };
 
-export default function Roles({ roles, modules, portalPermissions }: Props) {
+export default function Roles({ roles, modules, portalPermissions, specialPermissions }: Props) {
     const can = useCan();
     const manage = can('administration.manage');
     const [selectedId, setSelectedId] = useState<number | 'new'>(roles[0]?.id ?? 'new');
@@ -35,7 +35,7 @@ export default function Roles({ roles, modules, portalPermissions }: Props) {
         form.setData('permissions', [...set]);
     };
     const setAll = (level: 'view' | 'manage' | 'none') => {
-        const keep = form.data.permissions.filter((p) => p.startsWith('portal.'));
+        const keep = form.data.permissions.filter((p) => p.startsWith('portal.') || specialPermissions.some((s) => s.key === p));
         if (level === 'none') return form.setData('permissions', keep);
         form.setData('permissions', [...keep, ...modules.flatMap((m) => (level === 'manage' ? [`${m.key}.view`, `${m.key}.manage`] : [`${m.key}.view`]))]);
     };
@@ -165,6 +165,24 @@ export default function Roles({ roles, modules, portalPermissions }: Props) {
                                                 />
                                             </td>
                                         ))}
+                                    </tr>
+                                ))}
+                                {specialPermissions.length > 0 && (
+                                    <tr className="bg-primary-light/40 dark:bg-primary-dark-light">
+                                        <td colSpan={3} className="text-xs font-bold text-primary uppercase">
+                                            Special authorities
+                                        </td>
+                                    </tr>
+                                )}
+                                {specialPermissions.map((p) => (
+                                    <tr key={p.key}>
+                                        <td>
+                                            <div className="font-semibold">{p.label}</div>
+                                            <div className="font-mono text-[11px] text-white-dark">{p.key}</div>
+                                        </td>
+                                        <td colSpan={2} className="text-center!">
+                                            <input type="checkbox" className="form-checkbox" disabled={!manage} checked={has(p.key)} onChange={(e) => toggle(p.key, e.target.checked)} aria-label={p.label} />
+                                        </td>
                                     </tr>
                                 ))}
                                 <tr className="bg-secondary-light/40 dark:bg-secondary-dark-light">

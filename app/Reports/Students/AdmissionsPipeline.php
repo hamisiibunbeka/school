@@ -7,7 +7,7 @@ use Illuminate\Support\Facades\DB;
 
 class AdmissionsPipeline extends Report
 {
-    private const STATUSES = ['submitted', 'under_review', 'interview', 'accepted', 'waitlisted', 'rejected', 'enrolled', 'withdrawn'];
+    private const STATUSES = ['submitted', 'under_review', 'interview', 'accepted', 'waitlisted', 'rejected', 'awaiting_fees', 'enrolled', 'withdrawn'];
 
     public function key(): string
     {
@@ -73,7 +73,7 @@ class AdmissionsPipeline extends Report
             ];
         }
 
-        $accepted = ($data['accepted']->total ?? 0) + ($data['enrolled']->total ?? 0);
+        $accepted = ($data['accepted']->total ?? 0) + ($data['awaiting_fees']->total ?? 0) + ($data['enrolled']->total ?? 0);
         $enrolled = (int) ($data['enrolled']->total ?? 0);
         $pending = array_sum(array_map(fn ($s) => (int) ($data[$s]->total ?? 0), ['submitted', 'under_review', 'interview']));
 

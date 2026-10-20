@@ -18,6 +18,9 @@ class Student extends SchoolModel
 
     public const STATUSES = ['active', 'on_leave', 'suspended', 'transferred', 'graduated', 'withdrawn', 'archived'];
 
+    /** Admitted but not yet cleared by finance: billable, but kept out of the directory and every class list. */
+    public const PENDING_CLEARANCE = 'pending_clearance';
+
     protected function casts(): array
     {
         return ['date_of_birth' => 'date', 'admission_date' => 'date'];

@@ -15,3 +15,6 @@ Schedule::command('sms:sync-delivery')->everyTenMinutes()->withoutOverlapping();
 
 // Broadcast centre: start scheduled broadcasts when due (and pick up queued ones if no queue worker ran them).
 Schedule::command('broadcasts:dispatch')->everyMinute()->withoutOverlapping();
+
+// Fee payment agreements (deferred admission fees): settle honoured ones, notify finance of due-soon / overdue ones.
+Schedule::command('fees:follow-up-agreements')->dailyAt('07:00')->withoutOverlapping();

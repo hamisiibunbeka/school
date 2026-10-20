@@ -1,9 +1,11 @@
 <?php
 
+use App\Http\Controllers\Fees\AdmissionClearanceController;
 use App\Http\Controllers\Fees\ArrearsController;
 use App\Http\Controllers\Fees\FeeCategoryController;
 use App\Http\Controllers\Fees\FeeDiscountController;
 use App\Http\Controllers\Fees\FeeStructureController;
+use App\Http\Controllers\Fees\InstallmentController;
 use App\Http\Controllers\Fees\InvoiceController;
 use App\Http\Controllers\Fees\PaymentController;
 use App\Http\Controllers\Fees\StatementController;
@@ -35,6 +37,17 @@ Route::middleware('can:fees.manage')->group(function () {
     Route::post('fees/payments/{payment}/void', [PaymentController::class, 'void'])->name('fees.payments.void');
 
     Route::post('fees/arrears/remind', [ArrearsController::class, 'remind'])->name('fees.arrears.remind');
+
+    Route::put('fees/installments', [InstallmentController::class, 'update'])->name('fees.installments.update');
+    Route::post('fees/clearance/{application}/verify', [AdmissionClearanceController::class, 'verify'])->name('fees.clearance.verify');
+    Route::post('fees/agreements/{agreement}/remind', [AdmissionClearanceController::class, 'remind'])->name('fees.agreements.remind');
+});
+
+// Deferrals are authorized by heads (fees.defer), not by the finance team itself.
+Route::middleware('can:fees.defer')->group(function () {
+    Route::post('fees/clearance/{application}/defer', [AdmissionClearanceController::class, 'defer'])->name('fees.clearance.defer');
+    Route::put('fees/agreements/{agreement}', [AdmissionClearanceController::class, 'extend'])->name('fees.agreements.extend');
+    Route::post('fees/agreements/{agreement}/close', [AdmissionClearanceController::class, 'close'])->name('fees.agreements.close');
 });
 
 Route::middleware('can:fees.view')->group(function () {
@@ -54,6 +67,8 @@ Route::middleware('can:fees.view')->group(function () {
     Route::get('fees/payments/{payment}', [PaymentController::class, 'show'])->name('fees.payments.show');
 
     Route::get('fees/arrears', [ArrearsController::class, 'index'])->name('fees.arrears.index');
+    Route::get('fees/installments', [InstallmentController::class, 'index'])->name('fees.installments.index');
+    Route::get('fees/clearance', [AdmissionClearanceController::class, 'index'])->name('fees.clearance.index');
     Route::get('fees/arrears/export', [ArrearsController::class, 'export'])->name('fees.arrears.export');
 
     Route::get('fees/statements/{student}', [StatementController::class, 'show'])->name('fees.statements.show');

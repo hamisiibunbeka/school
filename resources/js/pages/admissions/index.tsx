@@ -1,5 +1,5 @@
 import { Link } from '@inertiajs/react';
-import { CheckCircle2, ClipboardList, Clock3, Download, FileSearch, Hourglass, MessagesSquare, Plus, UserCheck, XCircle, type LucideIcon, Globe } from 'lucide-react';
+import { CheckCircle2, ClipboardList, Clock3, Download, FileSearch, Hourglass, MessagesSquare, Plus, UserCheck, Wallet, XCircle, type LucideIcon, Globe } from 'lucide-react';
 import { RowActions } from '@/components/ui/actions';
 import Avatar from '@/components/ui/avatar';
 import DataTable, { type Column } from '@/components/ui/data-table';
@@ -48,6 +48,7 @@ const PIPELINE: { key: string; label: string; icon: LucideIcon; tone: string }[]
     { key: 'accepted', label: 'Accepted', icon: CheckCircle2, tone: 'text-success bg-success-light dark:bg-success-dark-light' },
     { key: 'waitlisted', label: 'Waitlisted', icon: Hourglass, tone: 'text-warning bg-warning-light dark:bg-warning-dark-light' },
     { key: 'rejected', label: 'Rejected', icon: XCircle, tone: 'text-danger bg-danger-light dark:bg-danger-dark-light' },
+    { key: 'awaiting_fees', label: 'Awaiting fees', icon: Wallet, tone: 'text-warning bg-warning-light dark:bg-warning-dark-light' },
     { key: 'enrolled', label: 'Enrolled', icon: UserCheck, tone: 'text-primary bg-primary-light dark:bg-primary-dark-light' },
 ];
 
@@ -55,7 +56,7 @@ export default function AdmissionsIndex({ applications, filters: initial, counts
     const can = useCan();
     const { filters, setFilter, reset } = useFilters(initial);
     const total = Object.values(counts).reduce((a, b) => a + b, 0);
-    const decided = (counts.accepted ?? 0) + (counts.enrolled ?? 0);
+    const decided = (counts.accepted ?? 0) + (counts.awaiting_fees ?? 0) + (counts.enrolled ?? 0);
     const acceptanceRate = total ? Math.round((decided / Math.max(1, decided + (counts.rejected ?? 0) + (counts.waitlisted ?? 0))) * 100) : 0;
 
     const columns: Column<Row>[] = [
@@ -125,8 +126,8 @@ export default function AdmissionsIndex({ applications, filters: initial, counts
             render: (a) => (
                 <RowActions
                     view={`/admissions/${a.id}`}
-                    edit={can('admissions.manage') && !['enrolled', 'withdrawn', 'rejected'].includes(a.status) ? `/admissions/${a.id}/edit` : undefined}
-                    destroy={can('admissions.manage') && a.status !== 'enrolled' ? `/admissions/${a.id}` : undefined}
+                    edit={can('admissions.manage') && !['awaiting_fees', 'enrolled', 'withdrawn', 'rejected'].includes(a.status) ? `/admissions/${a.id}/edit` : undefined}
+                    destroy={can('admissions.manage') && !a.student_id ? `/admissions/${a.id}` : undefined}
                     label="application"
                 />
             ),
@@ -174,7 +175,7 @@ export default function AdmissionsIndex({ applications, filters: initial, counts
             )}
 
             {/* Pipeline */}
-            <div className="mb-6 grid grid-cols-2 gap-3 sm:grid-cols-4 xl:grid-cols-7">
+            <div className="mb-6 grid grid-cols-2 gap-3 sm:grid-cols-4 xl:grid-cols-8">
                 {PIPELINE.map((p, i) => {
                     const Icon = p.icon;
                     const active = filters.status === p.key;

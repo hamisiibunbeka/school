@@ -23,6 +23,8 @@ const map: Record<string, Tone> = {
     accepted: 'success',
     waitlisted: 'warning',
     enrolled: 'primary',
+    awaiting_fees: 'warning',
+    pending_clearance: 'warning',
     withdrawn: 'dark',
     on_leave: 'warning',
     suspended: 'danger',
@@ -43,6 +45,9 @@ const map: Record<string, Tone> = {
     posted: 'success',
     reversed: 'dark',
     overdue: 'danger',
+    honoured: 'success',
+    defaulted: 'danger',
+    deferred: 'secondary',
     // exams
     marks_entry: 'info',
     moderation: 'secondary',

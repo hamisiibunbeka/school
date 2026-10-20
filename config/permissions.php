@@ -44,18 +44,23 @@ return [
 
     'modules' => $modules,
 
+    // Single abilities outside the view/manage pattern.
+    'special' => [
+        'fees.defer' => 'Authorize fee deferrals — let an admitted student proceed on a payment agreement',
+    ],
+
     'roles' => [
         'school-admin' => [
             'name' => 'School Administrator',
             'description' => 'Full access to every school module.',
-            'permissions' => $all($schoolModules),
+            'permissions' => [...$all($schoolModules), 'fees.defer'],
         ],
         'principal' => [
             'name' => 'Principal / Head Teacher',
             'description' => 'Academic oversight, approvals and reports.',
             'permissions' => [
                 ...$all(['dashboard', 'admissions', 'students', 'academics', 'attendance', 'exams', 'communication', 'reports', 'health', 'website']),
-                'fees.view', 'hr.view', 'boarding.view', 'transport.view', 'library.view', 'accounting.view',
+                'fees.view', 'fees.defer', 'hr.view', 'boarding.view', 'transport.view', 'library.view', 'accounting.view',
             ],
         ],
         'bursar' => [

@@ -11,7 +11,7 @@ const FLOW_LABELS: Record<string, string> = { submitted: 'Received', under_revie
 
 function Progress({ status }: { status: string }) {
     const closed = ['rejected', 'withdrawn'].includes(status);
-    const index = status === 'waitlisted' ? 3 : FLOW.indexOf(status);
+    const index = status === 'waitlisted' || status === 'awaiting_fees' ? 3 : FLOW.indexOf(status);
     return (
         <ol className="grid grid-cols-5 gap-1.5">
             {FLOW.map((s, i) => {

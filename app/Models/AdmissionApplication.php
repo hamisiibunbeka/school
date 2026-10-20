@@ -4,11 +4,12 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 /** Admission application moving through the SRS 13 admissions workflow. */
 class AdmissionApplication extends SchoolModel
 {
-    public const STATUSES = ['submitted', 'under_review', 'interview', 'accepted', 'waitlisted', 'rejected', 'enrolled', 'withdrawn'];
+    public const STATUSES = ['submitted', 'under_review', 'interview', 'accepted', 'waitlisted', 'rejected', 'awaiting_fees', 'enrolled', 'withdrawn'];
 
     /** Allowed transitions: current status => next statuses. */
     public const TRANSITIONS = [
@@ -17,6 +18,8 @@ class AdmissionApplication extends SchoolModel
         'interview' => ['accepted', 'waitlisted', 'rejected', 'withdrawn'],
         'waitlisted' => ['accepted', 'rejected', 'withdrawn'],
         'accepted' => ['withdrawn'],
+        // Billed and waiting for finance clearance (or an authorized deferral); enrolment completes from Fees.
+        'awaiting_fees' => ['withdrawn'],
         'rejected' => [],
         'enrolled' => [],
         'withdrawn' => [],
@@ -33,6 +36,7 @@ class AdmissionApplication extends SchoolModel
             'date_of_birth' => 'date',
             'interview_date' => 'date',
             'decided_at' => 'datetime',
+            'fee_cleared_at' => 'datetime',
             'assessment_score' => 'decimal:2',
             'documents' => 'array',
         ];
@@ -82,6 +86,22 @@ class AdmissionApplication extends SchoolModel
     public function student(): BelongsTo
     {
         return $this->belongsTo(Student::class);
+    }
+
+    public function admissionInvoice(): BelongsTo
+    {
+        return $this->belongsTo(Invoice::class, 'admission_invoice_id');
+    }
+
+    public function feeClearer(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'fee_cleared_by');
+    }
+
+    /** The payment agreement authorized for this applicant, if any. */
+    public function agreement(): HasOne
+    {
+        return $this->hasOne(FeePaymentAgreement::class)->latestOfMany();
     }
 
     public function decider(): BelongsTo

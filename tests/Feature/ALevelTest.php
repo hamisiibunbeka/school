@@ -235,6 +235,8 @@ class ALevelTest extends TestCase
         $this->actingAs($this->admin)->get("/admissions/{$app->id}")->assertInertia(fn (Assert $p) => $p->where('application.combination', 'PCB'));
         $app->update(['date_of_birth' => '2008-01-01']);
         $this->actingAs($this->admin)->post("/admissions/{$app->id}/enrol", ['school_class_id' => $class->id, 'stream_id' => $pcbStream->id, 'admission_date' => now()->toDateString()])->assertSessionHasNoErrors();
+        // No fees are billed in this setup, so finance can clear the student straight away.
+        $this->actingAs($this->admin)->post("/fees/clearance/{$app->id}/verify")->assertSessionHasNoErrors();
         $student = $this->in(fn () => Student::where('first_name', 'Neema')->firstOrFail());
         $this->assertSame($pcbStream->id, $student->stream_id);
         $this->assertSame('a_level', $this->in(fn () => $student->enrolments()->first()->academicYear->education_level));

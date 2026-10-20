@@ -1,5 +1,5 @@
-import { Link, useForm } from '@inertiajs/react';
-import { AlertTriangle, ArrowRight, Check, FileText, GraduationCap, History, Pencil, Phone, ShieldAlert, Mail, UserPlus, Globe, Paperclip } from 'lucide-react';
+import { Link, router, useForm, usePage } from '@inertiajs/react';
+import { AlertTriangle, ArrowRight, BadgeCheck, Check, FileText, GraduationCap, Handshake, History, Pencil, Phone, ShieldAlert, Mail, UserPlus, Globe, Paperclip, Wallet } from 'lucide-react';
 import { useState, type FormEvent } from 'react';
 import Avatar from '@/components/ui/avatar';
 import EmptyState from '@/components/ui/empty-state';
@@ -8,7 +8,9 @@ import Modal from '@/components/ui/modal';
 import PageHeader from '@/components/ui/page-header';
 import StatusBadge from '@/components/ui/status-badge';
 import { useCan } from '@/hooks/use-can';
-import { cn, date, dateTime, titleCase, today } from '@/lib/utils';
+import { confirm } from '@/lib/swal';
+import { cn, date, dateTime, money, titleCase, today } from '@/lib/utils';
+import DeferralModal, { type DeferralTarget } from '@/pages/fees/_components/deferral-modal';
 import type { Option } from '@/types';
 
 type Application = {
@@ -52,6 +54,20 @@ type Application = {
     student: { id: number; name: string; admission_no: string } | null;
 };
 type Duplicate = { id: number; name: string; admission_no: string; class: string | null; status: string; date_of_birth: string | null };
+type Clearance = {
+    state: 'awaiting' | 'paid' | 'deferred';
+    required?: string;
+    paid?: string;
+    outstanding?: string;
+    ready?: boolean;
+    basis?: string;
+    year?: string | null;
+    schedule?: { name: string; percent: string; due_date: string; amount: string; cumulative: string; met: boolean }[];
+    cleared_at: string | null;
+    cleared_by: string | null;
+    invoice: { id: number; invoice_no: string; total: string; balance: string; status: string } | null;
+    agreement: { id: number; amount: string; paid: string; due_date: string; reason: string; terms: string | null; status: string; authorizer: string | null } | null;
+};
 type HistoryItem = { id: number; action: string; description: string | null; user: string | null; created_at: string | null };
 type Props = {
     application: Application;
@@ -61,6 +77,7 @@ type Props = {
     classes: (Option & { streams: (Option & { combination?: string | null })[] })[];
     currentYear: string | null;
     history?: HistoryItem[];
+    clearance: Clearance | null;
 };
 
 const STEPS = [
@@ -68,6 +85,7 @@ const STEPS = [
     { key: 'under_review', label: 'Review' },
     { key: 'interview', label: 'Interview' },
     { key: 'decision', label: 'Decision' },
+    { key: 'fees', label: 'Fee clearance' },
     { key: 'enrolled', label: 'Enrolled' },
 ];
 
@@ -92,16 +110,30 @@ function stepIndex(status: string): number {
         case 'waitlisted':
         case 'rejected':
             return 3;
-        case 'enrolled':
+        case 'awaiting_fees':
             return 4;
+        case 'enrolled':
+            return 5;
         default:
             return -1;
     }
 }
 
-export default function AdmissionShow({ application: a, transitions, decisions, duplicates, classes, currentYear, history = [] }: Props) {
+export default function AdmissionShow({ application: a, transitions, decisions, duplicates, classes, currentYear, history = [], clearance }: Props) {
     const can = useCan();
     const manage = can('admissions.manage');
+    const cur = usePage().props.school?.currency ?? 'TZS';
+    const [deferring, setDeferring] = useState<DeferralTarget | null>(null);
+    const clearanceError = (usePage().props.errors as Record<string, string>).clearance;
+
+    const verifyFees = async () => {
+        const { confirmed } = await confirm({
+            title: `Clear ${a.full_name}?`,
+            text: `${money(clearance?.paid, cur)} received against ${money(clearance?.required, cur)} required. The student is enrolled and appears in the student directory.`,
+            confirmText: 'Verify & enrol',
+        });
+        if (confirmed) router.post(`/fees/clearance/${a.id}/verify`, {}, { preserveScroll: true });
+    };
     const [target, setTarget] = useState<string | null>(null);
     const [enrolOpen, setEnrolOpen] = useState(false);
     const move = useForm({ status: '', decision_notes: '', interview_date: '', assessment_score: '' });
@@ -131,7 +163,7 @@ export default function AdmissionShow({ application: a, transitions, decisions, 
 
     const submitEnrol = (e: FormEvent) => {
         e.preventDefault();
-        enrol.post(`/admissions/${a.id}/enrol`, { preserveScroll: true });
+        enrol.post(`/admissions/${a.id}/enrol`, { preserveScroll: true, onSuccess: () => setEnrolOpen(false) });
     };
 
     const needsNotes = target ? decisions.includes(target) : false;
@@ -144,22 +176,22 @@ export default function AdmissionShow({ application: a, transitions, decisions, 
                 breadcrumbs={[{ title: 'Admissions', href: '/admissions' }, { title: a.application_no }]}
                 actions={
                     <>
-                        {a.combination && ['accepted', 'enrolled'].includes(a.status) && (
+                        {a.combination && ['accepted', 'awaiting_fees', 'enrolled'].includes(a.status) && (
                             <Link href={`/admissions/joining-instructions/print?application=${a.id}`} className="btn btn-outline-primary">
                                 <FileText className="h-4 w-4" /> Joining instruction
                             </Link>
                         )}
-                        {['accepted', 'enrolled'].includes(a.status) && (
+                        {['accepted', 'awaiting_fees', 'enrolled'].includes(a.status) && (
                             <Link href={`/admissions/${a.id}/letter`} className="btn btn-outline-dark">
                                 <FileText className="h-4 w-4" /> Admission letter
                             </Link>
                         )}
-                        {manage && !['enrolled', 'withdrawn', 'rejected'].includes(a.status) && (
+                        {manage && !['awaiting_fees', 'enrolled', 'withdrawn', 'rejected'].includes(a.status) && (
                             <Link href={`/admissions/${a.id}/edit`} className="btn btn-outline-primary">
                                 <Pencil className="h-4 w-4" /> Edit
                             </Link>
                         )}
-                        {a.student && (
+                        {a.student && a.status === 'enrolled' && (
                             <Link href={`/students/${a.student.id}`} className="btn btn-primary">
                                 <GraduationCap className="h-4 w-4" /> View student
                             </Link>
@@ -206,9 +238,9 @@ export default function AdmissionShow({ application: a, transitions, decisions, 
                             const done = current > i || (current === i && a.status === 'enrolled');
                             const active = current === i && a.status !== 'enrolled';
                             const label =
-                                s.key === 'decision' && current >= 3 && a.status !== 'enrolled'
+                                s.key === 'decision' && current === 3
                                     ? titleCase(a.status)
-                                    : s.key === 'decision' && a.status === 'enrolled'
+                                    : s.key === 'decision' && current > 3
                                       ? 'Accepted'
                                       : s.label;
                             return (
@@ -279,6 +311,128 @@ export default function AdmissionShow({ application: a, transitions, decisions, 
 
             <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
                 <div className="space-y-6 lg:col-span-2">
+                    {clearance && (
+                        <div className={cn('panel border-s-4', clearance.state === 'awaiting' ? 'border-warning' : clearance.state === 'deferred' ? 'border-secondary' : 'border-success')}>
+                            <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+                                <h5 className="flex items-center gap-2 text-lg font-bold">
+                                    <Wallet className="h-5 w-5 text-primary" /> Fee clearance
+                                </h5>
+                                {clearance.state === 'awaiting' ? (
+                                    <StatusBadge status="awaiting_fees" label={clearance.ready ? 'Paid — awaiting verification' : 'Awaiting payment'} tone={clearance.ready ? 'success' : 'warning'} />
+                                ) : (
+                                    <StatusBadge status={clearance.state} label={clearance.state === 'deferred' ? 'Enrolled on payment agreement' : 'Cleared by finance'} tone={clearance.state === 'deferred' ? 'secondary' : 'success'} />
+                                )}
+                            </div>
+
+                            {clearance.state === 'awaiting' && (
+                                <>
+                                    <p className="mb-4 text-sm text-white-dark">
+                                        {a.full_name} is admitted as <strong className="text-black dark:text-white-light">{a.student?.admission_no}</strong> but stays out of the student
+                                        directory until finance verifies the payment below, or a head authorizes a payment agreement.
+                                    </p>
+                                    <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+                                        <div className="rounded-lg bg-primary-light p-4 dark:bg-primary-dark-light">
+                                            <div className="text-xs font-bold text-white-dark uppercase">Required to clear</div>
+                                            <div className="text-lg font-extrabold text-primary">{money(clearance.required, cur)}</div>
+                                            <div className="text-[11px] text-white-dark">{clearance.basis}</div>
+                                        </div>
+                                        <div className="rounded-lg bg-success-light p-4 dark:bg-success-dark-light">
+                                            <div className="text-xs font-bold text-white-dark uppercase">Paid</div>
+                                            <div className="text-lg font-extrabold text-success">{money(clearance.paid, cur)}</div>
+                                        </div>
+                                        <div className={cn('rounded-lg p-4', clearance.ready ? 'bg-success-light dark:bg-success-dark-light' : 'bg-danger-light dark:bg-danger-dark-light')}>
+                                            <div className="text-xs font-bold text-white-dark uppercase">Outstanding</div>
+                                            <div className={cn('text-lg font-extrabold', clearance.ready ? 'text-success' : 'text-danger')}>{money(clearance.outstanding, cur)}</div>
+                                        </div>
+                                    </div>
+                                    {(clearance.schedule ?? []).length > 0 && (
+                                        <div className="table-responsive mt-4">
+                                            <table className="table table-compact">
+                                                <thead>
+                                                    <tr>
+                                                        <th>Installment ({clearance.year})</th>
+                                                        <th>Due by</th>
+                                                        <th className="text-end!">Amount</th>
+                                                        <th className="text-end!">Cumulative</th>
+                                                        <th />
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    {(clearance.schedule ?? []).map((st) => (
+                                                        <tr key={st.name}>
+                                                            <td className="font-semibold">
+                                                                {st.name} <span className="text-xs text-white-dark">({Number(st.percent)}%)</span>
+                                                            </td>
+                                                            <td>{date(st.due_date)}</td>
+                                                            <td className="text-end!">{money(st.amount, cur)}</td>
+                                                            <td className="text-end!">{money(st.cumulative, cur)}</td>
+                                                            <td className="text-end!">{st.met ? <Check className="ms-auto h-4 w-4 text-success" /> : null}</td>
+                                                        </tr>
+                                                    ))}
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    )}
+                                    {clearanceError && <p className="form-error mt-3">{clearanceError}</p>}
+                                    <div className="mt-4 flex flex-wrap gap-2">
+                                        {can('fees.manage') && a.student && !clearance.ready && (
+                                            <Link href={`/fees/payments/create?student=${a.student.id}`} className="btn btn-outline-primary">
+                                                <Wallet className="h-4 w-4" /> Receive payment
+                                            </Link>
+                                        )}
+                                        {can('fees.manage') && (
+                                            <button className="btn btn-success" disabled={!clearance.ready} onClick={verifyFees}>
+                                                <BadgeCheck className="h-4 w-4" /> Verify &amp; enrol
+                                            </button>
+                                        )}
+                                        {can('fees.defer') && !clearance.ready && (
+                                            <button
+                                                className="btn btn-outline-secondary"
+                                                onClick={() => setDeferring({ id: a.id, full_name: a.full_name, guardian_name: a.guardian_name, outstanding: clearance.outstanding ?? '0' })}
+                                            >
+                                                <Handshake className="h-4 w-4" /> Authorize deferral
+                                            </button>
+                                        )}
+                                        {!can('fees.manage') && !can('fees.defer') && <p className="text-xs text-white-dark">Finance verifies payment from Fees → Admission Clearance.</p>}
+                                    </div>
+                                </>
+                            )}
+
+                            {clearance.state !== 'awaiting' && (
+                                <p className="text-sm text-white-dark">
+                                    {clearance.state === 'deferred' ? 'Payment agreement authorized' : 'Payment verified'} by{' '}
+                                    <strong className="text-black dark:text-white-light">{clearance.cleared_by ?? '—'}</strong> · {dateTime(clearance.cleared_at)}
+                                </p>
+                            )}
+
+                            {clearance.agreement && (
+                                <div className="mt-4 rounded-md bg-secondary-light p-3 text-sm dark:bg-secondary-dark-light">
+                                    <div className="flex flex-wrap items-center justify-between gap-2">
+                                        <div className="font-bold text-secondary">
+                                            {money(clearance.agreement.amount, cur)} agreed by {date(clearance.agreement.due_date)}
+                                        </div>
+                                        <StatusBadge status={clearance.agreement.status} />
+                                    </div>
+                                    <div className="mt-1 text-black dark:text-white-light">“{clearance.agreement.reason}”</div>
+                                    {clearance.agreement.terms && <div className="mt-1 text-xs text-white-dark italic">Terms: {clearance.agreement.terms}</div>}
+                                    <div className="mt-1 text-xs text-white-dark">
+                                        Paid since agreement: {money(clearance.agreement.paid, cur)} · authorized by {clearance.agreement.authorizer ?? '—'}
+                                    </div>
+                                </div>
+                            )}
+
+                            {clearance.invoice && (
+                                <div className="mt-3 text-xs text-white-dark">
+                                    Admission invoice{' '}
+                                    <Link href={`/fees/invoices/${clearance.invoice.id}`} className="font-semibold text-primary hover:underline">
+                                        {clearance.invoice.invoice_no}
+                                    </Link>{' '}
+                                    · {money(clearance.invoice.total, cur)} · balance {money(clearance.invoice.balance, cur)} · <StatusBadge status={clearance.invoice.status} />
+                                </div>
+                            )}
+                        </div>
+                    )}
+
                     <div className="panel">
                         <h5 className="mb-4 text-lg font-bold">Applicant details</h5>
                         <dl className="grid grid-cols-1 gap-x-6 gap-y-4 sm:grid-cols-2">
@@ -340,7 +494,7 @@ export default function AdmissionShow({ application: a, transitions, decisions, 
                                 {a.decision_notes}
                             </div>
                         )}
-                        {a.student && (
+                        {a.student && a.status === 'enrolled' && (
                             <div className="mt-4 flex items-center gap-2 rounded-md bg-primary-light p-3 text-sm dark:bg-primary-dark-light">
                                 <GraduationCap className="h-4 w-4 text-primary" /> Enrolled as{' '}
                                 <Link href={`/students/${a.student.id}`} className="font-bold text-primary hover:underline">
@@ -491,7 +645,8 @@ export default function AdmissionShow({ application: a, transitions, decisions, 
                 <form onSubmit={submitEnrol} className="space-y-5">
                     <p className="text-sm text-white-dark">
                         Creates the student record from this application, links {a.guardian_name} as primary guardian (re-using an existing guardian with phone {a.guardian_phone})
-                        and enrols the learner for {currentYear ?? 'the current year'}.
+                        and bills the current term&apos;s fees for {currentYear ?? 'the current year'}. The learner goes to finance for fee clearance and joins the student directory once
+                        the first installment is verified, or a head authorizes a payment agreement.
                     </p>
                     <FormGrid>
                         <Select
@@ -546,11 +701,13 @@ export default function AdmissionShow({ application: a, transitions, decisions, 
                             Cancel
                         </button>
                         <button className="btn btn-primary" disabled={enrol.processing}>
-                            <UserPlus className="h-4 w-4" /> Enrol student
+                            <UserPlus className="h-4 w-4" /> Admit &amp; send to finance
                         </button>
                     </div>
                 </form>
             </Modal>
+
+            <DeferralModal target={deferring} onClose={() => setDeferring(null)} />
         </>
     );
 }

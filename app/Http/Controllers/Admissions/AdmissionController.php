@@ -7,10 +7,10 @@ use App\Models\AcademicYear;
 use App\Models\AdmissionApplication;
 use App\Models\AuditLog;
 use App\Models\Combination;
-use App\Models\Enrolment;
 use App\Models\Guardian;
 use App\Models\Student;
 use App\Services\DocumentNumber;
+use App\Services\Fees\AdmissionClearanceService;
 use App\Support\EducationLevel;
 use App\Support\Lookups;
 use Illuminate\Http\RedirectResponse;
@@ -124,9 +124,9 @@ class AdmissionController extends Controller
         return to_route('admissions.show', $application);
     }
 
-    public function show(AdmissionApplication $application): Response
+    public function show(AdmissionApplication $application, AdmissionClearanceService $clearance): Response
     {
-        $application->load(['schoolClass:id,name', 'combination:id,code,name', 'academicYear:id,name', 'decider:id,name', 'student:id,first_name,last_name,admission_no']);
+        $application->load(['schoolClass:id,name', 'combination:id,code,name', 'academicYear:id,name', 'decider:id,name', 'student', 'admissionInvoice:id,invoice_no,total,balance,status', 'feeClearer:id,name', 'agreement.authorizer:id,name']);
 
         $history = AuditLog::with('user:id,name')
             ->where('auditable_type', $application->getMorphClass())
@@ -158,6 +158,7 @@ class AdmissionController extends Controller
                 'student' => $application->student ? ['id' => $application->student->id, 'name' => $application->student->full_name, 'admission_no' => $application->student->admission_no] : null,
             ],
             'history' => $history,
+            'clearance' => $application->student_id ? $this->clearanceSummary($application, $clearance) : null,
             'transitions' => AdmissionApplication::TRANSITIONS[$application->status] ?? [],
             'decisions' => AdmissionApplication::DECISIONS,
             'duplicates' => $application->status === 'accepted' ? $this->possibleDuplicates($application) : [],
@@ -178,7 +179,7 @@ class AdmissionController extends Controller
 
     public function edit(AdmissionApplication $application): Response|RedirectResponse
     {
-        if (in_array($application->status, ['enrolled', 'withdrawn', 'rejected'], true)) {
+        if (in_array($application->status, ['awaiting_fees', 'enrolled', 'withdrawn', 'rejected'], true)) {
             $this->toast('Closed applications cannot be edited.', 'error');
 
             return to_route('admissions.show', $application);
@@ -198,7 +199,7 @@ class AdmissionController extends Controller
 
     public function update(Request $request, AdmissionApplication $application): RedirectResponse
     {
-        abort_if(in_array($application->status, ['enrolled', 'withdrawn', 'rejected'], true), 403, 'Closed applications cannot be edited.');
+        abort_if(in_array($application->status, ['awaiting_fees', 'enrolled', 'withdrawn', 'rejected'], true), 403, 'Closed applications cannot be edited.');
 
         $data = $this->validated($request);
         $old = $application->only(array_keys($data));
@@ -214,8 +215,8 @@ class AdmissionController extends Controller
 
     public function destroy(AdmissionApplication $application): RedirectResponse
     {
-        if ($application->status === 'enrolled') {
-            $this->toast('Enrolled applications are part of the student record and cannot be deleted.', 'error');
+        if ($application->student_id) {
+            $this->toast('Admitted applications are part of the student record and cannot be deleted.', 'error');
 
             return back();
         }
@@ -228,7 +229,7 @@ class AdmissionController extends Controller
     }
 
     /** Move an application along the workflow: review, interview, decisions, withdrawal. */
-    public function transition(Request $request, AdmissionApplication $application): RedirectResponse
+    public function transition(Request $request, AdmissionApplication $application, AdmissionClearanceService $clearance): RedirectResponse
     {
         $data = $request->validate([
             'status' => ['required', Rule::in(AdmissionApplication::STATUSES)],
@@ -255,7 +256,13 @@ class AdmissionController extends Controller
         }
         $application->decided_by = $request->user()->id;
         $application->decided_at = now();
-        $application->save();
+
+        DB::transaction(function () use ($application, $old, $data, $clearance) {
+            if ($old['status'] === 'awaiting_fees') {
+                $clearance->abandon($application, $data['decision_notes'] ?? 'withdrawn');
+            }
+            $application->save();
+        });
 
         $label = str_replace('_', ' ', $data['status']);
         $this->audit('status_changed', $application, "Application {$application->application_no}: {$old['status']} → {$data['status']}".(! empty($data['decision_notes']) ? " — {$data['decision_notes']}" : ''), 'admissions',
@@ -266,7 +273,7 @@ class AdmissionController extends Controller
     }
 
     /** Convert an accepted applicant into a student, guardian link and enrolment without re-entry. */
-    public function enrol(Request $request, AdmissionApplication $application): RedirectResponse
+    public function enrol(Request $request, AdmissionApplication $application, AdmissionClearanceService $clearance): RedirectResponse
     {
         if ($application->status !== 'accepted') {
             throw ValidationException::withMessages(['status' => 'Only accepted applicants can be enrolled.']);
@@ -286,9 +293,7 @@ class AdmissionController extends Controller
             throw ValidationException::withMessages(['confirm_duplicate' => 'A student with the same name and date of birth already exists. Confirm this is a different learner to continue.']);
         }
 
-        $year = AcademicYear::currentFor((int) $data['school_class_id']);
-
-        $student = DB::transaction(function () use ($application, $data, $year) {
+        $student = DB::transaction(function () use ($application, $data, $clearance) {
             $student = new Student([
                 'first_name' => $application->first_name,
                 'middle_name' => $application->middle_name,
@@ -302,7 +307,8 @@ class AdmissionController extends Controller
                 'admission_date' => $data['admission_date'],
                 'previous_school' => $application->previous_school,
                 'medical_notes' => $application->medical_notes,
-                'status' => 'active',
+                // Kept out of the directory until finance clears the admission fees (or a deferral is authorized).
+                'status' => Student::PENDING_CLEARANCE,
             ]);
             $student->admission_no = ($data['admission_no'] ?? null) ?: DocumentNumber::next('admission');
             $student->save();
@@ -319,21 +325,12 @@ class AdmissionController extends Controller
                 $guardian->id => ['relationship' => $application->guardian_relationship ?: 'Parent', 'is_primary' => true],
             ]);
 
-            if ($year) {
-                Enrolment::create([
-                    'student_id' => $student->id,
-                    'academic_year_id' => $year->id,
-                    'school_class_id' => $student->school_class_id,
-                    'stream_id' => $student->stream_id,
-                    'status' => 'active',
-                    'start_date' => $data['admission_date'],
-                    'remarks' => "Admitted via application {$application->application_no}",
-                ]);
-            }
+            $invoice = $clearance->bill($student, $data['admission_date']);
 
             $application->update([
-                'status' => 'enrolled',
+                'status' => 'awaiting_fees',
                 'student_id' => $student->id,
+                'admission_invoice_id' => $invoice?->id,
                 'decided_by' => auth()->id(),
                 'decided_at' => now(),
             ]);
@@ -341,17 +338,18 @@ class AdmissionController extends Controller
             return $student;
         });
 
-        $this->audit('enrolled', $application, "Application {$application->application_no} enrolled as student {$student->admission_no}", 'admissions', ['status' => 'accepted'], ['status' => 'enrolled', 'student_id' => $student->id]);
-        $this->audit('created', $student, "Admitted student {$student->full_name} ({$student->admission_no}) from application {$application->application_no}", 'students');
-        $this->toast("{$student->full_name} enrolled with admission no. {$student->admission_no}.");
+        $invoice = $application->admissionInvoice;
+        $this->audit('enrolled', $application, "Application {$application->application_no} admitted as {$student->admission_no} — awaiting fee clearance".($invoice ? " (invoice {$invoice->invoice_no}: ".number_format((float) $invoice->total).')' : ''), 'admissions', ['status' => 'accepted'], ['status' => 'awaiting_fees', 'student_id' => $student->id]);
+        $this->audit('created', $student, "Admitted student {$student->full_name} ({$student->admission_no}) from application {$application->application_no}, pending fee clearance", 'students');
+        $this->toast("{$student->full_name} admitted as {$student->admission_no}. Sent to finance for fee clearance.");
 
-        return to_route('students.show', $student);
+        return to_route('admissions.show', $application);
     }
 
     /** Printable admission (offer) letter for accepted/enrolled applicants. */
     public function letter(AdmissionApplication $application): Response|RedirectResponse
     {
-        if (! in_array($application->status, ['accepted', 'enrolled'], true)) {
+        if (! in_array($application->status, ['accepted', 'awaiting_fees', 'enrolled'], true)) {
             $this->toast('Admission letters are only available for accepted applicants.', 'error');
 
             return to_route('admissions.show', $application);
@@ -380,6 +378,31 @@ class AdmissionController extends Controller
                 'status' => $application->status,
             ],
         ]);
+    }
+
+    /** Fee clearance state for the application page (status, invoice, agreement). */
+    private function clearanceSummary(AdmissionApplication $application, AdmissionClearanceService $clearance): array
+    {
+        $invoice = $application->admissionInvoice;
+        $agreement = $application->agreement;
+
+        return [
+            'state' => $application->status === 'awaiting_fees' ? 'awaiting' : ($application->fee_clearance ?? 'paid'),
+            ...($application->status === 'awaiting_fees' ? $clearance->status($application) : []),
+            'cleared_at' => $application->fee_cleared_at?->toDateTimeString(),
+            'cleared_by' => $application->feeClearer?->name,
+            'invoice' => $invoice ? ['id' => $invoice->id, 'invoice_no' => $invoice->invoice_no, 'total' => (string) $invoice->total, 'balance' => (string) $invoice->balance, 'status' => $invoice->status] : null,
+            'agreement' => $agreement ? [
+                'id' => $agreement->id,
+                'amount' => (string) $agreement->amount,
+                'paid' => $clearance->progress($agreement->setRelation('student', $application->student)),
+                'due_date' => $agreement->due_date->toDateString(),
+                'reason' => $agreement->reason,
+                'terms' => $agreement->terms,
+                'status' => $agreement->is_overdue ? 'overdue' : $agreement->status,
+                'authorizer' => $agreement->authorizer?->name,
+            ] : null,
+        ];
     }
 
     /** Existing students with the same first + last name and date of birth. */

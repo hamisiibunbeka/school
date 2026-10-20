@@ -3,6 +3,7 @@
 namespace App\Services\Fees;
 
 use App\Models\Account;
+use App\Models\FeePaymentAgreement;
 use App\Models\Invoice;
 use App\Models\Payment;
 use App\Models\PaymentAllocation;
@@ -86,6 +87,11 @@ class PaymentService
             $payment->forceFill(['journal_id' => $journal->id])->save();
 
             $this->allocate($payment, $data['allocations'] ?? null);
+
+            // A receipt may settle a payment agreement (deferred admission fees).
+            if (FeePaymentAgreement::active()->where('student_id', $student->id)->exists()) {
+                app(AdmissionClearanceService::class)->refreshAgreements($student);
+            }
 
             if ($audit) {
                 AuditLogger::log('created', $payment, "Received {$amount} from {$student->full_name} (receipt {$payment->receipt_no})", module: 'fees');

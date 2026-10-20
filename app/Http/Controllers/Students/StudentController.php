@@ -420,6 +420,8 @@ class StudentController extends Controller
             ->when($filters['class'] ?? null, fn ($q, $v) => $q->where('school_class_id', $v))
             ->when($filters['stream'] ?? null, fn ($q, $v) => $q->where('stream_id', $v))
             ->when($filters['status'] ?? null, fn ($q, $v) => $q->where('status', $v), fn ($q) => $q->where('status', '!=', 'archived'))
+            // Admitted students appear only once finance has cleared their admission fees.
+            ->where('status', '!=', Student::PENDING_CLEARANCE)
             ->when($filters['gender'] ?? null, fn ($q, $v) => $q->where('gender', $v))
             ->when($filters['residence'] ?? null, fn ($q, $v) => $q->where('residence_type', $v))
             ->when($filters['admitted_from'] ?? null, fn ($q, $v) => $q->whereDate('admission_date', '>=', $v))

@@ -37,6 +37,7 @@ class RoleController extends Controller
             'roles' => $roles,
             'modules' => collect(config('permissions.modules'))->map(fn ($label, $key) => ['key' => $key, 'label' => $label])->values(),
             'portalPermissions' => self::PORTAL_PERMISSIONS,
+            'specialPermissions' => collect(config('permissions.special'))->map(fn ($label, $key) => ['key' => $key, 'label' => $label])->values(),
         ]);
     }
 
@@ -133,6 +134,7 @@ class RoleController extends Controller
         $allowed = collect(array_keys(config('permissions.modules')))
             ->flatMap(fn ($m) => ["$m.view", "$m.manage"])
             ->merge(self::PORTAL_PERMISSIONS)
+            ->merge(array_keys(config('permissions.special')))
             ->all();
 
         $data = $request->validate([
