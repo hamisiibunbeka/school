@@ -1,5 +1,7 @@
 import { Link, router, usePage } from '@inertiajs/react';
-import { Ban, BookOpenText, Wallet } from 'lucide-react';
+import { Ban, BookOpenText, LayoutTemplate, Wallet } from 'lucide-react';
+import InvoiceDocumentView from '@/components/invoice-layout/document';
+import { PAPER_HEIGHT_MM, PAPER_WIDTH_MM, type InvoiceData, type Layout } from '@/components/invoice-layout/schema';
 import { PrintButton } from '@/components/ui/actions';
 import Letterhead from '@/components/ui/letterhead';
 import PageHeader from '@/components/ui/page-header';
@@ -39,9 +41,12 @@ type Props = {
         account_balance: string;
     } | null;
     instructions: Instructions;
+    /** The school's chosen invoice layout (null = standard format below). */
+    layout: Layout | null;
+    document: InvoiceData | null;
 };
 
-export default function InvoiceShow({ invoice, student, instructions }: Props) {
+export default function InvoiceShow({ invoice, student, instructions, layout, document }: Props) {
     const can = useCan();
     const cur = usePage().props.school?.currency ?? 'TZS';
     const canCancel = can('fees.manage') && invoice.status !== 'cancelled' && Number(invoice.paid) === 0;
@@ -85,6 +90,46 @@ export default function InvoiceShow({ invoice, student, instructions }: Props) {
                     </>
                 }
             />
+
+            {layout && document && (
+                <>
+                    {/* Paper size and margins come from the layout, so printing matches the preview. */}
+                    <style>{`@media print { @page { size: ${PAPER_WIDTH_MM[layout.page.paper]}mm ${PAPER_HEIGHT_MM[layout.page.paper]}mm; margin: 0; } }`}</style>
+                    {invoice.status === 'cancelled' && (
+                        <div className="no-print mx-auto mb-4 max-w-4xl rounded-md border border-danger/30 bg-danger-light p-3 text-sm font-semibold text-danger dark:bg-danger-dark-light">
+                            This invoice has been cancelled and its ledger entry reversed. {invoice.notes}
+                        </div>
+                    )}
+                    <div className="overflow-x-auto print:overflow-visible">
+                        <InvoiceDocumentView layout={layout} data={document} />
+                    </div>
+                    <div className="no-print mt-4 flex flex-wrap justify-center gap-4 text-xs text-white-dark">
+                        <span className="flex items-center gap-1.5">
+                            <LayoutTemplate className="h-3.5 w-3.5" /> Printed with your school's invoice layout
+                            {can('administration.manage') && (
+                                <Link href="/admin/settings/invoice-layout/designer" className="text-primary hover:underline">
+                                    (customise)
+                                </Link>
+                            )}
+                        </span>
+                        {invoice.journal && (
+                            <span>
+                                Ledger:{' '}
+                                {can('accounting.view') ? (
+                                    <Link href={`/accounting/journals/${invoice.journal.id}`} className="text-primary hover:underline">
+                                        {invoice.journal.journal_no}
+                                    </Link>
+                                ) : (
+                                    invoice.journal.journal_no
+                                )}{' '}
+                                ({invoice.journal.status})
+                            </span>
+                        )}
+                    </div>
+                </>
+            )}
+
+            {!(layout && document) && (
 
             <div className="panel mx-auto max-w-4xl print:max-w-none print:border-0 print:shadow-none">
                 <Letterhead
@@ -229,6 +274,7 @@ export default function InvoiceShow({ invoice, student, instructions }: Props) {
                     <span>This is a computer-generated invoice.</span>
                 </div>
             </div>
+            )}
         </>
     );
 }

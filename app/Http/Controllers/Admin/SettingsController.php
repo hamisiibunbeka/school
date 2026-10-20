@@ -40,7 +40,7 @@ class SettingsController extends Controller
         'class_teacher_periods' => 0,
     ];
 
-    public function edit(): Response
+    public function edit(Request $request): Response
     {
         $school = $this->tenancy()->school();
 
@@ -79,6 +79,11 @@ class SettingsController extends Controller
                 'currencies' => ['TZS', 'KES', 'UGX', 'RWF', 'USD'],
                 'timezones' => ['Africa/Dar_es_Salaam', 'Africa/Nairobi', 'Africa/Kampala', 'Africa/Kigali', 'UTC'],
             ],
+            // Invoice layout tab: built only when that tab is open (otherwise fetched by a partial reload on first visit).
+            'invoiceLayout' => $request->query('tab') === 'invoice-layout'
+                ? fn () => InvoiceLayoutController::settingsTab($request->user())
+                : Inertia::optional(fn () => InvoiceLayoutController::settingsTab($request->user())),
+            'initialTab' => (string) $request->query('tab', 'profile'),
         ]);
     }
 

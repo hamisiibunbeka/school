@@ -68,6 +68,8 @@ Route::middleware('can:fees.view')->group(function () {
 
     Route::get('fees/arrears', [ArrearsController::class, 'index'])->name('fees.arrears.index');
     Route::get('fees/installments', [InstallmentController::class, 'index'])->name('fees.installments.index');
+    // The invoice layout now lives in School Settings.
+    Route::redirect('fees/invoice-layouts', '/admin/settings?tab=invoice-layout');
     Route::get('fees/clearance', [AdmissionClearanceController::class, 'index'])->name('fees.clearance.index');
     Route::get('fees/arrears/export', [ArrearsController::class, 'export'])->name('fees.arrears.export');
 

@@ -291,6 +291,7 @@ export const navigation: NavSection[] = [
                     { title: 'Plans', href: '/saas/plans' },
                     { title: 'Subscriptions', href: '/saas/subscriptions' },
                     { title: 'SMS Bundles', href: '/saas/sms' },
+                    { title: 'Invoice Layouts', href: '/saas/invoice-layouts' },
                     { title: 'Support Tickets', href: '/saas/tickets' },
                     { title: 'Platform Settings', href: '/saas/settings' },
                 ],

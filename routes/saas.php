@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Saas\DashboardController;
+use App\Http\Controllers\Saas\InvoiceLayoutController;
 use App\Http\Controllers\Saas\PlanController;
 use App\Http\Controllers\Saas\SettingsController;
 use App\Http\Controllers\Saas\SmsController;
@@ -45,6 +46,9 @@ Route::middleware(EnsureSuperAdmin::class)->prefix('saas')->name('saas.')->group
     Route::put('settings', [SettingsController::class, 'update'])->name('settings.update');
     Route::get('settings/sms-status', [SettingsController::class, 'smsStatus'])->name('settings.sms-status');
     Route::post('settings/sms-test', [SettingsController::class, 'smsTest'])->middleware('throttle:6,1')->name('settings.sms-test');
+
+    Route::get('invoice-layouts', [InvoiceLayoutController::class, 'index'])->name('invoice-layouts.index');
+    Route::post('invoice-layouts/{template}/release', [InvoiceLayoutController::class, 'release'])->name('invoice-layouts.release');
 
     Route::get('tickets', [TicketController::class, 'index'])->name('tickets.index');
     Route::put('tickets/{ticket}', [TicketController::class, 'update'])->name('tickets.update');

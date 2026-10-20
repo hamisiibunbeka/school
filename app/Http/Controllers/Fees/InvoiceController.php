@@ -5,9 +5,11 @@ namespace App\Http\Controllers\Fees;
 use App\Http\Controllers\Controller;
 use App\Models\FeeCategory;
 use App\Models\Invoice;
+use App\Models\InvoiceLayout;
 use App\Models\Student;
 use App\Models\Term;
 use App\Services\Fees\BillingService;
+use App\Services\Fees\InvoiceDocument;
 use App\Services\Fees\PaymentInstructions;
 use App\Support\Lookups;
 use Illuminate\Database\Eloquent\Builder;
@@ -157,6 +159,7 @@ class InvoiceController extends Controller
         ]);
         $guardian = $invoice->student?->guardians->firstWhere('pivot.is_primary', true) ?? $invoice->student?->guardians->first();
         $studentBalance = $invoice->student ? $invoice->student->feeBalance() : '0';
+        $layout = InvoiceLayout::first();
 
         return Inertia::render('fees/invoices/show', [
             'invoice' => [
@@ -198,6 +201,9 @@ class InvoiceController extends Controller
                 'account_balance' => $studentBalance,
             ] : null,
             'instructions' => PaymentInstructions::forCurrentSchool(),
+            // The school's own invoice layout, when it has chosen one; otherwise the standard format is used.
+            'layout' => $layout?->layout,
+            'document' => $layout ? InvoiceDocument::for($invoice, $this->tenancy()->school()) : null,
         ]);
     }
 

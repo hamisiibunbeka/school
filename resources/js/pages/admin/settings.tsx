@@ -1,5 +1,5 @@
-import { useForm } from '@inertiajs/react';
-import { Building2, Camera, Hash, LoaderCircle, Save, SlidersHorizontal, Trash2, Wallet } from 'lucide-react';
+import { router, useForm } from '@inertiajs/react';
+import { Building2, Camera, Hash, LayoutTemplate, LoaderCircle, Save, SlidersHorizontal, Trash2, Wallet } from 'lucide-react';
 import { useState, type FormEvent } from 'react';
 import { FormGrid, FormSection, Input, Select, Textarea } from '@/components/ui/form';
 import Modal from '@/components/ui/modal';
@@ -7,6 +7,7 @@ import PageHeader from '@/components/ui/page-header';
 import Tabs from '@/components/ui/tabs';
 import { useCan } from '@/hooks/use-can';
 import { titleCase } from '@/lib/utils';
+import InvoiceLayoutTab, { type InvoiceLayoutTabProps } from './_components/invoice-layout-tab';
 
 type School = {
     id: number;
@@ -47,14 +48,26 @@ type Props = {
     settings: Settings;
     numbering: Sequence[];
     options: { levels: string[]; residence: string[]; regions: string[]; currencies: string[]; timezones: string[] };
+    /** Loaded only when the Invoice layout tab is opened. */
+    invoiceLayout?: InvoiceLayoutTabProps;
+    initialTab: string;
 };
 
 const opts = (xs: string[]) => xs.map((x) => ({ value: x, label: titleCase(x) }));
+const TABS = ['profile', 'general', 'payments', 'numbering', 'invoice-layout'];
 
-export default function SchoolSettings({ school, settings, numbering, options }: Props) {
+export default function SchoolSettings({ school, settings, numbering, options, invoiceLayout, initialTab }: Props) {
     const can = useCan();
     const manage = can('administration.manage');
-    const [tab, setTab] = useState('profile');
+    const [tab, setTabState] = useState(TABS.includes(initialTab) ? initialTab : 'profile');
+
+    // Keep the tab in the URL (so redirects and refreshes land on it); fetch the invoice layout data on first visit.
+    const setTab = (key: string) => {
+        setTabState(key);
+        const url = key === 'profile' ? '/admin/settings' : `/admin/settings?tab=${key}`;
+        if (key === 'invoice-layout' && !invoiceLayout) router.get(url, {}, { only: ['invoiceLayout'], preserveState: true, preserveScroll: true, replace: true });
+        else window.history.replaceState(window.history.state, '', url);
+    };
 
     return (
         <>
@@ -69,6 +82,7 @@ export default function SchoolSettings({ school, settings, numbering, options }:
                     { key: 'general', label: 'General', icon: SlidersHorizontal },
                     { key: 'payments', label: 'Payment instructions', icon: Wallet },
                     { key: 'numbering', label: 'Document numbering', icon: Hash },
+                    { key: 'invoice-layout', label: 'Invoice layout', icon: LayoutTemplate },
                 ]}
                 active={tab}
                 onChange={setTab}
@@ -77,6 +91,14 @@ export default function SchoolSettings({ school, settings, numbering, options }:
             {tab === 'general' && <GeneralForm settings={settings} manage={manage} />}
             {tab === 'payments' && <PaymentForm settings={settings} manage={manage} currency={school.currency} />}
             {tab === 'numbering' && <Numbering numbering={numbering} manage={manage} />}
+            {tab === 'invoice-layout' &&
+                (invoiceLayout ? (
+                    <InvoiceLayoutTab data={invoiceLayout} manage={manage} />
+                ) : (
+                    <div className="panel flex items-center justify-center gap-2 py-16 text-white-dark">
+                        <LoaderCircle className="h-5 w-5 animate-spin" /> Loading layouts…
+                    </div>
+                ))}
         </>
     );
 }
