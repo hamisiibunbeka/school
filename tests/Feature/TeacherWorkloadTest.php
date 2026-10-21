@@ -130,14 +130,14 @@ class TeacherWorkloadTest extends TestCase
             return $class;
         });
         $physics = $this->in(fn () => Subject::where('code', 'PHY')->value('id'));
-        $gs = $this->in(fn () => Subject::where('code', 'GS')->value('id'));
+        $acom = $this->in(fn () => Subject::where('code', 'ACOM')->value('id'));
         $t = $this->teacher();
 
         // Physics: PCM + PCB take it (not HGL) → 5 × 2 = 10, not × 3.
         $this->actingAs($this->admin)->post('/academics/allocations', ['school_class_id' => $class->id, 'subject_id' => $physics, 'employee_id' => $t->id, 'periods_per_week' => 5])->assertSessionHasNoErrors();
         $this->assertSame(10, $this->workloadOf($t)['teaching']);
-        // GS is in every combination → × 3, unless taught jointly.
-        $this->actingAs($this->admin)->post('/academics/allocations', ['school_class_id' => $class->id, 'subject_id' => $gs, 'employee_id' => $t->id, 'periods_per_week' => 2, 'is_joint' => true])->assertSessionHasNoErrors();
+        // A compulsory subsidiary is taken by every stream → × 3, unless taught jointly.
+        $this->actingAs($this->admin)->post('/academics/allocations', ['school_class_id' => $class->id, 'subject_id' => $acom, 'employee_id' => $t->id, 'periods_per_week' => 2, 'is_joint' => true])->assertSessionHasNoErrors();
         $this->assertSame(12, $this->workloadOf($t)['teaching']);
     }
 

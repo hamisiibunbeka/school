@@ -37,6 +37,10 @@ Route::prefix('academics')->name('academics.')->group(function () {
         Route::post('combinations/standard', [CombinationController::class, 'seedStandard'])->name('combinations.standard');
         Route::put('combinations/{combination}', [CombinationController::class, 'update'])->name('combinations.update');
         Route::delete('combinations/{combination}', [CombinationController::class, 'destroy'])->name('combinations.destroy');
+        // A-Level rules: switch the new intake to the current system, the average rule, per-class rules.
+        Route::post('a-level-rules/adopt', [CombinationController::class, 'adoptNewSystem'])->name('a-level-rules.adopt');
+        Route::put('a-level-rules/average', [CombinationController::class, 'updateAverage'])->name('a-level-rules.average');
+        Route::put('a-level-rules/classes/{class}', [CombinationController::class, 'classRules'])->name('a-level-rules.class');
 
         Route::post('subjects', [SubjectController::class, 'store'])->name('subjects.store');
         Route::put('subjects/{subject}', [SubjectController::class, 'update'])->name('subjects.update');

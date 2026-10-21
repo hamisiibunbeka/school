@@ -183,8 +183,8 @@ export default function Results({ exam, filters: initial, classes, analysis, sca
                 {analysis?.level === 'a_level' ? (
                     <p className="mt-3 text-xs text-white-dark">
                         A-Level (ACSEE): each learner is graded on their combination. Division = sum of points of the 3 principal subjects, A=1 … F=7 (I: 3–9, II: 10–12, III:
-                        13–17, IV: 18–19, 0: 20–21; fewer than 3 principal subjects = INC). General Studies and BAM are shown in grey and never counted. Average is over principal
-                        subjects; position ranks by division points.
+                        13–17, IV: 18–19, 0: 20–21; fewer than 3 principal subjects = INC). Subsidiary subjects (shown in grey) never count towards the division; the average
+                        counts all subjects or principals only, as set under Academics → Combinations. Position: division points, then average, then total marks.
                     </p>
                 ) : (
                     <p className="mt-3 text-xs text-white-dark">

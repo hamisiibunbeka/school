@@ -13,12 +13,12 @@ import { exportCsv, num, titleCase } from '@/lib/utils';
 import type { Option, Paginated } from '@/types';
 import ImportButton from '@/components/ui/import-button';
 
-type Row = { id: number; name: string; code: string | null; type: string; department_id: number | null; department: string | null; classes: number; teachers: number; periods: number };
+type Row = { id: number; name: string; code: string | null; type: string; a_level_category: string | null; department_id: number | null; department: string | null; classes: number; teachers: number; periods: number };
 type Props = {
     subjects: Paginated<Row>;
-    filters: { search: string; type: string; department: string };
+    filters: { search: string; type: string; department: string; a_level: string };
     departments: Option[];
-    stats: { total: number; core: number; elective: number; unallocated: number };
+    stats: { total: number; core: number; elective: number; a_level: number; unallocated: number };
 };
 
 const types = [
@@ -26,18 +26,35 @@ const types = [
     { value: 'elective', label: 'Elective (optional)' },
 ];
 
+/** A-Level (Form V–VI) role of a subject — drives combinations, results and report cards. */
+const aLevelCategories = [
+    { value: 'principal', label: 'Principal subject' },
+    { value: 'compulsory', label: 'Compulsory subsidiary' },
+    { value: 'optional', label: 'Optional subsidiary (e.g. BAM)' },
+];
+const aLevelBadge: Record<string, [string, string]> = {
+    principal: ['Principal', 'badge-soft-primary'],
+    compulsory: ['Compulsory subsidiary', 'badge-soft-secondary'],
+    optional: ['Optional subsidiary', 'badge-soft-info'],
+};
+const emptyForm = { name: '', code: '', type: 'core', a_level_category: '', department_id: '' };
+
 export default function Subjects({ subjects, filters: initial, departments, stats }: Props) {
     const can = useCan();
     const manage = can('academics.manage');
     const { filters, setFilter, reset } = useFilters(initial);
     const [open, setOpen] = useState(false);
     const [editing, setEditing] = useState<Row | null>(null);
-    const form = useForm({ name: '', code: '', type: 'core', department_id: '' });
+    const form = useForm(emptyForm);
 
     const openForm = (row: Row | null) => {
         setEditing(row);
         form.clearErrors();
-        form.setData(row ? { name: row.name, code: row.code ?? '', type: row.type, department_id: row.department_id ? String(row.department_id) : '' } : { name: '', code: '', type: 'core', department_id: '' });
+        form.setData(
+            row
+                ? { name: row.name, code: row.code ?? '', type: row.type, a_level_category: row.a_level_category ?? '', department_id: row.department_id ? String(row.department_id) : '' }
+                : emptyForm,
+        );
         setOpen(true);
     };
 
@@ -60,6 +77,14 @@ export default function Subjects({ subjects, filters: initial, departments, stat
             ),
         },
         { key: 'type', header: 'Type', render: (s) => <span className={`badge ${s.type === 'core' ? 'badge-soft-primary' : 'badge-soft-warning'}`}>{titleCase(s.type)}</span> },
+        {
+            key: 'a_level',
+            header: 'A-Level',
+            render: (s) => {
+                const b = s.a_level_category ? aLevelBadge[s.a_level_category] : null;
+                return b ? <span className={`badge ${b[1]}`}>{b[0]}</span> : <span className="text-xs text-white-dark">—</span>;
+            },
+        },
         { key: 'department', header: 'Department', render: (s) => s.department ?? '—' },
         { key: 'classes', header: 'Classes', align: 'center', render: (s) => (s.classes ? num(s.classes) : <span className="badge badge-soft-danger">Not offered</span>) },
         { key: 'teachers', header: 'Teachers', align: 'center', render: (s) => num(s.teachers) },
@@ -118,6 +143,7 @@ export default function Subjects({ subjects, filters: initial, departments, stat
                     <SearchInput value={filters.search} onChange={(v) => setFilter('search', v)} placeholder="Search name or code…" />
                     <FilterSelect value={filters.type} onChange={(v) => setFilter('type', v)} options={types} placeholder="All types" />
                     <FilterSelect value={filters.department} onChange={(v) => setFilter('department', v)} options={departments} placeholder="All departments" />
+                    <FilterSelect value={filters.a_level} onChange={(v) => setFilter('a_level', v)} options={[...aLevelCategories, { value: 'none', label: 'Not A-Level' }]} placeholder="All A-Level categories" />
                 </FilterBar>
                 <DataTable columns={columns} paginated={subjects} empty="No subjects found" emptyDescription="Add the subjects taught at your school." />
             </div>
@@ -128,6 +154,16 @@ export default function Subjects({ subjects, filters: initial, departments, stat
                         <Input label="Subject name" required value={form.data.name} onChange={(e) => form.setData('name', e.target.value)} error={form.errors.name} wrapperClassName="sm:col-span-2" />
                         <Input label="Code" placeholder="e.g. MATH" value={form.data.code} onChange={(e) => form.setData('code', e.target.value.toUpperCase())} error={form.errors.code} />
                         <Select label="Type" required options={types} value={form.data.type} onChange={(e) => form.setData('type', e.target.value)} error={form.errors.type} />
+                        <Select
+                            label="A-Level category"
+                            placeholder="Not an A-Level subject"
+                            options={aLevelCategories}
+                            value={form.data.a_level_category}
+                            onChange={(e) => form.setData('a_level_category', e.target.value)}
+                            error={form.errors.a_level_category}
+                            help="Form V–VI only. Compulsory subsidiaries are taken by every A-Level student on the current rules; optional ones are ticked per combination."
+                            wrapperClassName="sm:col-span-2"
+                        />
                         <Select
                             label="Department"
                             placeholder="— None —"

@@ -167,7 +167,7 @@ function ReportCard({
     const { school } = usePage().props;
     const provisional = exam.status !== 'published';
     const aLevel = exam.level === 'a_level';
-    // A-Level: principal subjects first, then subsidiaries (GS, BAM).
+    // A-Level: principal subjects first, then subsidiaries.
     const lines = aLevel ? [...c.subjects].sort((a, b) => Number(a.role === 'subsidiary') - Number(b.role === 'subsidiary')) : c.subjects;
 
     return (
@@ -216,7 +216,7 @@ function ReportCard({
                             <tr key={s.subject} className={cn(s.role === 'subsidiary' && 'text-white-dark')}>
                                 <td className="font-semibold">
                                     {s.subject}
-                                    {s.role === 'subsidiary' && <span className="ms-1 text-[10px] font-normal uppercase">(Subsidiary – not counted)</span>}
+                                    {s.role === 'subsidiary' && <span className="ms-1 text-[10px] font-normal uppercase">(Subsidiary – not in division)</span>}
                                 </td>
                                 <td className="text-end">{s.is_absent ? 'ABS' : s.score !== null ? num(s.score, s.score % 1 ? 1 : 0) : '—'}</td>
                                 <td className="text-end">{s.percentage !== null ? s.percentage.toFixed(0) : '—'}</td>

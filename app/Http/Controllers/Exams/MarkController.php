@@ -58,7 +58,7 @@ class MarkController extends Controller
         })->filter()->values();
 
         $level = EducationLevel::forClass($classId);
-        $combos = $classId && $level === EducationLevel::A_LEVEL ? $this->results->streamCombinations($classId) : null;
+        $combos = $classId && $level === EducationLevel::A_LEVEL ? $this->results->streamCombinations($classId, $exam) : null;
 
         $subjects = [];
         if ($classId) {
@@ -160,7 +160,7 @@ class MarkController extends Controller
         abort_unless($this->access->canEnterMarks($user, $classId, $streamId, $subjectId), 403, 'You can only enter marks for your allocated class/subject.');
 
         $level = EducationLevel::forClass($classId);
-        $combos = $level === EducationLevel::A_LEVEL ? $this->results->streamCombinations($classId) : null;
+        $combos = $level === EducationLevel::A_LEVEL ? $this->results->streamCombinations($classId, $exam) : null;
 
         $existing = ExamMark::where('exam_id', $exam->id)->where('subject_id', $subjectId)->where('school_class_id', $classId)->get()->keyBy('student_id');
         $valid = Student::withTrashed()

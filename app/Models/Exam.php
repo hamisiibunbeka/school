@@ -25,6 +25,7 @@ class Exam extends SchoolModel
             'max_score' => 'decimal:2',
             'weight' => 'decimal:2',
             'published_at' => 'datetime',
+            'a_level_rules' => 'array', // A-Level rules frozen at publication (see ALevelRules)
         ];
     }
 

@@ -7,6 +7,7 @@ use App\Models\AcademicYear;
 use App\Models\Enrolment;
 use App\Models\SchoolClass;
 use App\Models\Student;
+use App\Services\Academics\CombinationService;
 use App\Support\EducationLevel;
 use App\Support\Lookups;
 use Illuminate\Http\RedirectResponse;
@@ -97,6 +98,14 @@ class PromotionController extends Controller
                 }
 
                 $counts[$decision['action']]++;
+            }
+
+            // A-Level: the promoted cohort keeps its rules, e.g. the first new-system Form Five takes the
+            // new rules into Form Six while the old Form Six graduates.
+            $to = $data['to_class_id'] ? SchoolClass::find($data['to_class_id']) : null;
+            if ($counts['promote'] > 0 && $to?->isALevel()) {
+                $to->forceFill(['a_level_rules' => SchoolClass::find($data['from_class_id'])?->a_level_rules])->save();
+                app(CombinationService::class)->refreshAll(); // the class's subsidiaries may have changed
             }
         });
 

@@ -11,6 +11,7 @@ use App\Models\Student;
 use App\Models\Term;
 use App\Models\User;
 use App\Notifications\SchoolNotification;
+use App\Services\Academics\ALevelRules;
 use App\Services\Exams\ResultsService;
 use App\Services\Exams\TeacherAccess;
 use App\Support\EducationLevel;
@@ -221,6 +222,12 @@ class ExamController extends Controller
             $exam->published_by = null;
         }
         $exam->save();
+
+        // A-Level rules are frozen at first publication and kept through unpublish-for-correction,
+        // so later syllabus changes never alter these results.
+        if ($to === 'published' && $exam->a_level_rules === null) {
+            app(ALevelRules::class)->freeze($exam);
+        }
 
         $this->audit($data['action'] === 'publish' ? 'published' : ($data['action'] === 'unpublish' ? 'unpublished' : 'status_changed'), $exam,
             $label.(filled($data['reason'] ?? null) ? ': '.$data['reason'] : ''), 'exams', ['status' => $from], ['status' => $to]);

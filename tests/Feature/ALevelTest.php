@@ -90,18 +90,23 @@ class ALevelTest extends TestCase
         $this->assertCount(count(CombinationService::STANDARD), $codes);
         $pcb = $this->in(fn () => Combination::with('items.subject')->where('code', 'PCB')->first());
         $this->assertSame(['Biology', 'Chemistry', 'Physics'], $pcb->items->where('role', 'principal')->map->subject->pluck('name')->sort()->values()->all());
-        $this->assertEqualsCanonicalizing(['GS', 'BAM'], $pcb->items->where('role', 'subsidiary')->map->subject->pluck('code')->all());
+        // Optional subsidiaries are stored on the combination; compulsory ones come from the class rules.
+        $this->assertSame(['BAM'], $pcb->items->where('role', 'subsidiary')->map->subject->pluck('code')->values()->all());
+        $this->assertEqualsCanonicalizing(['ACOM', 'HTM'], $this->in(fn () => Subject::where('a_level_category', 'compulsory')->pluck('code')->all()));
+        $this->assertNull($this->in(fn () => Subject::where('code', 'GS')->first()), 'General Studies is no longer created.');
 
         // The school decides BAM per combination: untick it for PCB.
         $this->actingAs($this->admin)->put("/academics/combinations/{$pcb->id}", [
-            'code' => 'PCB', 'name' => $pcb->name, 'principal_subject_ids' => $pcb->principalIds(), 'requires_bam' => false, 'is_active' => true,
+            'code' => 'PCB', 'name' => $pcb->name, 'principal_subject_ids' => $pcb->principalIds(), 'optional_subject_ids' => [], 'is_active' => true,
         ])->assertSessionHasNoErrors();
-        $this->assertSame(['GS'], $this->in(fn () => $pcb->fresh()->items()->where('role', 'subsidiary')->with('subject')->get()->pluck('subject.code')->all()));
+        $this->assertSame([], $this->in(fn () => $pcb->fresh()->items()->where('role', 'subsidiary')->pluck('subject_id')->all()));
 
-        // Exactly three principal subjects, never GS/BAM.
-        $gs = $this->in(fn () => Subject::where('code', 'GS')->value('id'));
-        $this->actingAs($this->admin)->post('/academics/combinations', ['code' => 'XYZ', 'name' => 'x', 'principal_subject_ids' => [$gs, $pcb->principalIds()[0], $pcb->principalIds()[1]]])
+        // Exactly three principal subjects, never a subsidiary; only optional subsidiaries can be ticked.
+        $acom = $this->in(fn () => Subject::where('code', 'ACOM')->value('id'));
+        $this->actingAs($this->admin)->post('/academics/combinations', ['code' => 'XYZ', 'name' => 'x', 'principal_subject_ids' => [$acom, $pcb->principalIds()[0], $pcb->principalIds()[1]]])
             ->assertSessionHasErrors('principal_subject_ids');
+        $this->actingAs($this->admin)->post('/academics/combinations', ['code' => 'XYZ', 'name' => 'x', 'principal_subject_ids' => $pcb->principalIds(), 'optional_subject_ids' => [$acom]])
+            ->assertSessionHasErrors('optional_subject_ids');
         $this->actingAs($this->admin)->post('/academics/combinations', ['code' => 'XY', 'name' => 'x', 'principal_subject_ids' => [$pcb->principalIds()[0]]])
             ->assertSessionHasErrors('principal_subject_ids');
     }
@@ -111,8 +116,9 @@ class ALevelTest extends TestCase
         ['class' => $class, 's1' => $s1, 'pcm' => $pcm] = $this->setUpFormFive();
 
         $this->actingAs($this->admin)->post("/academics/classes/{$class->id}/streams", ['name' => 'C'])->assertSessionHasErrors('combination_id');
+        // The combination's subjects plus the class's compulsory subsidiaries.
         $this->assertEqualsCanonicalizing(
-            $pcm->load('items')->subjectIds(),
+            [...$pcm->load('items')->subjectIds(), ...$this->in(fn () => Subject::whereIn('code', ['ACOM', 'HTM'])->pluck('id')->all())],
             $this->in(fn () => ClassSubject::where('stream_id', $s1->id)->pluck('subject_id')->all()),
         );
 
@@ -138,11 +144,11 @@ class ALevelTest extends TestCase
         $exam = $this->in(fn () => Exam::where('name', 'Form Five Midterm')->firstOrFail());
         $exam->update(['status' => 'marks_entry']);
 
-        // Roster per subject: Advanced Maths only for PCM, Biology and BAM only for PCB, GS for both.
+        // Roster per subject: Advanced Maths only for PCM, Biology and BAM only for PCB, Academic Communication for both.
         $roster = fn (string $code) => $this->actingAs($this->admin)->get("/exams/{$exam->id}/marks?class={$class->id}&subject={$ids[$code]}")->viewData('page')['props']['roster'];
         $this->assertSame(['Pendo'], collect($roster('AMATH'))->pluck('full_name')->map(fn ($n) => strtok($n, ' '))->all());
         $this->assertSame(['Baraka'], collect($roster('BAM'))->pluck('full_name')->map(fn ($n) => strtok($n, ' '))->all());
-        $this->assertCount(2, $roster('GS'));
+        $this->assertCount(2, $roster('ACOM'));
 
         $enter = fn (string $code, array $scores) => $this->actingAs($this->admin)->post("/exams/{$exam->id}/marks", [
             'school_class_id' => $class->id, 'subject_id' => $ids[$code],
@@ -152,8 +158,8 @@ class ALevelTest extends TestCase
         $enter('CHEM', [$pcmStudent->id => 72, $pcbStudent->id => 62])->assertSessionHasNoErrors();  // B, C
         $enter('AMATH', [$pcmStudent->id => 85])->assertSessionHasNoErrors();                         // A
         $enter('BIO', [$pcbStudent->id => 61])->assertSessionHasNoErrors();                           // C
-        $enter('GS', [$pcmStudent->id => 20, $pcbStudent->id => 30])->assertSessionHasNoErrors();    // F — never counted
-        $enter('BAM', [$pcbStudent->id => 45])->assertSessionHasNoErrors();                           // E — never counted
+        $enter('ACOM', [$pcmStudent->id => 20, $pcbStudent->id => 30])->assertSessionHasNoErrors();  // F — not in the division
+        $enter('BAM', [$pcbStudent->id => 45])->assertSessionHasNoErrors();                           // E — not in the division
         // A PCM student cannot get a Biology mark.
         $enter('BIO', [$pcmStudent->id => 90]);
         $this->assertNull($this->in(fn () => ExamMark::where('student_id', $pcmStudent->id)->where('subject_id', $ids['BIO'])->first()));
@@ -164,10 +170,12 @@ class ALevelTest extends TestCase
         $analysis = $this->in(fn () => app(ResultsService::class)->classResults($exam, $class->id));
         $rows = collect($analysis['students'])->keyBy('id');
         $this->assertSame('a_level', $analysis['level']);
-        // PCM: C(3)+B(2)+A(1) = 6 → Div I, despite GS F.
+        // PCM: C(3)+B(2)+A(1) = 6 → Div I, despite Academic Communication F.
         $this->assertSame(['I', 6.0, 'PCM'], [$rows[$pcmStudent->id]['division'], $rows[$pcmStudent->id]['points'], $rows[$pcmStudent->id]['combination']]);
-        // PCB: D(4)+C(3)+C(3) = 10 → Div II; BAM E and GS F excluded.
+        // PCB: D(4)+C(3)+C(3) = 10 → Div II; BAM E and Academic Communication F excluded from the division.
         $this->assertSame(['II', 10.0], [$rows[$pcbStudent->id]['division'], $rows[$pcbStudent->id]['points']]);
+        // …but the average counts every subject sat: (65+72+85+20)/4 and (55+62+61+30+45)/5.
+        $this->assertSame([60.5, 50.6], [$rows[$pcmStudent->id]['average'], $rows[$pcbStudent->id]['average']]);
         $this->assertSame('subsidiary', $rows[$pcbStudent->id]['marks'][$ids['BAM']]['role']);
         $this->assertSame(1, $rows[$pcmStudent->id]['position']);
         $this->assertSame(['I' => 1, 'II' => 0, 'III' => 0, 'IV' => 0, '0' => 0, 'INC' => 0], $analysis['combinations']['PCM']);

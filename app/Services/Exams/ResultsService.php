@@ -10,6 +10,7 @@ use App\Models\SchoolClass;
 use App\Models\Stream;
 use App\Models\Student;
 use App\Models\Subject;
+use App\Services\Academics\ALevelRules;
 use App\Support\EducationLevel;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
@@ -26,14 +27,17 @@ use Illuminate\Support\Facades\DB;
  * - O-Level division (NECTA CSEE): add the points of the best 7 subjects sat
  *   (lowest points = best). 7–17 → I, 18–21 → II, 22–25 → III, 26–33 → IV, 34–35 → 0.
  *   Students who sat fewer than 7 subjects get "INC" (incomplete).
- * - A-Level division (NECTA ACSEE): each student takes the subjects of their stream's
- *   combination. Add the points (A=1 … F=7) of the 3 principal subjects; General
- *   Studies and BAM are subsidiaries — graded and shown but never counted.
- *   3–9 → I, 10–12 → II, 13–17 → III, 18–19 → IV, 20–21 → 0. Fewer than 3 principal
- *   subjects sat → "INC". Verified against NECTA's published ACSEE results.
- * - Position: O-Level ranks by average; A-Level ranks by division points (fewest
- *   first), then by average. Ties share a position (1, 2, 2, 4); students who sat
- *   nothing are not ranked.
+ * - A-Level (NECTA ACSEE): each student takes their combination's principal subjects and
+ *   optional subsidiaries (e.g. BAM) plus their class's compulsory subsidiaries (see
+ *   ALevelRules — currently Academic Communication and Historia ya Tanzania na Maadili).
+ *   Division = points (A=1 … F=7) of the best 3 principal subjects: 3–9 → I, 10–12 → II,
+ *   13–17 → III, 18–19 → IV, 20–21 → 0; fewer than 3 principals sat → "INC". Subsidiaries
+ *   never count towards the division. The average (and total) count all subjects, or the
+ *   principals only, as the class rules say. Published exams keep their frozen rules.
+ * - Position: O-Level ranks by average; A-Level ranks by division points (fewest first —
+ *   so Division I with 3 points beats Division I with 4 whatever the averages), then by
+ *   average, then by total marks. Students equal on every factor share a position
+ *   (1, 2, 2, 4); students who sat nothing are not ranked.
  * - Pass mark = lowest min_score of every grade except the failing grade (the grade
  *   with the highest points value). With the default NECTA scale that is 30% (D).
  */
@@ -142,18 +146,14 @@ class ResultsService
     }
 
     /**
-     * A-Level class: combination of each stream (stream_id => [code, principal ids, all subject ids]).
+     * A-Level class: subjects of each stream (stream_id => [code, principal ids, all subject ids]) —
+     * the exam's frozen rules once published, the class's live rules otherwise.
      *
      * @return array<int, array{code:string, principal:array<int,int>, subjects:array<int,int>}>
      */
-    public function streamCombinations(int $classId): array
+    public function streamCombinations(int $classId, ?Exam $exam = null): array
     {
-        return Stream::with('combination.items')->where('school_class_id', $classId)->whereNotNull('combination_id')->get()
-            ->mapWithKeys(fn (Stream $s) => [$s->id => [
-                'code' => $s->combination->code,
-                'principal' => $s->combination->principalIds(),
-                'subjects' => $s->combination->subjectIds(),
-            ]])->all();
+        return app(ALevelRules::class)->forExam($exam, $classId)['streams'];
     }
 
     /** Subjects offered in a class (from allocations), plus any subject already holding marks. */
@@ -161,7 +161,7 @@ class ResultsService
     {
         $ids = ClassSubject::where('school_class_id', $classId)->pluck('subject_id')
             ->merge(ExamMark::where('exam_id', $exam->id)->where('school_class_id', $classId)->distinct()->pluck('subject_id'))
-            ->merge(collect($this->streamCombinations($classId))->pluck('subjects')->flatten())
+            ->merge(collect($this->streamCombinations($classId, $exam))->pluck('subjects')->flatten())
             ->unique()->values();
 
         return Subject::whereIn('id', $ids)->orderBy('name')->get(['id', 'name', 'code']);
@@ -176,7 +176,9 @@ class ResultsService
     {
         $level = EducationLevel::forClass($classId);
         $aLevel = $level === EducationLevel::A_LEVEL;
-        $combos = $aLevel ? $this->streamCombinations($classId) : [];
+        $aRules = $aLevel ? app(ALevelRules::class)->forExam($exam, $classId) : null;
+        $combos = $aRules['streams'] ?? [];
+        $averageAll = ($aRules['average'] ?? null) === ALevelRules::AVERAGE_ALL;
         $subjects = $this->classSubjects($exam, $classId);
         $marks = ExamMark::where('exam_id', $exam->id)->where('school_class_id', $classId)->get()->groupBy('student_id');
 
@@ -223,13 +225,17 @@ class ResultsService
                     'remarks' => $m->remarks,
                 ];
 
-                // A-Level: average, total and division use principal subjects only.
-                if ($pct !== null && $principal) {
+                if ($pct === null) {
+                    continue;
+                }
+                // A-Level: the division uses principal subjects only; the average and total use all
+                // subjects or principals only, as the class rules say.
+                if ($principal || $averageAll) {
                     $percentages[] = $pct;
                     $total += (float) $m->score;
-                    if ($pts !== null) {
-                        $points[] = $pts;
-                    }
+                }
+                if ($principal && $pts !== null) {
+                    $points[] = $pts;
                 }
             }
 
@@ -258,8 +264,8 @@ class ResultsService
             ];
         }
 
-        // Competition ranking across the whole class (A-Level: fewest division points first).
-        $key = fn ($r) => $aLevel ? [$r['division'] === 'INC' ? 1 : 0, $r['points'] ?? PHP_INT_MAX, -$r['average']] : [-$r['average']];
+        // Competition ranking across the whole class (A-Level: fewest division points, then average, then total marks).
+        $key = fn ($r) => $aLevel ? [$r['division'] === 'INC' ? 1 : 0, $r['points'] ?? PHP_INT_MAX, -$r['average'], -$r['total']] : [-$r['average']];
         $ranked = collect($rows)->filter(fn ($r) => $r['average'] !== null)->sort(fn ($a, $b) => $key($a) <=> $key($b))->values();
         $positions = [];
         $prev = null;
@@ -415,7 +421,7 @@ class ResultsService
                 $streamCounts = Student::where('school_class_id', $class->id)->where('status', 'active')->whereNotNull('stream_id')
                     ->selectRaw('stream_id, COUNT(*) as total')->groupBy('stream_id')->pluck('total', 'stream_id');
                 $perSubject = [];
-                foreach ($this->streamCombinations($class->id) as $streamId => $combo) {
+                foreach ($this->streamCombinations($class->id, $exam) as $streamId => $combo) {
                     foreach ($combo['subjects'] as $sid) {
                         $perSubject[$sid] = ($perSubject[$sid] ?? 0) + (int) ($streamCounts[$streamId] ?? 0);
                     }

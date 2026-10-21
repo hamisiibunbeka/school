@@ -9,6 +9,12 @@ class SchoolClass extends SchoolModel
 {
     protected $table = 'school_classes';
 
+    protected function casts(): array
+    {
+        // A-Level only: null = follow the school's current rules; otherwise pinned rules (see ALevelRules).
+        return ['a_level_rules' => 'array'];
+    }
+
     public function isALevel(): bool
     {
         return $this->education_level === EducationLevel::A_LEVEL;

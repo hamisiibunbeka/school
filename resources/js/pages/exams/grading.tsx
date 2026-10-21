@@ -115,7 +115,10 @@ export default function Grading({ grades, gaps, canManage, level }: { grades: Gr
                                 <li>
                                     Division = total points of the 3 principal subjects of the learner&apos;s combination: I (3–9), II (10–12), III (13–17), IV (18–19), 0 (20–21).
                                 </li>
-                                <li>General Studies and BAM are graded with this scale but never counted in the division. S is a subsidiary pass.</li>
+                                <li>
+                                    Subsidiary subjects (e.g. Academic Communication, Historia ya Tanzania na Maadili, BAM) are graded with this scale but never counted in the
+                                    division. S is a subsidiary pass. Which subjects are principal or subsidiary is set under Academics → Subjects.
+                                </li>
                             </>
                         ) : (
                             <li>Division = total points of a learner&apos;s best 7 subjects: I (7–17), II (18–21), III (22–25), IV (26–33), 0 (34–35).</li>

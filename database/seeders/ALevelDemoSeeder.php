@@ -12,6 +12,8 @@ use App\Models\ExamMark;
 use App\Models\Guardian;
 use App\Models\SchoolClass;
 use App\Models\Student;
+use App\Models\Subject;
+use App\Services\Academics\ALevelRules;
 use App\Services\Academics\CombinationService;
 use App\Services\DocumentNumber;
 use App\Services\Exams\ResultsService;
@@ -22,7 +24,9 @@ use Illuminate\Database\Seeder;
 
 /**
  * A-Level (Form V–VI) demo for the demo school: standard combinations,
- * Form Five and Form Six streams by combination, the July–May A-Level
+ * Form Five on the new system (Academic Communication + Historia ya Tanzania na Maadili,
+ * average of all subjects) and Form Six finishing the old one (General Studies, average of
+ * principals), streams by combination, the July–May A-Level
  * calendar, ~60 students, a published midterm graded the ACSEE way, a few
  * TAMISEMI-selected applicants for next intake and a joining-instruction template.
  */
@@ -65,6 +69,11 @@ class ALevelDemoSeeder extends Seeder
             $class = SchoolClass::where('education_level', EducationLevel::A_LEVEL)->orderBy('level')->skip($i)->first()
                 ?? SchoolClass::create(['name' => $name, 'code' => $i ? 'F6' : 'F5', 'level' => $lastLevel + $i + 1, 'capacity' => 160]);
             $class->update(['education_level' => EducationLevel::A_LEVEL]);
+            if ($name === 'Form Six') {
+                // The current Form Six started before the reform: it finishes on General Studies.
+                $gs = Subject::firstOrCreate(['code' => 'GS'], ['name' => 'General Studies', 'type' => 'core']);
+                $class->forceFill(['a_level_rules' => ['label' => 'Old system (General Studies)', 'compulsory' => [$gs->id], 'average' => ALevelRules::AVERAGE_PRINCIPAL]])->save();
+            }
             $class->streams()->doesntHave('students')->delete(); // replace empty placeholder streams
             foreach ($plan[$name] as $code) {
                 $stream = $class->streams()->create(['name' => $code, 'combination_id' => Combination::where('code', $code)->value('id'), 'capacity' => 40]);
@@ -133,6 +142,7 @@ class ALevelDemoSeeder extends Seeder
             }
         }
         $exam->forceFill(['status' => 'published', 'published_at' => $exam->end_date->addDays(5)])->save();
+        app(ALevelRules::class)->freeze($exam);
     }
 
     /** TAMISEMI-selected Form Five applicants for next year, and a joining-instruction template. */

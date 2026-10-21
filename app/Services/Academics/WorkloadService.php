@@ -176,9 +176,11 @@ class WorkloadService
         $this->aLevelSubjectStreams = [];
 
         $aLevelIds = $classes->where('education_level', EducationLevel::A_LEVEL)->pluck('id');
+        $rules = app(ALevelRules::class);
         foreach (Stream::with('combination.items')->whereIn('school_class_id', $aLevelIds)->get() as $stream) {
             $this->aLevelSubjectStreams[$stream->school_class_id] ??= [];
-            foreach ($stream->combination?->subjectIds() ?? [] as $subjectId) {
+            // Combination subjects plus the class's compulsory subsidiaries.
+            foreach ($stream->combination ? $rules->streamEntry($stream)['subjects'] : [] as $subjectId) {
                 $this->aLevelSubjectStreams[$stream->school_class_id][$subjectId] = ($this->aLevelSubjectStreams[$stream->school_class_id][$subjectId] ?? 0) + 1;
             }
         }
