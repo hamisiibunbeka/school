@@ -1,7 +1,8 @@
 import { Link, useForm } from '@inertiajs/react';
 import { FileText, LoaderCircle, Save } from 'lucide-react';
-import type { FormEvent } from 'react';
+import { useState, type FormEvent } from 'react';
 import Avatar from '@/components/ui/avatar';
+import { ClassLevelSelect, classesOfLevel, levelOfClass } from '@/components/ui/class-level';
 import { FormGrid, FormSection, Input, Select, Textarea } from '@/components/ui/form';
 import PageHeader from '@/components/ui/page-header';
 import StatusBadge from '@/components/ui/status-badge';
@@ -66,6 +67,8 @@ export default function AdmissionForm({ application, classes, years, defaultYear
     });
     const err = form.errors;
     const aLevel = classes.find((c) => String(c.value) === form.data.school_class_id)?.education_level === 'a_level';
+    // Pick the level first (multi-level schools), then one of that level's classes.
+    const [level, setLevel] = useState(() => levelOfClass(classes, form.data.school_class_id));
     // A-Level applicants go into an A-Level year (separate July–May calendar).
     const yearOptions = form.data.school_class_id ? years.filter((y) => !y.education_level || y.education_level === (aLevel ? 'a_level' : 'o_level')) : years;
 
@@ -126,11 +129,19 @@ export default function AdmissionForm({ application, classes, years, defaultYear
                                 onChange={(e) => form.setData('academic_year_id', e.target.value)}
                                 error={err.academic_year_id}
                             />
+                            <ClassLevelSelect
+                                classes={classes}
+                                value={level}
+                                onChange={(l) => {
+                                    setLevel(l);
+                                    form.setData((d) => ({ ...d, school_class_id: '', combination_id: '', academic_year_id: (l === 'a_level') === aLevel ? d.academic_year_id : '' }));
+                                }}
+                            />
                             <Select
                                 label="Class applied for"
                                 required
                                 placeholder="Select…"
-                                options={classes}
+                                options={classesOfLevel(classes, level)}
                                 value={form.data.school_class_id}
                                 onChange={(e) => {
                                     const next = classes.find((c) => String(c.value) === e.target.value)?.education_level === 'a_level';

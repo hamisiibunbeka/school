@@ -43,5 +43,10 @@ class DatabaseSeeder extends Seeder
                 }
             }
         });
+
+        // The tenant's second campus: Nursery + Standard I–VII with PSLE-style results (login primary@mzenzi.test).
+        if ($primary = School::where('code', 'MZPS')->first()) {
+            app(Tenancy::class)->runAs($primary, fn () => $this->call(PrimaryDemoSeeder::class));
+        }
     }
 }

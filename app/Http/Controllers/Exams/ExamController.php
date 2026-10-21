@@ -297,14 +297,14 @@ class ExamController extends Controller
         $schoolId = $this->tenancy()->schoolId();
 
         $request->validate([
-            // O-Level and A-Level run separate calendars and grading, so one exam covers one level.
+            // Each level is graded differently (and A-Level runs its own calendar), so one exam covers one level.
             'class_ids' => [function ($attribute, $value, $fail) use ($request) {
-                $yearLevel = AcademicYear::whereKey($request->input('academic_year_id'))->value('education_level');
+                $yearCalendar = AcademicYear::whereKey($request->input('academic_year_id'))->value('education_level');
                 $levels = SchoolClass::whereIn('id', (array) $value)->distinct()->pluck('education_level');
                 if ($levels->count() > 1) {
-                    $fail('An exam cannot mix O-Level and A-Level classes — create one exam per level.');
-                } elseif ($yearLevel && $levels->isNotEmpty() && $levels->first() !== $yearLevel) {
-                    $fail('These classes are '.EducationLevel::label($levels->first()).' but the academic year is '.EducationLevel::label($yearLevel).'. Choose the matching year.');
+                    $fail('An exam cannot mix '.$levels->map(fn ($l) => EducationLevel::label($l))->implode(', ').' classes — they are graded differently. Create one exam per level.');
+                } elseif ($yearCalendar && $levels->isNotEmpty() && EducationLevel::calendar($levels->first()) !== $yearCalendar) {
+                    $fail('These classes follow the '.EducationLevel::calendarLabel(EducationLevel::calendar($levels->first())).' but the academic year is on the '.EducationLevel::calendarLabel($yearCalendar).'. Choose the matching year.');
                 }
             }],
         ]);

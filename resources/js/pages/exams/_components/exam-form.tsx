@@ -1,5 +1,6 @@
 import { useForm } from '@inertiajs/react';
-import { useEffect, type FormEvent } from 'react';
+import { useEffect, useState, type FormEvent } from 'react';
+import { ClassLevelSelect, classesOfLevel, levelOfClass } from '@/components/ui/class-level';
 import { Field, FormGrid, Input, Select } from '@/components/ui/form';
 import Modal from '@/components/ui/modal';
 import { cn } from '@/lib/utils';
@@ -30,9 +31,9 @@ type Props = {
     open: boolean;
     onClose: () => void;
     exam: ExamRow | null;
-    years: Option[];
+    years: (Option & { education_level?: string })[];
     terms: TermOption[];
-    classes: Option[];
+    classes: (Option & { education_level?: string })[];
     types: Option[];
     defaults?: { academic_year_id: number | null; term_id: number | null };
 };
@@ -50,10 +51,18 @@ export default function ExamFormModal({ open, onClose, exam, years, terms, class
         weight: 100 as number | string,
         class_ids: [] as number[],
     });
+    // One exam covers one level (they are graded differently); A-Level also has its own calendar.
+    const [level, setLevel] = useState(() => levelOfClass(classes, null));
+    const calendar = (l: string) => (l === 'a_level' ? 'a_level' : 'o_level');
+    const levelClasses = classesOfLevel(classes, level);
+    const levelYears = years.filter((y) => !y.education_level || y.education_level === calendar(level));
 
     useEffect(() => {
         if (!open) return;
         form.clearErrors();
+        const startLevel = levelOfClass(classes, exam?.class_ids[0]);
+        setLevel(startLevel);
+        const defaultYear = years.find((y) => String(y.value) === String(defaults?.academic_year_id ?? ''));
         form.setData(
             exam
                 ? {
@@ -70,13 +79,13 @@ export default function ExamFormModal({ open, onClose, exam, years, terms, class
                 : {
                       name: '',
                       type: 'midterm',
-                      academic_year_id: defaults?.academic_year_id ?? '',
-                      term_id: defaults?.term_id ?? '',
+                      academic_year_id: defaultYear && (defaultYear.education_level ?? 'o_level') === calendar(startLevel) ? defaultYear.value : '',
+                      term_id: defaultYear && (defaultYear.education_level ?? 'o_level') === calendar(startLevel) ? (defaults?.term_id ?? '') : '',
                       start_date: '',
                       end_date: '',
                       max_score: 100,
                       weight: 100,
-                      class_ids: classes.map((c) => Number(c.value)),
+                      class_ids: classesOfLevel(classes, startLevel).map((c) => Number(c.value)),
                   },
         );
         // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -102,7 +111,7 @@ export default function ExamFormModal({ open, onClose, exam, years, terms, class
                         label="Academic year"
                         required
                         placeholder="Select year"
-                        options={years}
+                        options={levelYears}
                         value={form.data.academic_year_id}
                         onChange={(e) => {
                             form.setData((d) => ({ ...d, academic_year_id: e.target.value, term_id: '' }));
@@ -117,9 +126,23 @@ export default function ExamFormModal({ open, onClose, exam, years, terms, class
                     <Input label="Start date" type="date" value={form.data.start_date} onChange={(e) => form.setData('start_date', e.target.value)} error={form.errors.start_date} />
                     <Input label="End date" type="date" min={form.data.start_date || undefined} value={form.data.end_date} onChange={(e) => form.setData('end_date', e.target.value)} error={form.errors.end_date} />
                 </FormGrid>
+                <FormGrid>
+                    <ClassLevelSelect
+                        classes={classes}
+                        value={level}
+                        onChange={(l) => {
+                            setLevel(l);
+                            form.setData((d) => ({
+                                ...d,
+                                class_ids: classesOfLevel(classes, l).map((c) => Number(c.value)),
+                                ...(calendar(l) !== calendar(level) ? { academic_year_id: '', term_id: '' } : {}),
+                            }));
+                        }}
+                    />
+                </FormGrid>
                 <Field label="Classes sitting the exam" required error={form.errors.class_ids}>
                     <div className="flex flex-wrap gap-2">
-                        {classes.map((c) => {
+                        {levelClasses.map((c) => {
                             const id = Number(c.value);
                             const on = form.data.class_ids.includes(id);
                             return (

@@ -10,6 +10,7 @@ return [
         // Hidden from the login page for client testing (the account itself still works).
         // ['role' => 'Platform Admin', 'email' => 'superadmin@mzenzi.test'],
         ['role' => 'School Admin', 'email' => 'admin@mzenzi.test'],
+        ['role' => 'Primary Head', 'email' => 'primary@mzenzi.test'],
         ['role' => 'Principal', 'email' => 'principal@mzenzi.test'],
         ['role' => 'Bursar', 'email' => 'bursar@mzenzi.test'],
         ['role' => 'Teacher', 'email' => 'teacher@mzenzi.test'],

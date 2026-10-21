@@ -60,7 +60,10 @@ export default function Sidebar() {
             ...s,
             items: s.items
                 .filter((i) => !i.permission || can(i.permission))
-                .map((i) => ({ ...i, children: i.children?.filter((c) => !c.permission || can(c.permission)) })),
+                .map((i) => ({
+                    ...i,
+                    children: i.children?.filter((c) => (!c.permission || can(c.permission)) && (!c.levels || c.levels.some((l) => school?.levels?.includes(l)))),
+                })),
         }))
         .filter((s) => s.items.length > 0);
 

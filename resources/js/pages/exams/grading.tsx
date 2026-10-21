@@ -3,16 +3,20 @@ import { AlertTriangle, Info, Plus } from 'lucide-react';
 import { useState, type FormEvent } from 'react';
 import { RowActions } from '@/components/ui/actions';
 import DataTable, { type Column } from '@/components/ui/data-table';
-import { FormGrid, Input } from '@/components/ui/form';
+import { Checkbox, FormGrid, Input } from '@/components/ui/form';
 import Modal from '@/components/ui/modal';
 import PageHeader from '@/components/ui/page-header';
 import Tabs from '@/components/ui/tabs';
 
-type Grade = { id: number; grade: string; min_score: number; max_score: number; points: number; remark: string | null };
+type Grade = { id: number; grade: string; min_score: number; max_score: number; points: number; is_pass: boolean; remark: string | null };
+type Props = { grades: Grade[]; gaps: [number, number][]; canManage: boolean; level: string; levels: { value: string; label: string }[]; usesDivision: boolean };
 
-const blank = { education_level: 'o_level', grade: '', min_score: '' as number | string, max_score: '' as number | string, points: '' as number | string, remark: '' };
+const blank = { education_level: 'o_level', grade: '', min_score: '' as number | string, max_score: '' as number | string, points: '' as number | string, is_pass: true, remark: '' };
 
-export default function Grading({ grades, gaps, canManage, level }: { grades: Grade[]; gaps: [number, number][]; canManage: boolean; level: string }) {
+/** Short tab names per level (the exam each scale mirrors). */
+const tabLabel: Record<string, string> = { pre_primary: 'Pre-primary', primary: 'Primary (PSLE / SFNA)', o_level: 'O-Level (CSEE)', a_level: 'A-Level (ACSEE)' };
+
+export default function Grading({ grades, gaps, canManage, level, levels, usesDivision }: Props) {
     const aLevel = level === 'a_level';
     const [open, setOpen] = useState(false);
     const [editing, setEditing] = useState<Grade | null>(null);
@@ -23,7 +27,7 @@ export default function Grading({ grades, gaps, canManage, level }: { grades: Gr
         form.clearErrors();
         form.setData(
             g
-                ? { education_level: level, grade: g.grade, min_score: g.min_score, max_score: g.max_score, points: g.points, remark: g.remark ?? '' }
+                ? { education_level: level, grade: g.grade, min_score: g.min_score, max_score: g.max_score, points: g.points, is_pass: g.is_pass, remark: g.remark ?? '' }
                 : { ...blank, education_level: level },
         );
         setOpen(true);
@@ -57,6 +61,11 @@ export default function Grading({ grades, gaps, canManage, level }: { grades: Gr
             ),
         },
         { key: 'points', header: 'Points', align: 'right', render: (g) => g.points },
+        {
+            key: 'pass',
+            header: 'Result',
+            render: (g) => (g.is_pass ? <span className="badge badge-soft-success">Pass</span> : <span className="badge badge-soft-danger">Not a pass</span>),
+        },
         { key: 'remark', header: 'Remark', render: (g) => g.remark ?? '—' },
         {
             key: 'actions',
@@ -70,7 +79,7 @@ export default function Grading({ grades, gaps, canManage, level }: { grades: Gr
         <>
             <PageHeader
                 title="Grading Scale"
-                subtitle="Percentage boundaries, grades and points used to grade marks and compute divisions."
+                subtitle="Percentage boundaries, grades, points and pass grades used to grade marks, average grades and divisions."
                 breadcrumbs={[{ title: 'Exams', href: '/exams' }, { title: 'Grading' }]}
                 actions={
                     canManage && (
@@ -84,10 +93,7 @@ export default function Grading({ grades, gaps, canManage, level }: { grades: Gr
             <Tabs
                 active={level}
                 onChange={(k) => router.get('/exams/grading', { level: k }, { preserveScroll: true })}
-                tabs={[
-                    { key: 'o_level', label: 'O-Level (CSEE)' },
-                    { key: 'a_level', label: 'A-Level (ACSEE)' },
-                ]}
+                tabs={levels.map((l) => ({ key: l.value, label: tabLabel[l.value] ?? l.label }))}
             />
 
             <div className="grid grid-cols-1 gap-6 xl:grid-cols-3">
@@ -109,8 +115,16 @@ export default function Grading({ grades, gaps, canManage, level }: { grades: Gr
                         <li>
                             The grade and points are stored with the mark when it is saved. Changing this scale does <b>not</b> silently change published results.
                         </li>
-                        <li>Lower points are better. The grade with the highest points is treated as the fail grade; the pass mark is the lowest boundary above it.</li>
-                        {aLevel ? (
+                        <li>Lower points are better. Grades marked “Pass” count as a pass; the pass mark is the lowest boundary of those grades.</li>
+                        {!usesDivision ? (
+                            <>
+                                <li>
+                                    No divisions at this level (NECTA PSLE / SFNA style): each subject gets a grade, and the learner&apos;s average (mean % of subjects sat) gives
+                                    the <b>average grade</b>.
+                                </li>
+                                <li>A learner passes with a pass grade (A–C by default). Position is by average, then total marks.</li>
+                            </>
+                        ) : aLevel ? (
                             <>
                                 <li>
                                     Division = total points of the 3 principal subjects of the learner&apos;s combination: I (3–9), II (10–12), III (13–17), IV (18–19), 0 (20–21).
@@ -180,6 +194,7 @@ export default function Grading({ grades, gaps, canManage, level }: { grades: Gr
                             wrapperClassName="sm:col-span-2"
                         />
                     </FormGrid>
+                    <Checkbox label="This grade is a pass" checked={form.data.is_pass} onChange={(e) => form.setData('is_pass', e.target.checked)} />
                     <div className="flex justify-center gap-3">
                         <button type="button" className="btn btn-outline-dark" onClick={() => setOpen(false)}>
                             Cancel

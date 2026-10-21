@@ -24,8 +24,10 @@ class PromotionController extends Controller
     {
         $classId = $request->integer('class') ?: null;
         $class = $classId ? SchoolClass::find($classId) : null;
-        // Promotion stays within a level: Form IV leavers enter Form V through selection/admission.
-        $next = $class ? SchoolClass::where('level', '>', $class->level)->where('education_level', $class->education_level)->orderBy('level')->first() : null;
+        // Promotion stays within a level (pre-primary moves up into Standard I); Standard VII and Form IV leavers
+        // enter the next level through selection / admission.
+        $next = $class ? (SchoolClass::where('level', '>', $class->level)->where('education_level', $class->education_level)->orderBy('level')->first()
+            ?? ($class->education_level === EducationLevel::PRE_PRIMARY ? SchoolClass::where('education_level', EducationLevel::PRIMARY)->orderBy('level')->first() : null)) : null;
 
         return Inertia::render('students/promotions', [
             'classes' => Lookups::classes(),
@@ -57,13 +59,13 @@ class PromotionController extends Controller
 
         $from = SchoolClass::findOrFail($data['from_class_id']);
         $to = $data['to_class_id'] ? SchoolClass::find($data['to_class_id']) : null;
-        if ($to && $to->education_level !== $from->education_level && collect($data['decisions'])->contains('action', 'promote')) {
-            return back()->withErrors(['to_class_id' => "Students cannot be promoted from {$from->name} into {$to->name}: A-Level (Form V) places come through Form Five selection or admission. Graduate Form IV students instead."]);
+        if ($to && ! EducationLevel::canPromote($from->education_level, $to->education_level) && collect($data['decisions'])->contains('action', 'promote')) {
+            return back()->withErrors(['to_class_id' => "Students cannot be promoted from {$from->name} into {$to->name}: ".EducationLevel::label($to->education_level).' places come through selection or admission. Graduate the leavers instead.']);
         }
-        $yearLevel = AcademicYear::whereKey($data['academic_year_id'])->value('education_level');
-        $targetLevel = ($to ?? $from)->education_level;
-        if ($yearLevel !== $targetLevel) {
-            return back()->withErrors(['academic_year_id' => 'Choose an '.EducationLevel::label($targetLevel).' academic year for these students.']);
+        $yearCalendar = AcademicYear::whereKey($data['academic_year_id'])->value('education_level');
+        $targetCalendar = EducationLevel::calendar(($to ?? $from)->education_level);
+        if ($yearCalendar !== $targetCalendar) {
+            return back()->withErrors(['academic_year_id' => 'Choose an academic year on the '.EducationLevel::calendarLabel($targetCalendar).' for these students.']);
         }
 
         $year = AcademicYear::findOrFail($data['academic_year_id']);

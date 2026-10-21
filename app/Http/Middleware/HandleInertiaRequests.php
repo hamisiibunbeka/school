@@ -3,7 +3,9 @@
 namespace App\Http\Middleware;
 
 use App\Models\School;
+use App\Models\SchoolClass;
 use App\Services\Messaging\SmsCredits;
+use App\Support\EducationLevel;
 use App\Support\Tenancy;
 use Illuminate\Http\Request;
 use Inertia\Middleware;
@@ -59,6 +61,9 @@ class HandleInertiaRequests extends Middleware
                     'tenant' => $school->tenant?->name,
                     'tenant_status' => $school->tenant?->status,
                     'plan' => $school->tenant?->plan?->name,
+                    'level' => $school->level,
+                    // Education levels the school teaches (from its classes, else its school type) — hides level-specific menus.
+                    'levels' => SchoolClass::distinct()->pluck('education_level')->all() ?: (EducationLevel::FOR_SCHOOL[$school->level] ?? EducationLevel::FOR_SCHOOL['secondary']),
                 ] : null;
             },
             // Header school switcher:

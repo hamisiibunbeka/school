@@ -6,7 +6,7 @@ class GradeScale extends SchoolModel
 {
     protected function casts(): array
     {
-        return ['min_score' => 'decimal:2', 'max_score' => 'decimal:2', 'points' => 'decimal:1'];
+        return ['min_score' => 'decimal:2', 'max_score' => 'decimal:2', 'points' => 'decimal:1', 'is_pass' => 'boolean'];
     }
 
     /** Resolve the grade row for a percentage score using the school's configured scale. */

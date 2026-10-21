@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Exams;
 
 use App\Http\Controllers\Controller;
 use App\Models\GradeScale;
+use App\Models\SchoolClass;
 use App\Services\Exams\TeacherAccess;
 use App\Support\EducationLevel;
 use Illuminate\Http\RedirectResponse;
@@ -24,7 +25,18 @@ class GradeScaleController extends Controller
 
     public function index(Request $request): Response
     {
-        $level = in_array($request->query('level'), EducationLevel::ALL, true) ? $request->query('level') : EducationLevel::O_LEVEL;
+        // Tabs: the levels the school's classes use (plus any level that already has a scale), youngest first;
+        // opens on the first level that actually has classes.
+        $withClasses = SchoolClass::distinct()->pluck('education_level');
+        $used = $withClasses->merge(GradeScale::distinct()->pluck('education_level'));
+        $levels = collect(EducationLevel::options())->filter(fn ($o) => $used->contains($o['value']))->values();
+        if ($levels->isEmpty()) {
+            $levels = collect(EducationLevel::options())->whereIn('value', EducationLevel::FOR_SCHOOL[$this->tenancy()->school()?->level] ?? [EducationLevel::O_LEVEL])->values();
+        }
+        $level = $levels->pluck('value')->contains($request->query('level'))
+            ? $request->query('level')
+            : ($levels->first(fn ($l) => $withClasses->contains($l['value'])) ?? $levels->first())['value'];
+
         $grades = GradeScale::where('education_level', $level)->orderByDesc('min_score')->get();
 
         // Gaps in 0–100 coverage are flagged for the administrator.
@@ -48,11 +60,13 @@ class GradeScaleController extends Controller
                 'min_score' => (float) $g->min_score,
                 'max_score' => (float) $g->max_score,
                 'points' => (float) $g->points,
+                'is_pass' => (bool) $g->is_pass,
                 'remark' => $g->remark,
             ])->values(),
             'gaps' => $gaps,
             'level' => $level,
-            'levels' => EducationLevel::options(),
+            'levels' => $levels,
+            'usesDivision' => EducationLevel::usesDivision($level),
             'canManage' => $request->user()->can('exams.manage') && ! $this->access->isRestricted($request->user()),
         ]);
     }
@@ -70,7 +84,7 @@ class GradeScaleController extends Controller
     public function update(Request $request, GradeScale $grade): RedirectResponse
     {
         $this->authorizeManage($request);
-        $old = $grade->only(['grade', 'min_score', 'max_score', 'points', 'remark']);
+        $old = $grade->only(['grade', 'min_score', 'max_score', 'points', 'is_pass', 'remark']);
         $grade->update($this->validated($request, $grade));
         $this->audit('updated', $grade, "Updated grade {$grade->grade}", 'exams', $old, $grade->only(array_keys($old)));
         $this->toast("Grade {$grade->grade} updated. Existing marks keep the grade they were saved with.");
@@ -102,6 +116,7 @@ class GradeScaleController extends Controller
             'min_score' => ['required', 'numeric', 'min:0', 'max:100'],
             'max_score' => ['required', 'numeric', 'min:0', 'max:100', 'gte:min_score'],
             'points' => ['required', 'numeric', 'min:0', 'max:99'],
+            'is_pass' => ['boolean'],
             'remark' => ['nullable', 'string', 'max:100'],
         ], ['max_score.gte' => 'The maximum must be greater than or equal to the minimum.']);
 

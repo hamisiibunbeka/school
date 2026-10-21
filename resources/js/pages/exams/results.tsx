@@ -40,7 +40,7 @@ export type StudentResult = {
     grade: string | null;
     remark: string | null;
     points: number | null;
-    division: string;
+    division: string | null;
     passed: boolean;
     position: number | null;
 };
@@ -61,6 +61,9 @@ type SubjectStat = {
 };
 type Analysis = {
     level: string;
+    /** false for pre-primary / primary: average grade only, no divisions */
+    has_division: boolean;
+    pass_grades: string[];
     combinations: Record<string, Record<string, number>>;
     unassigned: number;
     subjects: { id: number; name: string; code: string }[];
@@ -85,7 +88,7 @@ type Props = {
     filters: { class: string; stream: string };
     classes: (Option & { streams: Option[] })[];
     analysis: Analysis | null;
-    scale: { grade: string; min: number; max: number; points: number; remark: string | null }[];
+    scale: { grade: string; min: number; max: number; points: number; is_pass: boolean; remark: string | null }[];
     canApprove: boolean;
 };
 
@@ -117,9 +120,9 @@ export default function Results({ exam, filters: initial, classes, analysis, sca
                 ...analysis.subjects.map((s) => s.code),
                 'Total',
                 'Average %',
-                'Grade',
-                'Points',
-                'Division',
+                analysis.has_division ? 'Grade' : 'Average grade',
+                ...(analysis.has_division ? ['Points', 'Division'] : []),
+                'Result',
             ],
             ...analysis.students.map((s) => [
                 s.position ?? '',
@@ -134,8 +137,8 @@ export default function Results({ exam, filters: initial, classes, analysis, sca
                 s.total,
                 s.average ?? '',
                 s.grade ?? '',
-                s.points ?? '',
-                s.division,
+                ...(analysis.has_division ? [s.points ?? '', s.division ?? ''] : []),
+                s.average === null ? '' : s.passed ? 'Pass' : 'Not passed',
             ]),
         ]);
     };
@@ -186,6 +189,12 @@ export default function Results({ exam, filters: initial, classes, analysis, sca
                         13–17, IV: 18–19, 0: 20–21; fewer than 3 principal subjects = INC). Subsidiary subjects (shown in grey) never count towards the division; the average
                         counts all subjects or principals only, as set under Academics → Combinations. Position: division points, then average, then total marks.
                     </p>
+                ) : analysis && !analysis.has_division ? (
+                    <p className="mt-3 text-xs text-white-dark">
+                        {analysis.level === 'primary' ? 'Primary (NECTA PSLE / SFNA style)' : 'Pre-primary'}: each subject is graded and the average (mean % of subjects sat)
+                        gives the average grade — no divisions. Pass grades: {analysis.pass_grades.join(', ') || '—'} (pass mark {analysis.summary.pass_mark}%). Position: average,
+                        then total marks.
+                    </p>
                 ) : (
                     <p className="mt-3 text-xs text-white-dark">
                         Average = mean % of subjects sat. Division = sum of points of the best 7 subjects (I: 7–17, II: 18–21, III: 22–25, IV: 26–33, 0: 34–35; fewer than 7
@@ -231,13 +240,26 @@ export default function Results({ exam, filters: initial, classes, analysis, sca
                             hint={`High ${analysis.summary.highest ?? '—'}% · Low ${analysis.summary.lowest ?? '—'}%`}
                         />
                         <StatCard title="Pass rate" value={analysis.summary.pass_rate !== null ? `${analysis.summary.pass_rate}%` : '—'} icon={Award} tone="success" />
-                        <StatCard
-                            title="Division I – II"
-                            value={num((analysis.divisions.I ?? 0) + (analysis.divisions.II ?? 0))}
-                            icon={Trophy}
-                            tone="warning"
-                            hint={`Div I: ${analysis.divisions.I ?? 0}`}
-                        />
+                        {analysis.has_division ? (
+                            <StatCard
+                                title="Division I – II"
+                                value={num((analysis.divisions.I ?? 0) + (analysis.divisions.II ?? 0))}
+                                icon={Trophy}
+                                tone="warning"
+                                hint={`Div I: ${analysis.divisions.I ?? 0}`}
+                            />
+                        ) : (
+                            <StatCard
+                                title="Best average grade"
+                                value={(() => {
+                                    const best = Object.entries(analysis.gradeDistribution).find(([, n]) => n > 0);
+                                    return best ? `${best[0]} × ${best[1]}` : '—';
+                                })()}
+                                icon={Trophy}
+                                tone="warning"
+                                hint={`Passed (${analysis.pass_grades.join(', ')}): ${num(analysis.students.filter((s) => s.passed).length)}`}
+                            />
+                        )}
                     </div>
 
                     <div className="panel">
@@ -245,7 +267,7 @@ export default function Results({ exam, filters: initial, classes, analysis, sca
                             tabs={[
                                 { key: 'broadsheet', label: 'Broadsheet' },
                                 { key: 'subjects', label: 'Subject analysis' },
-                                { key: 'distribution', label: 'Grades & divisions' },
+                                { key: 'distribution', label: analysis.has_division ? 'Grades & divisions' : 'Grades' },
                                 { key: 'top', label: 'Top performers' },
                             ]}
                             active={tab}
@@ -278,9 +300,15 @@ function Broadsheet({ analysis }: { analysis: Analysis }) {
                         ))}
                         <th className="text-end!">Total</th>
                         <th className="text-end!">Avg %</th>
-                        <th className="text-center!">Grade</th>
-                        <th className="text-end!">Pts</th>
-                        <th className="text-center!">Div</th>
+                        <th className="text-center!">{analysis.has_division ? 'Grade' : 'Avg grade'}</th>
+                        {analysis.has_division ? (
+                            <>
+                                <th className="text-end!">Pts</th>
+                                <th className="text-center!">Div</th>
+                            </>
+                        ) : (
+                            <th className="text-center!">Result</th>
+                        )}
                     </tr>
                 </thead>
                 <tbody>
@@ -321,10 +349,22 @@ function Broadsheet({ analysis }: { analysis: Analysis }) {
                             <td className="text-end">{num(s.total, s.total % 1 ? 1 : 0)}</td>
                             <td className="text-end font-bold">{s.average !== null ? s.average.toFixed(1) : '—'}</td>
                             <td className="text-center font-bold">{s.grade ?? '—'}</td>
-                            <td className="text-end">{s.points ?? '—'}</td>
-                            <td className="text-center">
-                                <span className={cn('badge', divTone[s.division])}>{s.division}</span>
-                            </td>
+                            {analysis.has_division ? (
+                                <>
+                                    <td className="text-end">{s.points ?? '—'}</td>
+                                    <td className="text-center">
+                                        <span className={cn('badge', divTone[s.division ?? ''])}>{s.division}</span>
+                                    </td>
+                                </>
+                            ) : (
+                                <td className="text-center">
+                                    {s.average === null ? (
+                                        '—'
+                                    ) : (
+                                        <span className={cn('badge', s.passed ? 'badge-soft-success' : 'badge-soft-danger')}>{s.passed ? 'Pass' : 'Not passed'}</span>
+                                    )}
+                                </td>
+                            )}
                         </tr>
                     ))}
                 </tbody>
@@ -409,9 +449,9 @@ function Distribution({ analysis, scale }: { analysis: Analysis; scale: Props['s
     const grades = Object.keys(analysis.gradeDistribution);
     const divisions = ['I', 'II', 'III', 'IV', '0', 'INC'];
     return (
-        <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+        <div className={cn('grid grid-cols-1 gap-6', analysis.has_division && 'lg:grid-cols-2')}>
             <div>
-                <h6 className="mb-2 font-bold">Overall grade distribution (by average)</h6>
+                <h6 className="mb-2 font-bold">{analysis.has_division ? 'Overall grade distribution (by average)' : 'Average grade distribution'}</h6>
                 <Chart
                     type="bar"
                     height={280}
@@ -432,6 +472,7 @@ function Distribution({ analysis, scale }: { analysis: Analysis; scale: Props['s
                     ))}
                 </div>
             </div>
+            {analysis.has_division && (
             <div>
                 <h6 className="mb-2 font-bold">Division summary</h6>
                 {Object.keys(analysis.combinations ?? {}).length > 0 && (
@@ -473,6 +514,7 @@ function Distribution({ analysis, scale }: { analysis: Analysis; scale: Props['s
                     }}
                 />
             </div>
+            )}
         </div>
     );
 }
@@ -518,7 +560,7 @@ function TopPerformers({ analysis }: { analysis: Analysis }) {
                             <div className="text-end">
                                 <div className="text-lg font-extrabold text-primary">{s.average?.toFixed(1)}%</div>
                                 <div className="text-xs">
-                                    Grade {s.grade} · Div {s.division} ({s.points})
+                                    {analysis.has_division ? `Grade ${s.grade} · Div ${s.division} (${s.points})` : `Average grade ${s.grade}`}
                                 </div>
                             </div>
                         </div>

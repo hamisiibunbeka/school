@@ -6,13 +6,13 @@ use App\Models\AcademicYear;
 use App\Models\Account;
 use App\Models\Department;
 use App\Models\FiscalYear;
-use App\Models\GradeScale;
 use App\Models\Plan;
 use App\Models\Role;
 use App\Models\School;
 use App\Models\Tenant;
 use App\Models\User;
 use App\Services\Website\WebsiteDefaults;
+use App\Support\GradeScaleDefaults;
 use App\Support\Tenancy;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -203,39 +203,10 @@ class SchoolProvisioner
         ]);
     }
 
-    /** NECTA ACSEE (Form V–VI): A=1 … F=7, S = subsidiary pass. */
-    public const A_LEVEL_SCALE = [
-        ['A', 80, 100, 1, 'Excellent'],
-        ['B', 70, 79.99, 2, 'Very Good'],
-        ['C', 60, 69.99, 3, 'Good'],
-        ['D', 50, 59.99, 4, 'Satisfactory'],
-        ['E', 40, 49.99, 5, 'Pass'],
-        ['S', 35, 39.99, 6, 'Subsidiary pass'],
-        ['F', 0, 34.99, 7, 'Fail'],
-    ];
-
-    /** NECTA-style default grading (O-Level CSEE and A-Level ACSEE); fully editable per school. */
+    /** NECTA-style default grading for the levels this type of school teaches; fully editable per school. */
     public function seedGradeScale(): void
     {
-        if (! GradeScale::where('education_level', 'a_level')->exists()) {
-            foreach (self::A_LEVEL_SCALE as [$grade, $min, $max, $points, $remark]) {
-                GradeScale::create(['education_level' => 'a_level', 'grade' => $grade, 'min_score' => $min, 'max_score' => $max, 'points' => $points, 'remark' => $remark]);
-            }
-        }
-
-        if (GradeScale::where('education_level', 'o_level')->exists()) {
-            return;
-        }
-
-        foreach ([
-            ['A', 75, 100, 1, 'Excellent'],
-            ['B', 65, 74.99, 2, 'Very Good'],
-            ['C', 45, 64.99, 3, 'Good'],
-            ['D', 30, 44.99, 4, 'Satisfactory'],
-            ['F', 0, 29.99, 5, 'Fail'],
-        ] as [$grade, $min, $max, $points, $remark]) {
-            GradeScale::create(['grade' => $grade, 'min_score' => $min, 'max_score' => $max, 'points' => $points, 'remark' => $remark]);
-        }
+        GradeScaleDefaults::ensureForSchool(app(Tenancy::class)->school()?->level);
     }
 
     public function seedDepartments(): void

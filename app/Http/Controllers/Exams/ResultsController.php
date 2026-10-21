@@ -35,7 +35,7 @@ class ResultsController extends Controller
             'classes' => $this->classOptions($exam),
             'analysis' => $classId ? $this->results->classResults($exam, $classId, $streamId) : null,
             'canApprove' => $this->access->canApprove($request->user()),
-            'scale' => $this->results->scale($exam->educationLevel())->map(fn ($g) => ['grade' => $g->grade, 'min' => (float) $g->min_score, 'max' => (float) $g->max_score, 'points' => (float) $g->points, 'remark' => $g->remark])->values(),
+            'scale' => $this->results->scale($exam->educationLevel())->map(fn ($g) => ['grade' => $g->grade, 'min' => (float) $g->min_score, 'max' => (float) $g->max_score, 'points' => (float) $g->points, 'is_pass' => (bool) $g->is_pass, 'remark' => $g->remark])->values(),
         ]);
     }
 
@@ -130,7 +130,7 @@ class ResultsController extends Controller
             'cards' => $cards,
             'context' => $context,
             'canApprove' => $this->access->canApprove($request->user()),
-            'scale' => $this->results->scale($exam?->educationLevel() ?? EducationLevel::O_LEVEL)->map(fn ($g) => ['grade' => $g->grade, 'min' => (float) $g->min_score, 'max' => (float) $g->max_score, 'points' => (float) $g->points, 'remark' => $g->remark])->values(),
+            'scale' => $this->results->scale($exam?->educationLevel() ?? EducationLevel::O_LEVEL)->map(fn ($g) => ['grade' => $g->grade, 'min' => (float) $g->min_score, 'max' => (float) $g->max_score, 'points' => (float) $g->points, 'is_pass' => (bool) $g->is_pass, 'remark' => $g->remark])->values(),
         ]);
     }
 

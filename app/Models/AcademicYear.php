@@ -25,9 +25,9 @@ class AcademicYear extends SchoolModel
         return $q()->where('is_current', true)->first() ?? $q()->latest('start_date')->first();
     }
 
-    /** Current year for the level of the given class. */
+    /** Current year of the calendar the given class follows (A-Level, or the main calendar for every other level). */
     public static function currentFor(?int $classId): ?self
     {
-        return static::current(EducationLevel::forClass($classId));
+        return static::current(EducationLevel::calendarForClass($classId));
     }
 }

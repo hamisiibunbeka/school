@@ -80,6 +80,9 @@ class ALevelTest extends TestCase
         $this->assertSame('INC', $r->aLevelDivision([1, 2])['division']);
         $this->assertSame('IV', $r->aLevelDivision([7, 6, 5])['division']); // 18 → IV
         $this->assertSame('0', $r->aLevelDivision([6, 7, 7])['division']); // 20 → 0
+
+        // Pass marks from the pass-grade flags: CSEE D (30%), ACSEE E (40% — S is not a principal pass).
+        $this->assertSame([30.0, 40.0], $this->in(fn () => [app(ResultsService::class)->passMark('o_level'), app(ResultsService::class)->passMark('a_level')]));
     }
 
     public function test_standard_combinations_and_bam_choice(): void

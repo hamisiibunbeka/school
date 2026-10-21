@@ -46,8 +46,7 @@ class AdmissionClearanceService
     /** Bill a newly admitted (pending) student for the current term of their class; null when no structure applies. */
     public function bill(Student $student, string $issueDate): ?Invoice
     {
-        $level = EducationLevel::forClass($student->school_class_id);
-        $term = Term::current($level);
+        $term = Term::current(EducationLevel::calendarForClass($student->school_class_id));
         if (! $term || Invoice::where('student_id', $student->id)->where('term_id', $term->id)->billable()->exists()) {
             return null;
         }

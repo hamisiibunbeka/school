@@ -9,6 +9,7 @@ use App\Models\Stream;
 use App\Services\Academics\CombinationService;
 use App\Services\Academics\WorkloadService;
 use App\Support\EducationLevel;
+use App\Support\GradeScaleDefaults;
 use App\Support\Lookups;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -65,7 +66,9 @@ class ClassController extends Controller
         return Inertia::render('academics/classes', [
             'classes' => $classes,
             'teachers' => Lookups::teachers(),
-            'levels' => EducationLevel::options(),
+            // Only the levels this type of school teaches (School Settings → level), plus any level already in use.
+            'levels' => collect(EducationLevel::options())->whereIn('value', collect(EducationLevel::FOR_SCHOOL[$this->tenancy()->school()?->level] ?? EducationLevel::ALL)
+                ->merge(SchoolClass::distinct()->pluck('education_level')))->values(),
             'combinations' => Combination::active()->orderBy('code')->get(['id', 'code', 'name'])
                 ->map(fn ($c) => ['value' => $c->id, 'label' => "{$c->code} — {$c->name}"]),
         ]);
@@ -82,6 +85,7 @@ class ClassController extends Controller
 
             return $class;
         });
+        GradeScaleDefaults::ensure($class->education_level); // every level in use has a grade scale
 
         $this->audit('created', $class, "Created class {$class->name}", 'academics');
         $this->toast("{$class->name} created.");
@@ -99,6 +103,7 @@ class ClassController extends Controller
         }
         $old = $class->only(['name', 'code', 'level', 'capacity', 'education_level']);
         $class->update(collect($data)->except('streams')->all());
+        GradeScaleDefaults::ensure($class->education_level);
 
         $this->audit('updated', $class, "Updated class {$class->name}", 'academics', $old, $class->only(array_keys($old)));
         $this->toast('Class updated.');

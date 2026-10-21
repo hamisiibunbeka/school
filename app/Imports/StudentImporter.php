@@ -84,8 +84,8 @@ class StudentImporter extends Importer
         $this->admissionNos = Student::withTrashed()->pluck('id', 'admission_no')->mapWithKeys(fn ($id, $no) => [Str::lower($no) => $id])->all();
         $this->nameDob = Student::query()->get(['first_name', 'last_name', 'date_of_birth'])
             ->mapWithKeys(fn ($s) => [Str::lower("{$s->first_name}|{$s->last_name}|{$s->date_of_birth?->toDateString()}") => true])->all();
-        foreach (EducationLevel::ALL as $level) {
-            $this->years[$level] = AcademicYear::current($level);
+        foreach (EducationLevel::CALENDARS as $calendar) {
+            $this->years[$calendar] = AcademicYear::current($calendar);
         }
     }
 
@@ -182,7 +182,7 @@ class StudentImporter extends Importer
             $student->guardians()->syncWithoutDetaching([$g->id => ['relationship' => $guardian['relationship'], 'is_primary' => true]]);
         }
 
-        $year = $this->years[EducationLevel::forClass($student->school_class_id)] ?? null;
+        $year = $this->years[EducationLevel::calendarForClass($student->school_class_id)] ?? null;
         if ($year) {
             Enrolment::create([
                 'student_id' => $student->id, 'academic_year_id' => $year->id, 'school_class_id' => $student->school_class_id,

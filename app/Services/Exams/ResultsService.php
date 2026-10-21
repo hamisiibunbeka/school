@@ -34,12 +34,15 @@ use Illuminate\Support\Facades\DB;
  *   13–17 → III, 18–19 → IV, 20–21 → 0; fewer than 3 principals sat → "INC". Subsidiaries
  *   never count towards the division. The average (and total) count all subjects, or the
  *   principals only, as the class rules say. Published exams keep their frozen rules.
+ * - Pre-primary & Primary (PSLE / SFNA style): no division. Each subject is graded, the average
+ *   (mean % of subjects sat) gives the average grade, a learner passes with a pass grade (A–C by
+ *   default) and position is by average, then total marks.
  * - Position: O-Level ranks by average; A-Level ranks by division points (fewest first —
  *   so Division I with 3 points beats Division I with 4 whatever the averages), then by
  *   average, then by total marks. Students equal on every factor share a position
  *   (1, 2, 2, 4); students who sat nothing are not ranked.
- * - Pass mark = lowest min_score of every grade except the failing grade (the grade
- *   with the highest points value). With the default NECTA scale that is 30% (D).
+ * - Pass mark = lowest min_score of the grades marked as a pass on the school's scale
+ *   (defaults: O-Level 30% (D), A-Level 40% (E), Primary 41% (C)).
  */
 class ResultsService
 {
@@ -86,19 +89,20 @@ class ResultsService
         if ($scale->isEmpty()) {
             return 30.0;
         }
-        $failPoints = $scale->max(fn ($g) => (float) $g->points);
-        // A-Level: a subsidiary pass (S) is not a principal pass.
-        $passing = $scale->filter(fn ($g) => (float) $g->points < $failPoints && ($level !== EducationLevel::A_LEVEL || $g->grade !== 'S'));
+        $passing = $scale->filter(fn ($g) => (bool) $g->is_pass);
 
         return $passing->isEmpty() ? 0.0 : (float) $passing->min(fn ($g) => (float) $g->min_score);
     }
 
     /**
      * @param  array<int, float>  $points  points of every subject sat
-     * @return array{division:string, points:?float}
+     * @return array{division:?string, points:?float}
      */
     public function division(array $points, string $level = EducationLevel::O_LEVEL): array
     {
+        if (! EducationLevel::usesDivision($level)) {
+            return ['division' => null, 'points' => null]; // pre-primary / primary: average grade only
+        }
         if ($level === EducationLevel::A_LEVEL) {
             return $this->aLevelDivision($points);
         }
@@ -176,6 +180,7 @@ class ResultsService
     {
         $level = EducationLevel::forClass($classId);
         $aLevel = $level === EducationLevel::A_LEVEL;
+        $hasDivision = EducationLevel::usesDivision($level);
         $aRules = $aLevel ? app(ALevelRules::class)->forExam($exam, $classId) : null;
         $combos = $aRules['streams'] ?? [];
         $averageAll = ($aRules['average'] ?? null) === ALevelRules::AVERAGE_ALL;
@@ -264,8 +269,13 @@ class ResultsService
             ];
         }
 
-        // Competition ranking across the whole class (A-Level: fewest division points, then average, then total marks).
-        $key = fn ($r) => $aLevel ? [$r['division'] === 'INC' ? 1 : 0, $r['points'] ?? PHP_INT_MAX, -$r['average'], -$r['total']] : [-$r['average']];
+        // Competition ranking across the whole class: A-Level by fewest division points, then average, then total
+        // marks; O-Level by average; pre-primary / primary by average, then total marks.
+        $key = fn ($r) => match (true) {
+            $aLevel => [$r['division'] === 'INC' ? 1 : 0, $r['points'] ?? PHP_INT_MAX, -$r['average'], -$r['total']],
+            $hasDivision => [-$r['average']],
+            default => [-$r['average'], -$r['total']],
+        };
         $ranked = collect($rows)->filter(fn ($r) => $r['average'] !== null)->sort(fn ($a, $b) => $key($a) <=> $key($b))->values();
         $positions = [];
         $prev = null;
@@ -327,8 +337,8 @@ class ResultsService
                 $gradeDistribution[$r['grade']]++;
             }
         }
-        $divisions = array_fill_keys(['I', 'II', 'III', 'IV', '0', 'INC'], 0);
-        foreach ($ranked as $r) {
+        $divisions = $hasDivision ? array_fill_keys(['I', 'II', 'III', 'IV', '0', 'INC'], 0) : [];
+        foreach ($hasDivision ? $ranked : [] as $r) {
             $divisions[$r['division']]++;
         }
 
@@ -344,6 +354,8 @@ class ResultsService
 
         return [
             'level' => $level,
+            'has_division' => $hasDivision,
+            'pass_grades' => $this->scale($level)->where('is_pass', true)->pluck('grade')->values()->all(),
             'combinations' => $byCombination,
             'unassigned' => $aLevel ? collect($rows)->whereNull('combination')->count() : 0,
             'subjects' => $subjects->map(fn ($s) => ['id' => $s->id, 'name' => $s->name, 'code' => $s->code ?: $s->name])->values()->all(),

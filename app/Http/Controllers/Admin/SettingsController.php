@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\DocumentSequence;
 use App\Services\DocumentNumber;
+use App\Support\GradeScaleDefaults;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
@@ -123,6 +124,7 @@ class SettingsController extends Controller
         }
 
         $school->save();
+        GradeScaleDefaults::ensureForSchool($school->level); // e.g. a school that adds primary classes gets the primary scale
 
         $this->audit('settings_changed', $school, 'Updated school profile', 'administration', $old, $school->only(array_keys($old)));
         $this->toast('School profile saved.');

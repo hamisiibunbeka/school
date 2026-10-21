@@ -1,4 +1,4 @@
-import { useForm } from '@inertiajs/react';
+import { useForm, usePage } from '@inertiajs/react';
 import { AlertTriangle, BookMarked, BookOpen, Download, Plus, Sparkles } from 'lucide-react';
 import { useState, type FormEvent } from 'react';
 import { RowActions } from '@/components/ui/actions';
@@ -42,6 +42,8 @@ const emptyForm = { name: '', code: '', type: 'core', a_level_category: '', depa
 export default function Subjects({ subjects, filters: initial, departments, stats }: Props) {
     const can = useCan();
     const manage = can('academics.manage');
+    // The A-Level category only matters to schools that teach Form V–VI.
+    const teachesALevel = !!usePage().props.school?.levels?.includes('a_level');
     const { filters, setFilter, reset } = useFilters(initial);
     const [open, setOpen] = useState(false);
     const [editing, setEditing] = useState<Row | null>(null);
@@ -65,7 +67,7 @@ export default function Subjects({ subjects, filters: initial, departments, stat
         else form.post('/academics/subjects', opts);
     };
 
-    const columns: Column<Row>[] = [
+    const allColumns: Column<Row>[] = [
         {
             key: 'name',
             header: 'Subject',
@@ -96,6 +98,7 @@ export default function Subjects({ subjects, filters: initial, departments, stat
             render: (s) => (manage ? <RowActions onEdit={() => openForm(s)} destroy={`/academics/subjects/${s.id}`} label="subject" /> : null),
         },
     ];
+    const columns = teachesALevel ? allColumns : allColumns.filter((c) => c.key !== 'a_level');
 
     return (
         <>
@@ -143,7 +146,9 @@ export default function Subjects({ subjects, filters: initial, departments, stat
                     <SearchInput value={filters.search} onChange={(v) => setFilter('search', v)} placeholder="Search name or code…" />
                     <FilterSelect value={filters.type} onChange={(v) => setFilter('type', v)} options={types} placeholder="All types" />
                     <FilterSelect value={filters.department} onChange={(v) => setFilter('department', v)} options={departments} placeholder="All departments" />
-                    <FilterSelect value={filters.a_level} onChange={(v) => setFilter('a_level', v)} options={[...aLevelCategories, { value: 'none', label: 'Not A-Level' }]} placeholder="All A-Level categories" />
+                    {teachesALevel && (
+                        <FilterSelect value={filters.a_level} onChange={(v) => setFilter('a_level', v)} options={[...aLevelCategories, { value: 'none', label: 'Not A-Level' }]} placeholder="All A-Level categories" />
+                    )}
                 </FilterBar>
                 <DataTable columns={columns} paginated={subjects} empty="No subjects found" emptyDescription="Add the subjects taught at your school." />
             </div>
@@ -154,6 +159,7 @@ export default function Subjects({ subjects, filters: initial, departments, stat
                         <Input label="Subject name" required value={form.data.name} onChange={(e) => form.setData('name', e.target.value)} error={form.errors.name} wrapperClassName="sm:col-span-2" />
                         <Input label="Code" placeholder="e.g. MATH" value={form.data.code} onChange={(e) => form.setData('code', e.target.value.toUpperCase())} error={form.errors.code} />
                         <Select label="Type" required options={types} value={form.data.type} onChange={(e) => form.setData('type', e.target.value)} error={form.errors.type} />
+                        {teachesALevel && (
                         <Select
                             label="A-Level category"
                             placeholder="Not an A-Level subject"
@@ -164,6 +170,7 @@ export default function Subjects({ subjects, filters: initial, departments, stat
                             help="Form V–VI only. Compulsory subsidiaries are taken by every A-Level student on the current rules; optional ones are ticked per combination."
                             wrapperClassName="sm:col-span-2"
                         />
+                        )}
                         <Select
                             label="Department"
                             placeholder="— None —"

@@ -41,7 +41,7 @@ class AcademicYearController extends Controller
             ])->values(),
         ]);
 
-        return Inertia::render('academics/years', ['years' => $years, 'levels' => EducationLevel::options()]);
+        return Inertia::render('academics/years', ['years' => $years, 'levels' => EducationLevel::calendarOptions()]);
     }
 
     public function store(Request $request): RedirectResponse
@@ -106,7 +106,7 @@ class AcademicYearController extends Controller
             $year->update(['is_current' => true]);
         });
 
-        $label = EducationLevel::label($year->education_level);
+        $label = EducationLevel::calendarLabel($year->education_level);
         $this->audit('set_current', $year, "Set {$year->name} as the current {$label} academic year", 'academics');
         $this->toast("{$year->name} is now the current {$label} academic year.");
 
@@ -231,7 +231,7 @@ class AcademicYearController extends Controller
     {
         return $request->validate([
             'name' => ['required', 'string', 'max:50'],
-            'education_level' => ['required', Rule::in(EducationLevel::ALL)],
+            'education_level' => ['required', Rule::in(EducationLevel::CALENDARS)],
             'start_date' => ['required', 'date'],
             'end_date' => ['required', 'date', 'after:start_date'],
             'is_current' => ['boolean'],

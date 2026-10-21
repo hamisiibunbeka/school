@@ -35,7 +35,8 @@ type Card = {
     grade: string | null;
     remark: string | null;
     points: number | null;
-    division: string;
+    division: string | null;
+    passed: boolean;
     position: number | null;
     class_teacher: string | null;
     subjects: SubjectLine[];
@@ -60,7 +61,7 @@ type Props = {
     students: Option[];
     cards: Card[];
     context: { class_size: number; class_average: number | null; next_term: string | null; term_range: [string, string] | null } | null;
-    scale: { grade: string; min: number; max: number; points: number; remark: string | null }[];
+    scale: { grade: string; min: number; max: number; points: number; is_pass: boolean; remark: string | null }[];
     canApprove: boolean;
 };
 
@@ -167,6 +168,9 @@ function ReportCard({
     const { school } = usePage().props;
     const provisional = exam.status !== 'published';
     const aLevel = exam.level === 'a_level';
+    // Pre-primary / primary (PSLE / SFNA style): average grade and pass/not passed instead of a division.
+    const hasDivision = exam.level === 'o_level' || exam.level === 'a_level';
+    const passGrades = scale.filter((g) => g.is_pass).map((g) => g.grade);
     // A-Level: principal subjects first, then subsidiaries.
     const lines = aLevel ? [...c.subjects].sort((a, b) => Number(a.role === 'subsidiary') - Number(b.role === 'subsidiary')) : c.subjects;
 
@@ -178,7 +182,7 @@ function ReportCard({
                 </div>
             )}
             <Letterhead
-                title="Student Progress Report"
+                title={hasDivision ? 'Student Progress Report' : 'Pupil Progress Report'}
                 meta={
                     <div className="space-y-0.5">
                         <div className="font-bold">{exam.name}</div>
@@ -243,11 +247,15 @@ function ReportCard({
             <div className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-4">
                 <Summary label="Average" value={c.average !== null ? `${c.average.toFixed(1)}%` : '—'} />
                 <Summary label="Position" value={c.position ? `${c.position} / ${context.class_size}` : '—'} />
-                <Summary
-                    label="Division"
-                    value={c.division === 'INC' ? 'Incomplete' : c.division}
-                    hint={c.points !== null ? `${c.points} points (${aLevel ? '3 principal subjects' : 'best 7'})` : undefined}
-                />
+                {hasDivision ? (
+                    <Summary
+                        label="Division"
+                        value={c.division === 'INC' ? 'Incomplete' : (c.division ?? '—')}
+                        hint={c.points !== null ? `${c.points} points (${aLevel ? '3 principal subjects' : 'best 7'})` : undefined}
+                    />
+                ) : (
+                    <Summary label="Average grade" value={c.grade ?? '—'} hint={c.average === null ? undefined : c.passed ? 'Pass' : 'Not passed'} />
+                )}
                 <Summary label="Class average" value={context.class_average !== null ? `${context.class_average}%` : '—'} />
             </div>
 
@@ -293,7 +301,11 @@ function ReportCard({
                 </span>
                 <span className="text-white-dark">
                     Grading: {scale.map((g) => `${g.grade} ${g.min}–${Math.round(g.max)}`).join(' · ')} ·{' '}
-                    {aLevel ? 'Div I 3–9, II 10–12, III 13–17, IV 18–19, 0 20–21 (3 principal subjects)' : 'Div I 7–17, II 18–21, III 22–25, IV 26–33, 0 34–35'}
+                    {!hasDivision
+                        ? `Pass: ${passGrades.join(', ')}`
+                        : aLevel
+                          ? 'Div I 3–9, II 10–12, III 13–17, IV 18–19, 0 20–21 (3 principal subjects)'
+                          : 'Div I 7–17, II 18–21, III 22–25, IV 26–33, 0 34–35'}
                 </span>
             </div>
         </div>

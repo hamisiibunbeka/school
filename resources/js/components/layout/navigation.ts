@@ -22,7 +22,8 @@ import {
     type LucideIcon,
 } from 'lucide-react';
 
-export type NavLink = { title: string; href: string; permission?: string | string[] };
+/** `levels`: shown only to schools teaching one of these education levels (e.g. A-Level only screens). */
+export type NavLink = { title: string; href: string; permission?: string | string[]; levels?: string[] };
 export type NavItem = {
     key: string;
     title: string;
@@ -55,7 +56,7 @@ export const navigation: NavSection[] = [
                 children: [
                     { title: 'Applications', href: '/admissions' },
                     { title: 'New Application', href: '/admissions/create', permission: 'admissions.manage' },
-                    { title: 'Form Five Joining', href: '/admissions/joining-instructions', permission: 'admissions.manage' },
+                    { title: 'Form Five Joining', href: '/admissions/joining-instructions', permission: 'admissions.manage', levels: ['a_level'] },
                 ],
             },
             {
@@ -80,7 +81,7 @@ export const navigation: NavSection[] = [
                     { title: 'Years & Terms', href: '/academics/years' },
                     { title: 'Classes & Streams', href: '/academics/classes' },
                     { title: 'Subjects', href: '/academics/subjects' },
-                    { title: 'Combinations (A-Level)', href: '/academics/combinations' },
+                    { title: 'Combinations (A-Level)', href: '/academics/combinations', levels: ['a_level'] },
                     { title: 'Teacher Allocation', href: '/academics/allocations' },
                     { title: 'Timetable', href: '/academics/timetable' },
                     { title: 'Lesson Plans', href: '/academics/lesson-plans' },

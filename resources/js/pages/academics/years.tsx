@@ -1,4 +1,4 @@
-import { router, useForm } from '@inertiajs/react';
+import { router, useForm, usePage } from '@inertiajs/react';
 import { CalendarRange, CheckCircle2, Pencil, Plus, Star, Trash2, Users } from 'lucide-react';
 import { useState, type FormEvent } from 'react';
 import EmptyState from '@/components/ui/empty-state';
@@ -38,11 +38,12 @@ export default function Years({ years: allYears, levels }: { years: Year[]; leve
     const [termModal, setTermModal] = useState<{ open: boolean; year: Year | null; term: Term | null }>({ open: false, year: null, term: null });
     const yearForm = useForm(blankYear);
     const termForm = useForm(blank);
-    // O-Level and A-Level (Form V–VI, July–May) keep separate calendars.
-    const hasALevel = allYears.some((y) => y.education_level === 'a_level');
+    // Two calendars: the main one (January–December) for nursery, primary and Form I–IV, and A-Level's July–May year.
+    const { school } = usePage().props;
+    const hasALevel = allYears.some((y) => y.education_level === 'a_level') || !!school?.levels?.includes('a_level');
     const [level, setLevel] = useState('o_level');
     const years = allYears.filter((y) => y.education_level === level);
-    const levelLabel = level === 'a_level' ? 'A-Level' : 'O-Level';
+    const levelLabel = level === 'a_level' ? 'A-Level ' : '';
 
     const current = years.find((y) => y.is_current);
     const currentTerm = years.flatMap((y) => y.terms).find((t) => t.is_current);
@@ -84,7 +85,7 @@ export default function Years({ years: allYears, levels }: { years: Year[]; leve
     const setCurrent = async (url: string, label: string) => {
         const { confirmed } = await confirm({
             title: `Make ${label} current?`,
-            text: `Only one can be current per level (${levelLabel}). Attendance, fees and exams default to it.`,
+            text: `Only one can be current per calendar. Attendance, fees and exams default to it.`,
             confirmText: 'Set as current',
         });
         if (confirmed) router.post(url, {}, { preserveScroll: true });
@@ -114,8 +115,8 @@ export default function Years({ years: allYears, levels }: { years: Year[]; leve
                 active={level}
                 onChange={setLevel}
                 tabs={[
-                    { key: 'o_level', label: 'O-Level (Form I–IV)', icon: CalendarRange },
-                    { key: 'a_level', label: 'A-Level (Form V–VI)', icon: CalendarRange, count: hasALevel ? undefined : 0 },
+                    { key: 'o_level', label: hasALevel ? 'Main calendar (January–December)' : 'Academic years', icon: CalendarRange },
+                    ...(hasALevel ? [{ key: 'a_level', label: 'A-Level calendar (July–May)', icon: CalendarRange }] : []),
                 ]}
             />
             {level === 'a_level' && (
@@ -126,7 +127,7 @@ export default function Years({ years: allYears, levels }: { years: Year[]; leve
 
             <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-3">
                 <StatCard
-                    title={`Current ${levelLabel} year`}
+                    title={`Current ${levelLabel}year`}
                     value={current?.name ?? '—'}
                     icon={CalendarRange}
                     tone="primary"
@@ -144,7 +145,7 @@ export default function Years({ years: allYears, levels }: { years: Year[]; leve
 
             {years.length === 0 ? (
                 <div className="panel">
-                    <EmptyState title={`No ${levelLabel} academic years yet`} description="Create the first academic year and its terms." />
+                    <EmptyState title={`No ${levelLabel}academic years yet`} description="Create the first academic year and its terms." />
                 </div>
             ) : (
                 <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">

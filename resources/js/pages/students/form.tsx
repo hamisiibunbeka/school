@@ -1,7 +1,8 @@
 import { Link, useForm } from '@inertiajs/react';
 import { Camera, LoaderCircle, Plus, Save, Trash2 } from 'lucide-react';
-import type { FormEvent } from 'react';
+import { useState, type FormEvent } from 'react';
 import Avatar from '@/components/ui/avatar';
+import { ClassLevelSelect, classesOfLevel, levelOfClass } from '@/components/ui/class-level';
 import { Checkbox, FormGrid, FormSection, Input, Select, Textarea } from '@/components/ui/form';
 import PageHeader from '@/components/ui/page-header';
 import type { Option } from '@/types';
@@ -46,7 +47,7 @@ type StudentData = {
     } | null;
 };
 
-type Props = { student: StudentData | null; classes: (Option & { streams: Option[] })[]; sponsors: SponsorOption[]; sponsorTypes: Option[] };
+type Props = { student: StudentData | null; classes: (Option & { education_level?: string; streams: Option[] })[]; sponsors: SponsorOption[]; sponsorTypes: Option[] };
 
 const emptyGuardian = (primary = false): GuardianInput => ({ id: null, first_name: '', last_name: '', phone: '', email: '', occupation: '', relationship: primary ? 'Father' : 'Mother', is_primary: primary });
 const relationships = ['Father', 'Mother', 'Guardian', 'Uncle', 'Aunt', 'Grandparent', 'Sibling', 'Sponsor'];
@@ -114,6 +115,8 @@ export default function StudentForm({ student, classes, sponsors, sponsorTypes }
     });
 
     const streams = classes.find((c) => String(c.value) === form.data.school_class_id)?.streams ?? [];
+    // Pick the level first (multi-level schools), then one of that level's classes.
+    const [level, setLevel] = useState(() => levelOfClass(classes, form.data.school_class_id));
     const err = form.errors as Record<string, string>;
 
     const setGuardian = (i: number, key: keyof GuardianInput, value: string | boolean) => {
@@ -193,6 +196,14 @@ export default function StudentForm({ student, classes, sponsors, sponsorTypes }
 
                     <FormSection title="Class placement" description="Where the learner sits this academic year.">
                         <FormGrid cols={3}>
+                            <ClassLevelSelect
+                                classes={classes}
+                                value={level}
+                                onChange={(l) => {
+                                    setLevel(l);
+                                    form.setData((d) => ({ ...d, school_class_id: '', stream_id: '' }));
+                                }}
+                            />
                             <Select
                                 label="Class"
                                 name="school_class_id"
@@ -200,7 +211,7 @@ export default function StudentForm({ student, classes, sponsors, sponsorTypes }
                                 placeholder="Select class…"
                                 value={form.data.school_class_id}
                                 onChange={(e) => form.setData((d) => ({ ...d, school_class_id: e.target.value, stream_id: '' }))}
-                                options={classes}
+                                options={classesOfLevel(classes, level)}
                                 error={err.school_class_id}
                             />
                             <Select label="Stream" name="stream_id" placeholder={streams.length ? 'Select stream…' : 'No streams'} value={form.data.stream_id} onChange={(e) => form.setData('stream_id', e.target.value)} options={streams} error={err.stream_id} />

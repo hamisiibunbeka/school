@@ -65,6 +65,8 @@ function Usage({ used, capacity }: { used: number; capacity: number | null }) {
     );
 }
 
+const levelName: Record<string, string> = { pre_primary: 'Pre-primary', primary: 'Primary', o_level: 'O-Level', a_level: 'A-Level' };
+
 export default function Classes({ classes, teachers, levels, combinations }: { classes: ClassRow[]; teachers: Option[]; levels: Option[]; combinations: Option[] }) {
     const can = useCan();
     const manage = can('academics.manage');
@@ -97,7 +99,8 @@ export default function Classes({ classes, teachers, levels, combinations }: { c
                       name: '',
                       code: '',
                       level: String((classes.at(-1)?.level ?? 0) + 1),
-                      education_level: (classes.at(-1)?.level ?? 0) >= 4 ? 'a_level' : 'o_level',
+                      // Continue the level of the last class (e.g. Standard IV → Standard V stays Primary).
+                      education_level: classes.at(-1)?.education_level ?? String(levels[0]?.value ?? 'o_level'),
                       capacity: '',
                       streams: 'A, B',
                   },
@@ -186,7 +189,7 @@ export default function Classes({ classes, teachers, levels, combinations }: { c
                                         <div className="text-xs font-semibold tracking-wide uppercase opacity-80">
                                             Level {c.level}
                                             {c.code ? ` · ${c.code}` : ''}
-                                            <span className="ms-2 rounded bg-white/25 px-1.5 py-0.5 normal-case">{c.education_level === 'a_level' ? 'A-Level' : 'O-Level'}</span>
+                                            <span className="ms-2 rounded bg-white/25 px-1.5 py-0.5 normal-case">{levelName[c.education_level] ?? c.education_level}</span>
                                         </div>
                                         <h5 className="text-xl font-extrabold">{c.name}</h5>
                                     </div>

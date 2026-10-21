@@ -19,6 +19,10 @@ export type CurrentSchool = {
     tenant: string | null;
     tenant_status: string | null;
     plan: string | null;
+    /** nursery | primary | secondary | combined */
+    level: string;
+    /** Education levels taught: pre_primary | primary | o_level | a_level */
+    levels: string[];
 };
 
 export type SharedProps = {
